@@ -4,7 +4,7 @@ terraform {
     logtail = {
       source = "registry.terraform.io/betterstack/logtail"
       # https://github.com/betterstackhq/terraform-provider-logtail/blob/master/CHANGELOG.md
-      version = ">= 0.0.0"
+      version = "0.0.0-0"
     }
   }
 }
