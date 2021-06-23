@@ -38,7 +38,7 @@ help:
 	@echo "  # terraform {"
 	@echo "  #   required_providers {"
 	@echo "  #     custom = {"
-	@echo "  #       source = \"registry.terraform.io/betterstack/logtail\""
+	@echo "  #       source = \"registry.terraform.io/BetterStackHQ/logtail\""
 	@echo "  #       version = \"0.0.0-0\""
 	@echo "  #     }"
 	@echo "  #   }"
@@ -96,12 +96,12 @@ build:
 	go build -gcflags "all=-N -l" -ldflags "-X main.version=0.0.0-0"
 
 install: build
-	PLUGIN_DIR="$$HOME/.terraform.d/plugins/registry.terraform.io/betterstack/logtail/0.0.0-0/$$(go env GOOS)_$$(go env GOARCH)" && \
+	PLUGIN_DIR="$$HOME/.terraform.d/plugins/registry.terraform.io/BetterStackHQ/logtail/0.0.0-0/$$(go env GOOS)_$$(go env GOARCH)" && \
 		mkdir -p "$$PLUGIN_DIR" && \
 		cp terraform-provider-logtail "$$PLUGIN_DIR/"
 
 uninstall:
-	rm -rf "$$HOME/.terraform.d/plugins/registry.terraform.io/betterstack/logtail/0.0.0-0"
+	rm -rf "$$HOME/.terraform.d/plugins/registry.terraform.io/BetterStackHQ/logtail/0.0.0-0"
 
 debug: build
 # https://github.com/go-delve/delve/blob/master/Documentation/installation/README.md

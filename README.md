@@ -9,7 +9,7 @@ terraform {
   required_version = ">= 0.13"
   required_providers {
     logtail = {
-      source = "betterstack/logtail"
+      source = "BetterStackHQ/logtail"
       version = ">= 0.1.0"
     }
   }
@@ -36,7 +36,7 @@ output "logtail_source_token" {
 
 ## Documentation
 
-See Terraform Registry [docs](https://registry.terraform.io/providers/betterstack/logtail/latest/docs).
+See Terraform Registry [docs](https://registry.terraform.io/providers/BetterStackHQ/logtail/latest/docs).
 
 ## Development
 

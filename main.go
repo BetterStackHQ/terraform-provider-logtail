@@ -48,7 +48,7 @@ func main() {
 	}}
 
 	if debugMode {
-		err := plugin.Debug(context.Background(), "registry.terraform.io/betterstack/logtail", opts)
+		err := plugin.Debug(context.Background(), "registry.terraform.io/BetterStackHQ/logtail", opts)
 		if err != nil {
 			log.Fatal(err.Error())
 		}
