@@ -34,7 +34,7 @@ func newSourceDataSource() *schema.Resource {
 	}
 	return &schema.Resource{
 		ReadContext: sourceLookup,
-		Description: "Source lookup.",
+		Description: "This Data Source allows you to look up existing Logtail Sources using their table name. The table name is shown on the Source settings page on Logtail.com or you can list all your existing sources via the [Sources API](https://docs.logtail.com/api/sources-api#get-sources).",
 		Schema:      s,
 	}
 }

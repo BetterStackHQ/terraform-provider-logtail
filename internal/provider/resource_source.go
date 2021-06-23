@@ -36,7 +36,7 @@ var sourceSchema = map[string]*schema.Schema{
 		Computed:    true,
 	},
 	"platform": {
-		Description: strings.ReplaceAll(`Valid values:
+		Description: strings.ReplaceAll(`The platform of this source. This value can be set only when you're creating a new source. You can't update this value later. Valid values are:
     **kubernetes**
 	**docker**
 	**ruby**
@@ -83,7 +83,7 @@ var sourceSchema = map[string]*schema.Schema{
 		},
 	},
 	"ingesting_paused": {
-		Description: "Allows you to temporarily pause accepting data for this source (e.g., when you are near your plan's usage quota).",
+		Description: "This proparty allows you to temporarily pause data ingesting for this source (e.g., when you are reaching your plan's usage quota and you want to prioritize some sources over others).",
 		Type:        schema.TypeBool,
 		Optional:    true,
 	},
@@ -98,7 +98,7 @@ func newSourceResource() *schema.Resource {
 		Importer: &schema.ResourceImporter{
 			StateContext: schema.ImportStatePassthroughContext,
 		},
-		Description: "https://docs.logtail.com/api/sources-api",
+		Description: "This resource allows you to create, modify, and delete Logtail Sources. For more information about the Sources API check https://docs.logtail.com/api/sources-api",
 		Schema:      sourceSchema,
 	}
 }

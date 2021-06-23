@@ -1,0 +1,30 @@
+---
+layout: ""
+page_title: "Provider: Logtail"
+description: |-
+  The Logtail provider.
+---
+
+# Logtail Provider
+
+The [Logtail](https://logtail.com) provider provides resources to interact with the [Logtail API](https://docs.logtail.com/api/getting-started).
+
+## Example Usage
+
+```terraform
+provider "logtail" {
+  # `api_token` can be omitted if LOGTAIL_API_TOKEN env var is set.
+  api_token = "XXXXXXXXXXXXXXXXXXXXXXXX"
+}
+
+resource "logtail_source" "this" {
+  name     = "Production Server"
+  platform = "ubuntu"
+}
+
+output "logtail_source_token" {
+  value = logtail_source.this.token
+}
+```
+
+{{ .SchemaMarkdown | trimspace }}
