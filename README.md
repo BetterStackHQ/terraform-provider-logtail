@@ -48,3 +48,7 @@ git clone https://github.com/betterstackhq/terraform-provider-logtail && \
 
 make help
 ```
+
+## Releasing New Versions
+
+Simply push a new tag `vX.Y.Z` to GitHub and a new version will be built and released automatically through a GitHub action.

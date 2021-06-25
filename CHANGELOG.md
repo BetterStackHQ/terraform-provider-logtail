@@ -6,10 +6,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.4]
+- Minor changes in the plugin internals
+
 ## [0.1.3]
 ### Added
 - Resource "Sources"
 - Data Source "Sources"
 
-[Unreleased]: https://github.com/betterstackhq/terraform-provider-logtail/compare/v0.1.3...HEAD
+[Unreleased]: https://github.com/betterstackhq/terraform-provider-logtail/compare/v0.1.4...HEAD
+[0.1.4]: https://github.com/betterstackhq/terraform-provider-logtail/compare/v0.1.3...v0.1.4
 [0.1.3]: https://github.com/betterstackhq/terraform-provider-logtail/releases/tag/v0.1.3
