@@ -44,6 +44,7 @@ This resource allows you to create, modify, and delete Logtail Sources. For more
 	`cloudflare_worker`
 	`flights`
 	`dokku`
+	`fly_io`
 
 ### Optional
 

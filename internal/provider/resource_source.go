@@ -12,7 +12,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
-var platformTypes = []string{"kubernetes", "docker", "ruby", "python", "javascript", "node", "logstash", "fluentbit", "fluentd", "rsyslog", "syslog-ng", "http", "vector", "heroku", "heroku_addon", "ubuntu", "apache2", "nginx", "postgresql", "mysql", "mongodb", "redis", "cloudflare_worker", "flights", "dokku"}
+var platformTypes = []string{"kubernetes", "docker", "ruby", "python", "javascript", "node", "logstash", "fluentbit", "fluentd", "rsyslog", "syslog-ng", "http", "vector", "heroku", "heroku_addon", "ubuntu", "apache2", "nginx", "postgresql", "mysql", "mongodb", "redis", "cloudflare_worker", "flights", "dokku", "fly_io"}
 
 var sourceSchema = map[string]*schema.Schema{
 	"id": {
@@ -61,7 +61,9 @@ var sourceSchema = map[string]*schema.Schema{
 	**redis**
 	**cloudflare_worker**
 	**flights**
-	**dokku**`, "**", "`"),
+	**dokku**
+	**fly_io**`,
+	"**", "`"),
 		Type:     schema.TypeString,
 		Required: true,
 		ForceNew: true,

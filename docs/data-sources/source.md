@@ -50,6 +50,7 @@ This Data Source allows you to look up existing Logtail Sources using their tabl
 	`cloudflare_worker`
 	`flights`
 	`dokku`
+	`fly_io`
 - **token** (String) The token of this source. This token is used to identify and route the data you will send to Logtail.
 
 
