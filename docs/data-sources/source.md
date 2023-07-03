@@ -17,39 +17,44 @@ This Data Source allows you to look up existing Logtail Sources using their tabl
 
 ### Required
 
-- **table_name** (String) The table name generated for this source.
+- `table_name` (String) The table name generated for this source.
 
 ### Read-Only
 
-- **id** (String) The ID of this source.
-- **ingesting_paused** (Boolean) This proparty allows you to temporarily pause data ingesting for this source (e.g., when you are reaching your plan's usage quota and you want to prioritize some sources over others).
-- **name** (String) The name of this source.
-- **platform** (String) The platform of this source. This value can be set only when you're creating a new source. You can't update this value later. Valid values are:
-    `kubernetes`
-	`docker`
-	`ruby`
-	`python`
-	`javascript`
-	`node`
-	`logstash`
-	`fluentbit`
-	`fluentd`
-	`rsyslog`
-	`syslog-ng`
-	`http`
-	`vector`
-	`heroku`
-	`heroku_addon`
-	`ubuntu`
-	`apache2`
-	`nginx`
-	`postgresql`
-	`mysql`
-	`mongodb`
-	`redis`
-	`cloudflare_worker`
-	`flights`
-	`dokku`
-- **token** (String) The token of this source. This token is used to identify and route the data you will send to Logtail.
-
-
+- `id` (String) The ID of this source.
+- `ingesting_paused` (Boolean) This proparty allows you to temporarily pause data ingesting for this source (e.g., when you are reaching your plan's usage quota and you want to prioritize some sources over others).
+- `name` (String) The name of this source.
+- `platform` (String) The platform of this source. This value can be set only when you're creating a new source. You can't update this value later. Valid values are:
+    - `apache2`
+    - `aws_ecs`
+    - `cloudflare_worker`
+    - `datadog_agent`
+    - `docker`
+    - `dokku`
+    - `dotnet`
+    - `flights`
+    - `fluentbit`
+    - `fluentd`
+    - `fly_io`
+    - `heroku`
+    - `http`
+    - `java`
+    - `javascript`
+    - `kubernetes`
+    - `logstash`
+    - `mongodb`
+    - `mysql`
+    - `nginx`
+    - `php`
+    - `postgresql`
+    - `prometheus`
+    - `python`
+    - `redis`
+    - `render`
+    - `rsyslog`
+    - `ruby`
+    - `syslog-ng`
+    - `ubuntu`
+    - `vector`
+    - `vercel_integration`
+- `token` (String) The token of this source. This token is used to identify and route the data you will send to Logtail.

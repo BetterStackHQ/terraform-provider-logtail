@@ -32,4 +32,4 @@ output "logtail_source_token" {
 
 ### Required
 
-- **api_token** (String, Sensitive) Logtail API Token. The value can be omitted if `LOGTAIL_API_TOKEN` environment variable is set. See https://docs.logtail.com/api/getting-started#obtaining-an-api-token on how to obtain the API token for your team.
+- `api_token` (String, Sensitive) Logtail API Token. The value can be omitted if `LOGTAIL_API_TOKEN` environment variable is set. See https://docs.logtail.com/api/getting-started#obtaining-an-api-token on how to obtain the API token for your team.
