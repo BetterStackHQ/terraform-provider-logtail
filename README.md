@@ -1,6 +1,6 @@
 # terraform-provider-logtail
 
-Terraform (0.13+) provider for [Logtail.com](https://logtail.com).
+Terraform (0.13+) provider for [Better Stack Logs](https://betterstack.com/logs) (formerly *Logtail.com*).
 
 ## Installation
 
