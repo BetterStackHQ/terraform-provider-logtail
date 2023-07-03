@@ -17,8 +17,8 @@ This resource allows you to create, modify, and delete Logtail Sources. For more
 
 ### Required
 
-- `name` (String) The name of this source.
-- `platform` (String) The platform of this source. This value can be set only when you're creating a new source. You can't update this value later. Valid values are:
+- **name** (String) The name of this source.
+- **platform** (String) The platform of this source. This value can be set only when you're creating a new source. You can't update this value later. Valid values are:
     - `apache2`
     - `aws_ecs`
     - `cloudflare_worker`
@@ -54,10 +54,12 @@ This resource allows you to create, modify, and delete Logtail Sources. For more
 
 ### Optional
 
-- `ingesting_paused` (Boolean) This proparty allows you to temporarily pause data ingesting for this source (e.g., when you are reaching your plan's usage quota and you want to prioritize some sources over others).
+- **ingesting_paused** (Boolean) This proparty allows you to temporarily pause data ingesting for this source (e.g., when you are reaching your plan's usage quota and you want to prioritize some sources over others).
 
 ### Read-Only
 
-- `id` (String) The ID of this source.
-- `table_name` (String) The table name generated for this source.
-- `token` (String) The token of this source. This token is used to identify and route the data you will send to Logtail.
+- **id** (String) The ID of this source.
+- **table_name** (String) The table name generated for this source.
+- **token** (String) The token of this source. This token is used to identify and route the data you will send to Logtail.
+
+

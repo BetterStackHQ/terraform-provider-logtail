@@ -17,14 +17,14 @@ This Data Source allows you to look up existing Logtail Sources using their tabl
 
 ### Required
 
-- `table_name` (String) The table name generated for this source.
+- **table_name** (String) The table name generated for this source.
 
 ### Read-Only
 
-- `id` (String) The ID of this source.
-- `ingesting_paused` (Boolean) This proparty allows you to temporarily pause data ingesting for this source (e.g., when you are reaching your plan's usage quota and you want to prioritize some sources over others).
-- `name` (String) The name of this source.
-- `platform` (String) The platform of this source. This value can be set only when you're creating a new source. You can't update this value later. Valid values are:
+- **id** (String) The ID of this source.
+- **ingesting_paused** (Boolean) This proparty allows you to temporarily pause data ingesting for this source (e.g., when you are reaching your plan's usage quota and you want to prioritize some sources over others).
+- **name** (String) The name of this source.
+- **platform** (String) The platform of this source. This value can be set only when you're creating a new source. You can't update this value later. Valid values are:
     - `apache2`
     - `aws_ecs`
     - `cloudflare_worker`
@@ -57,4 +57,6 @@ This Data Source allows you to look up existing Logtail Sources using their tabl
     - `ubuntu`
     - `vector`
     - `vercel_integration`
-- `token` (String) The token of this source. This token is used to identify and route the data you will send to Logtail.
+- **token** (String) The token of this source. This token is used to identify and route the data you will send to Logtail.
+
+
