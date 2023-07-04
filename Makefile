@@ -1,5 +1,5 @@
 SHELL := /bin/bash
-GOLANGCI_LINT := golangci-lint run --disable-all \
+GOLANGCI_LINT := golangci-lint run --timeout=2m --disable-all \
 	-E deadcode \
 	-E errcheck \
 	-E goimports \
