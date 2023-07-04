@@ -19,31 +19,38 @@ This resource allows you to create, modify, and delete Logtail Sources. For more
 
 - **name** (String) The name of this source.
 - **platform** (String) The platform of this source. This value can be set only when you're creating a new source. You can't update this value later. Valid values are:
-    `kubernetes`
-	`docker`
-	`ruby`
-	`python`
-	`javascript`
-	`node`
-	`logstash`
-	`fluentbit`
-	`fluentd`
-	`rsyslog`
-	`syslog-ng`
-	`http`
-	`vector`
-	`heroku`
-	`heroku_addon`
-	`ubuntu`
-	`apache2`
-	`nginx`
-	`postgresql`
-	`mysql`
-	`mongodb`
-	`redis`
-	`cloudflare_worker`
-	`flights`
-	`dokku`
+    - `apache2`
+    - `aws_ecs`
+    - `cloudflare_worker`
+    - `datadog_agent`
+    - `docker`
+    - `dokku`
+    - `dotnet`
+    - `flights`
+    - `fluentbit`
+    - `fluentd`
+    - `fly_io`
+    - `heroku`
+    - `http`
+    - `java`
+    - `javascript`
+    - `kubernetes`
+    - `logstash`
+    - `mongodb`
+    - `mysql`
+    - `nginx`
+    - `php`
+    - `postgresql`
+    - `prometheus`
+    - `python`
+    - `redis`
+    - `render`
+    - `rsyslog`
+    - `ruby`
+    - `syslog-ng`
+    - `ubuntu`
+    - `vector`
+    - `vercel_integration`
 
 ### Optional
 
