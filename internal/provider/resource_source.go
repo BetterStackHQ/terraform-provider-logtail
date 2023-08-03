@@ -12,7 +12,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
-var platformTypes = []string{"apache2", "aws_ecs", "cloudflare_worker", "datadog_agent", "docker", "dokku", "dotnet", "flights", "fluentbit", "fluentd", "fly_io", "heroku", "http", "java", "javascript", "kubernetes", "logstash", "mongodb", "mysql", "nginx", "php", "postgresql", "prometheus", "python", "redis", "render", "rsyslog", "ruby", "syslog-ng", "ubuntu", "vector", "vercel_integration"}
+var platformTypes = []string{"apache2", "aws_ecs", "cloudflare_worker", "datadog_agent", "docker", "dokku", "dotnet", "fluentbit", "fluentd", "fly_io", "heroku", "http", "java", "javascript", "kubernetes", "logstash", "mongodb", "mysql", "nginx", "open_telemetry", "php", "postgresql", "python", "redis", "render", "rsyslog", "ruby", "syslog-ng", "ubuntu", "vector", "vercel_integration"}
 
 var sourceSchema = map[string]*schema.Schema{
 	"id": {
@@ -44,7 +44,6 @@ var sourceSchema = map[string]*schema.Schema{
     - **docker**
     - **dokku**
     - **dotnet**
-    - **flights**
     - **fluentbit**
     - **fluentd**
     - **fly_io**
@@ -57,9 +56,9 @@ var sourceSchema = map[string]*schema.Schema{
     - **mongodb**
     - **mysql**
     - **nginx**
+    - **open_telemetry**
     - **php**
     - **postgresql**
-    - **prometheus**
     - **python**
     - **redis**
     - **render**

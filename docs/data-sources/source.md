@@ -32,7 +32,6 @@ This Data Source allows you to look up existing Logtail Sources using their tabl
     - `docker`
     - `dokku`
     - `dotnet`
-    - `flights`
     - `fluentbit`
     - `fluentd`
     - `fly_io`
@@ -45,9 +44,9 @@ This Data Source allows you to look up existing Logtail Sources using their tabl
     - `mongodb`
     - `mysql`
     - `nginx`
+    - `open_telemetry`
     - `php`
     - `postgresql`
-    - `prometheus`
     - `python`
     - `redis`
     - `render`
