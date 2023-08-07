@@ -53,7 +53,7 @@ This resource allows you to create, modify, and delete Logtail Sources. For more
 
 ### Optional
 
-- **ingesting_paused** (Boolean) This proparty allows you to temporarily pause data ingesting for this source (e.g., when you are reaching your plan's usage quota and you want to prioritize some sources over others).
+- **ingesting_paused** (Boolean) This property allows you to temporarily pause data ingesting for this source (e.g., when you are reaching your plan's usage quota and you want to prioritize some sources over others).
 
 ### Read-Only
 

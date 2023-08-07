@@ -89,7 +89,7 @@ var sourceSchema = map[string]*schema.Schema{
 		},
 	},
 	"ingesting_paused": {
-		Description: "This proparty allows you to temporarily pause data ingesting for this source (e.g., when you are reaching your plan's usage quota and you want to prioritize some sources over others).",
+		Description: "This property allows you to temporarily pause data ingesting for this source (e.g., when you are reaching your plan's usage quota and you want to prioritize some sources over others).",
 		Type:        schema.TypeBool,
 		Optional:    true,
 	},

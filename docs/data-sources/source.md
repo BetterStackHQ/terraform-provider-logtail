@@ -22,7 +22,7 @@ This Data Source allows you to look up existing Logtail Sources using their tabl
 ### Read-Only
 
 - **id** (String) The ID of this source.
-- **ingesting_paused** (Boolean) This proparty allows you to temporarily pause data ingesting for this source (e.g., when you are reaching your plan's usage quota and you want to prioritize some sources over others).
+- **ingesting_paused** (Boolean) This property allows you to temporarily pause data ingesting for this source (e.g., when you are reaching your plan's usage quota and you want to prioritize some sources over others).
 - **name** (String) The name of this source.
 - **platform** (String) The platform of this source. This value can be set only when you're creating a new source. You can't update this value later. Valid values are:
     - `apache2`
