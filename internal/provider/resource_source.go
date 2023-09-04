@@ -38,8 +38,8 @@ var sourceSchema = map[string]*schema.Schema{
 	"platform": {
 		Description: strings.ReplaceAll(`The platform of this source. This value can be set only when you're creating a new source. You can't update this value later. Valid values are:
     - **apache2**
-    - **aws_ecs**
     - **aws_cloudwatch**
+    - **aws_ecs**
     - **cloudflare_worker**
     - **datadog_agent**
     - **docker**
