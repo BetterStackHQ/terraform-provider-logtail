@@ -20,6 +20,7 @@ This resource allows you to create, modify, and delete Logtail Sources. For more
 - **name** (String) The name of this source.
 - **platform** (String) The platform of this source. This value can be set only when you're creating a new source. You can't update this value later. Valid values are:
     - `apache2`
+    - `aws_cloudwatch`
     - `aws_ecs`
     - `cloudflare_worker`
     - `datadog_agent`

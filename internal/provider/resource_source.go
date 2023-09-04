@@ -12,7 +12,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
-var platformTypes = []string{"apache2", "aws_ecs", "cloudflare_worker", "datadog_agent", "docker", "dokku", "dotnet", "fluentbit", "fluentd", "fly_io", "heroku", "http", "java", "javascript", "kubernetes", "logstash", "mongodb", "mysql", "nginx", "open_telemetry", "php", "postgresql", "python", "redis", "render", "rsyslog", "ruby", "syslog-ng", "ubuntu", "vector", "vercel_integration"}
+var platformTypes = []string{"apache2", "aws_cloudwatch", "aws_ecs", "cloudflare_worker", "datadog_agent", "docker", "dokku", "dotnet", "fluentbit", "fluentd", "fly_io", "heroku", "http", "java", "javascript", "kubernetes", "logstash", "mongodb", "mysql", "nginx", "open_telemetry", "php", "postgresql", "python", "redis", "render", "rsyslog", "ruby", "syslog-ng", "ubuntu", "vector", "vercel_integration"}
 
 var sourceSchema = map[string]*schema.Schema{
 	"id": {
@@ -38,6 +38,7 @@ var sourceSchema = map[string]*schema.Schema{
 	"platform": {
 		Description: strings.ReplaceAll(`The platform of this source. This value can be set only when you're creating a new source. You can't update this value later. Valid values are:
     - **apache2**
+    - **aws_cloudwatch**
     - **aws_ecs**
     - **cloudflare_worker**
     - **datadog_agent**
