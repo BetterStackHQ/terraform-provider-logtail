@@ -31,6 +31,7 @@ This resource allows you to create, modify, and delete Logtail Sources. For more
     - `fluentbit`
     - `fluentd`
     - `fly_io`
+    - `haproxy`
     - `heroku`
     - `http`
     - `java`

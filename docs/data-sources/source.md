@@ -37,6 +37,7 @@ This Data Source allows you to look up existing Logtail Sources using their tabl
     - `fluentbit`
     - `fluentd`
     - `fly_io`
+    - `haproxy`
     - `heroku`
     - `http`
     - `java`
