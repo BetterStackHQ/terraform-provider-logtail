@@ -45,6 +45,7 @@ This resource allows you to create, modify, and delete Logtail Sources. For more
     - `open_telemetry`
     - `php`
     - `postgresql`
+    - `prometheus`
     - `python`
     - `redis`
     - `render`

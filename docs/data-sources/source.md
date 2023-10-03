@@ -51,6 +51,7 @@ This Data Source allows you to look up existing Logtail Sources using their tabl
     - `open_telemetry`
     - `php`
     - `postgresql`
+    - `prometheus`
     - `python`
     - `redis`
     - `render`
