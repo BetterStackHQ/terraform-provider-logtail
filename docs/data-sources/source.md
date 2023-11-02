@@ -45,6 +45,7 @@ This Data Source allows you to look up existing Logtail Sources using their tabl
     - `javascript`
     - `kubernetes`
     - `logstash`
+    - `minio`
     - `mongodb`
     - `mysql`
     - `nginx`
@@ -53,11 +54,13 @@ This Data Source allows you to look up existing Logtail Sources using their tabl
     - `postgresql`
     - `prometheus`
     - `python`
+    - `rabbitmq`
     - `redis`
     - `render`
     - `rsyslog`
     - `ruby`
     - `syslog-ng`
+    - `traefik`
     - `ubuntu`
     - `vector`
     - `vercel_integration`

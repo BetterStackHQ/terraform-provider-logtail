@@ -12,7 +12,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
-var platformTypes = []string{"apache2", "aws_cloudwatch", "aws_ecs", "aws_fargate", "cloudflare_worker", "datadog_agent", "docker", "dokku", "dotnet", "filebeat", "fluentbit", "fluentd", "fly_io", "haproxy", "heroku", "http", "java", "javascript", "kubernetes", "logstash", "mongodb", "mysql", "nginx", "open_telemetry", "php", "postgresql", "prometheus", "python", "redis", "render", "rsyslog", "ruby", "syslog-ng", "ubuntu", "vector", "vercel_integration"}
+var platformTypes = []string{"apache2", "aws_cloudwatch", "aws_ecs", "aws_fargate", "cloudflare_worker", "datadog_agent", "docker", "dokku", "dotnet", "filebeat", "fluentbit", "fluentd", "fly_io", "haproxy", "heroku", "http", "java", "javascript", "kubernetes", "logstash", "minio", "mongodb", "mysql", "nginx", "open_telemetry", "php", "postgresql", "prometheus", "python", "rabbitmq", "redis", "render", "rsyslog", "ruby", "syslog-ng", "traefik", "ubuntu", "vector", "vercel_integration"}
 
 var sourceSchema = map[string]*schema.Schema{
 	"id": {
@@ -57,6 +57,7 @@ var sourceSchema = map[string]*schema.Schema{
     - **javascript**
     - **kubernetes**
     - **logstash**
+    - **minio**
     - **mongodb**
     - **mysql**
     - **nginx**
@@ -65,11 +66,13 @@ var sourceSchema = map[string]*schema.Schema{
     - **postgresql**
     - **prometheus**
     - **python**
+    - **rabbitmq**
     - **redis**
     - **render**
     - **rsyslog**
     - **ruby**
     - **syslog-ng**
+    - **traefik**
     - **ubuntu**
     - **vector**
     - **vercel_integration**`, "**", "`"),

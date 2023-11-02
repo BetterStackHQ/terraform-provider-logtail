@@ -39,6 +39,7 @@ This resource allows you to create, modify, and delete Logtail Sources. For more
     - `javascript`
     - `kubernetes`
     - `logstash`
+    - `minio`
     - `mongodb`
     - `mysql`
     - `nginx`
@@ -47,11 +48,13 @@ This resource allows you to create, modify, and delete Logtail Sources. For more
     - `postgresql`
     - `prometheus`
     - `python`
+    - `rabbitmq`
     - `redis`
     - `render`
     - `rsyslog`
     - `ruby`
     - `syslog-ng`
+    - `traefik`
     - `ubuntu`
     - `vector`
     - `vercel_integration`
