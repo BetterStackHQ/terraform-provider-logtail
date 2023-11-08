@@ -34,6 +34,7 @@ This Data Source allows you to look up existing Logtail Sources using their tabl
     - `docker`
     - `dokku`
     - `dotnet`
+    - `elasticsearch`
     - `filebeat`
     - `fluentbit`
     - `fluentd`
