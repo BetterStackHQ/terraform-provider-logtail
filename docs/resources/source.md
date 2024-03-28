@@ -22,6 +22,7 @@ This resource allows you to create, modify, and delete Logtail Sources. For more
     - `apache2`
     - `aws_cloudwatch`
     - `aws_ecs`
+    - `aws_elb`
     - `aws_fargate`
     - `cloudflare_worker`
     - `datadog_agent`
