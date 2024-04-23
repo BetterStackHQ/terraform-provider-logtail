@@ -30,6 +30,7 @@ This Data Source allows you to look up existing Logtail Sources using their tabl
     - `aws_ecs`
     - `aws_elb`
     - `aws_fargate`
+    - `cloudflare_logpush`
     - `cloudflare_worker`
     - `datadog_agent`
     - `docker`
