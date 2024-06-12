@@ -9,6 +9,20 @@ description: |-
 
 The [Logtail](https://logtail.com) provider provides resources to interact with the [Logtail API](https://docs.logtail.com/api/getting-started).
 
+## Installation
+
+```terraform
+terraform {
+  required_version = ">= 0.13"
+  required_providers {
+    logtail = {
+      source  = "BetterStackHQ/logtail"
+      version = ">= 0.1.0"
+    }
+  }
+}
+```
+
 ## Example Usage
 
 ```terraform
