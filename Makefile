@@ -1,5 +1,5 @@
 SHELL := /bin/bash
-GOLANGCI_LINT := golangci-lint run --timeout=2m --disable-all \
+GOLANGCI_LINT := golangci-lint run --disable-all \
 	-E deadcode \
 	-E errcheck \
 	-E goimports \
@@ -12,6 +12,7 @@ GOLANGCI_LINT := golangci-lint run --timeout=2m --disable-all \
 	-E typecheck \
 	-E unused \
 	-E varcheck
+VERSION := 0.1.16
 .PHONY: test build
 
 help:
@@ -54,7 +55,7 @@ clean:
 	rm -rf release/
 
 lint-init:
-	@test -n "$$(which golangci-lint)" || (curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $$(go env GOPATH)/bin v1.53.3)
+	@test -n "$$(which golangci-lint)" || (curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $$(go env GOPATH)/bin v1.46.2)
 
 lint: lint-init
 	$(GOLANGCI_LINT)
@@ -93,15 +94,15 @@ terraform: install
 
 build:
 # -gcflags "all=-N -l" is here for delve (`go tool compile -help` for more)
-	go build -gcflags "all=-N -l" -ldflags "-X main.version=0.0.0-0"
+	go build -gcflags "all=-N -l" -ldflags "-X main.version=$(VERSION)"
 
 install: build
-	PLUGIN_DIR="$$HOME/.terraform.d/plugins/registry.terraform.io/BetterStackHQ/logtail/0.0.0-0/$$(go env GOOS)_$$(go env GOARCH)" && \
+	PLUGIN_DIR="$$HOME/.terraform.d/plugins/registry.terraform.io/BetterStackHQ/logtail/$(VERSION)/$$(go env GOOS)_$$(go env GOARCH)" && \
 		mkdir -p "$$PLUGIN_DIR" && \
 		cp terraform-provider-logtail "$$PLUGIN_DIR/"
 
 uninstall:
-	rm -rf "$$HOME/.terraform.d/plugins/registry.terraform.io/BetterStackHQ/logtail/0.0.0-0"
+	rm -rf "$$HOME/.terraform.d/plugins/registry.terraform.io/BetterStackHQ/logtail/$(VERSION)"
 
 debug: build
 # https://github.com/go-delve/delve/blob/master/Documentation/installation/README.md

@@ -2,9 +2,8 @@ terraform {
   required_version = ">= 0.13"
   required_providers {
     logtail = {
-      source = "registry.terraform.io/BetterStackHQ/logtail"
-      # https://github.com/betterstackhq/terraform-provider-logtail/blob/master/CHANGELOG.md
-      version = "0.0.0-0"
+      source  = "BetterStackHQ/logtail"
+      version = ">= 0.1.0"
     }
   }
 }
