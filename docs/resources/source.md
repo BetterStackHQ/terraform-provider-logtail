@@ -32,6 +32,7 @@ This resource allows you to create, modify, and delete Logtail Sources. For more
     - `dotnet`
     - `elasticsearch`
     - `filebeat`
+    - `flights`
     - `fluentbit`
     - `fluentd`
     - `fly_io`
