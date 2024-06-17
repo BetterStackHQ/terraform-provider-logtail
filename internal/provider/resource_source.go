@@ -50,6 +50,7 @@ var sourceSchema = map[string]*schema.Schema{
     - **dotnet**
     - **elasticsearch**
     - **filebeat**
+    - **flights**
     - **fluentbit**
     - **fluentd**
     - **fly_io**

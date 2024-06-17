@@ -38,6 +38,7 @@ This Data Source allows you to look up existing Logtail Sources using their tabl
     - `dotnet`
     - `elasticsearch`
     - `filebeat`
+    - `flights`
     - `fluentbit`
     - `fluentd`
     - `fly_io`
