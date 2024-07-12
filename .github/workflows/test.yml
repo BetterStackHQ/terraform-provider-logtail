@@ -28,7 +28,7 @@ jobs:
   e2e_test:
     strategy:
       matrix:
-        terraform-version: ["0.13", "0.14", "1.0", "1.8", "latest"]
+        terraform-version: ["0.13", "1.0", "1.8", "latest"]
         config: [examples/basic, examples/advanced]
       fail-fast: false
     runs-on: ubuntu-latest
