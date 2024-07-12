@@ -3,6 +3,6 @@ provider "logtail" {
 }
 
 resource "logtail_source" "this" {
-  name     = "Terraform Source"
+  name     = "Terraform Basic Source"
   platform = "http"
 }
