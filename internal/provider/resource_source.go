@@ -3,7 +3,6 @@ package provider
 import (
 	"context"
 	"fmt"
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 	"net/url"
 	"reflect"
 	"strings"
@@ -11,6 +10,7 @@ import (
 	"github.com/hashicorp/go-cty/cty"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 )
 
 var platformTypes = []string{"apache2", "aws_cloudwatch", "aws_ecs", "aws_elb", "aws_fargate", "cloudflare_logpush", "cloudflare_worker", "datadog_agent", "docker", "dokku", "dotnet", "elasticsearch", "filebeat", "fluentbit", "fluentd", "fly_io", "haproxy", "heroku", "http", "java", "javascript", "kubernetes", "logstash", "minio", "mongodb", "mysql", "nginx", "open_telemetry", "php", "postgresql", "prometheus", "python", "rabbitmq", "redis", "render", "rsyslog", "ruby", "syslog-ng", "traefik", "ubuntu", "vector", "vercel_integration"}
