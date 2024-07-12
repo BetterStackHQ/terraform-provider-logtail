@@ -25,6 +25,7 @@ func newSourceDataSource() *schema.Resource {
 			cp.Computed = true
 			cp.Optional = false
 			cp.Required = false
+			cp.ValidateFunc = nil
 			cp.ValidateDiagFunc = nil
 			cp.Default = nil
 			cp.DefaultFunc = nil
