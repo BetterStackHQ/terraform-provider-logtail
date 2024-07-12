@@ -10,14 +10,25 @@ import (
 	"github.com/hashicorp/go-cty/cty"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 )
 
 var platformTypes = []string{"apache2", "aws_cloudwatch", "aws_ecs", "aws_elb", "aws_fargate", "cloudflare_logpush", "cloudflare_worker", "datadog_agent", "docker", "dokku", "dotnet", "elasticsearch", "filebeat", "fluentbit", "fluentd", "fly_io", "haproxy", "heroku", "http", "java", "javascript", "kubernetes", "logstash", "minio", "mongodb", "mysql", "nginx", "open_telemetry", "php", "postgresql", "prometheus", "python", "rabbitmq", "redis", "render", "rsyslog", "ruby", "syslog-ng", "traefik", "ubuntu", "vector", "vercel_integration"}
 
 var sourceSchema = map[string]*schema.Schema{
+	"team_name": {
+		Description: "Used to specify the team the resource should be created in when using global tokens.",
+		Type:        schema.TypeString,
+		Optional:    true,
+		Default:     nil,
+		DiffSuppressFunc: func(k, old, new string, d *schema.ResourceData) bool {
+			return d.Id() != ""
+		},
+	},
 	"id": {
 		Description: "The ID of this source.",
 		Type:        schema.TypeString,
+		Optional:    false,
 		Computed:    true,
 	},
 	"name": {
@@ -28,11 +39,13 @@ var sourceSchema = map[string]*schema.Schema{
 	"token": {
 		Description: "The token of this source. This token is used to identify and route the data you will send to Logtail.",
 		Type:        schema.TypeString,
+		Optional:    false,
 		Computed:    true,
 	},
 	"table_name": {
 		Description: "The table name generated for this source.",
 		Type:        schema.TypeString,
+		Optional:    false,
 		Computed:    true,
 	},
 	"platform": {
@@ -104,6 +117,39 @@ var sourceSchema = map[string]*schema.Schema{
 		Description: "This property allows you to temporarily pause data ingesting for this source (e.g., when you are reaching your plan's usage quota and you want to prioritize some sources over others).",
 		Type:        schema.TypeBool,
 		Optional:    true,
+		Computed:    true,
+	},
+	"logs_retention": {
+		Description:  "Data retention for logs in days. There might be additional charges for longer retention.",
+		Type:         schema.TypeInt,
+		Optional:     true,
+		Computed:     true,
+		ValidateFunc: validation.IntBetween(1, 3652), // Must be between 1 day and 10 years
+	},
+	"metrics_retention": {
+		Description:  "Data retention for metrics in days. There might be additional charges for longer retention.",
+		Type:         schema.TypeInt,
+		Optional:     true,
+		Computed:     true,
+		ValidateFunc: validation.IntBetween(1, 3652), // Must be between 1 day and 10 years
+	},
+	"live_tail_pattern": {
+		Description: "Freeform text template for formatting Live tail output with columns wrapped in {column} brackets. Example: \"PID: {message_json.pid} {level} {message}\"",
+		Type:        schema.TypeString,
+		Optional:    true,
+		Computed:    true,
+	},
+	"created_at": {
+		Description: "The time when this monitor group was created.",
+		Type:        schema.TypeString,
+		Optional:    false,
+		Computed:    true,
+	},
+	"updated_at": {
+		Description: "The time when this monitor group was updated.",
+		Type:        schema.TypeString,
+		Optional:    false,
+		Computed:    true,
 	},
 }
 
@@ -122,11 +168,17 @@ func newSourceResource() *schema.Resource {
 }
 
 type source struct {
-	Name            *string `json:"name,omitempty"`
-	Token           *string `json:"token,omitempty"`
-	TableName       *string `json:"table_name,omitempty"`
-	Platform        *string `json:"platform,omitempty"`
-	IngestingPaused *bool   `json:"ingesting_paused,omitempty"`
+	Name             *string `json:"name,omitempty"`
+	Token            *string `json:"token,omitempty"`
+	TableName        *string `json:"table_name,omitempty"`
+	Platform         *string `json:"platform,omitempty"`
+	IngestingPaused  *bool   `json:"ingesting_paused,omitempty"`
+	LogsRetention    *int    `json:"logs_retention,omitempty"`
+	MetricsRetention *int    `json:"metrics_retention,omitempty"`
+	LiveTailPattern  *string `json:"live_tail_pattern,omitempty"`
+	CreatedAt        *string `json:"created_at,omitempty"`
+	UpdatedAt        *string `json:"updated_at,omitempty"`
+	TeamName         *string `json:"team_name,omitempty"`
 }
 
 type sourceHTTPResponse struct {
@@ -149,6 +201,11 @@ func sourceRef(in *source) []struct {
 		{k: "table_name", v: &in.TableName},
 		{k: "platform", v: &in.Platform},
 		{k: "ingesting_paused", v: &in.IngestingPaused},
+		{k: "logs_retention", v: &in.LogsRetention},
+		{k: "metrics_retention", v: &in.MetricsRetention},
+		{k: "live_tail_pattern", v: &in.LiveTailPattern},
+		{k: "created_at", v: &in.CreatedAt},
+		{k: "updated_at", v: &in.UpdatedAt},
 	}
 }
 
@@ -157,6 +214,7 @@ func sourceCreate(ctx context.Context, d *schema.ResourceData, meta interface{})
 	for _, e := range sourceRef(&in) {
 		load(d, e.k, e.v)
 	}
+	load(d, "team_name", &in.TeamName)
 	var out sourceHTTPResponse
 	if err := resourceCreate(ctx, meta, "/api/v1/sources", &in, &out); err != nil {
 		return err

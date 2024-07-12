@@ -108,6 +108,9 @@ func TestResourceSource(t *testing.T) {
 				resource "logtail_source" "this" {
 					name              = "%s"
 					platform          = "%s"
+					logs_retention    = 14
+					metrics_retention = 60
+   					live_tail_pattern = "{level} {message}"
 					ingesting_paused  = true
 				}
 				`, name, platform),
@@ -119,7 +122,7 @@ func TestResourceSource(t *testing.T) {
 					resource.TestCheckResourceAttr("logtail_source.this", "token", "generated_by_logtail"),
 				),
 			},
-			// Step 3 - make no changes, check plan is empty.
+			// Step 3 - make no changes, check plan is empty (omitted attributes are not controlled)
 			{
 				Config: fmt.Sprintf(`
 				provider "logtail" {
@@ -129,7 +132,6 @@ func TestResourceSource(t *testing.T) {
 				resource "logtail_source" "this" {
 					name             = "%s"
 					platform         = "%s"
-					ingesting_paused = true
 				}
 				`, name, platform),
 				PlanOnly: true,

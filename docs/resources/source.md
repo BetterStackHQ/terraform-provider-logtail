@@ -66,11 +66,17 @@ This resource allows you to create, modify, and delete Logtail Sources. For more
 ### Optional
 
 - **ingesting_paused** (Boolean) This property allows you to temporarily pause data ingesting for this source (e.g., when you are reaching your plan's usage quota and you want to prioritize some sources over others).
+- **live_tail_pattern** (String) Freeform text template for formatting Live tail output with columns wrapped in {column} brackets. Example: "PID: {message_json.pid} {level} {message}"
+- **logs_retention** (Number) Data retention for logs in days. There might be additional charges for longer retention.
+- **metrics_retention** (Number) Data retention for metrics in days. There might be additional charges for longer retention.
+- **team_name** (String) Used to specify the team the resource should be created in when using global tokens.
 
 ### Read-Only
 
+- **created_at** (String) The time when this monitor group was created.
 - **id** (String) The ID of this source.
 - **table_name** (String) The table name generated for this source.
 - **token** (String) The token of this source. This token is used to identify and route the data you will send to Logtail.
+- **updated_at** (String) The time when this monitor group was updated.
 
 
