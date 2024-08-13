@@ -1,4 +1,4 @@
-# terraform-provider-logtail
+# terraform-provider-logtail [![build](https://github.com/BetterStackHQ/terraform-provider-logtail/actions/workflows/build.yml/badge.svg?branch=main)](https://github.com/BetterStackHQ/terraform-provider-logtail/actions/workflows/build.yml) [![documentation](https://img.shields.io/badge/-documentation-blue)](https://registry.terraform.io/providers/BetterStackHQ/logtail/latest/docs)
 
 Terraform (0.13+) provider for [Better Stack Logs](https://betterstack.com/logs) (formerly *Logtail.com*).
 
