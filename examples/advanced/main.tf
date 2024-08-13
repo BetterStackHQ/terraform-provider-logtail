@@ -7,6 +7,6 @@ resource "logtail_source" "this" {
   platform          = "http"
   ingesting_paused  = true
   live_tail_pattern = "{level} {message}"
-  logs_retention    = 7
-  metrics_retention = 14
+  logs_retention    = 60
+  metrics_retention = 90
 }
