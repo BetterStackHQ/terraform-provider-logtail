@@ -61,6 +61,7 @@ This Data Source allows you to look up existing Logtail Sources using their tabl
     - `php`
     - `postgresql`
     - `prometheus`
+    - `prometheus_scrape`
     - `python`
     - `rabbitmq`
     - `redis`
@@ -72,6 +73,8 @@ This Data Source allows you to look up existing Logtail Sources using their tabl
     - `ubuntu`
     - `vector`
     - `vercel_integration`
+- **scrape_frequency_secs** (Number) For scrape platform types, how often to scrape the URLs.
+- **scrape_urls** (List of String) For scrape platform types, the set of urls to scrape.
 - **team_name** (String) Used to specify the team the resource should be created in when using global tokens.
 - **token** (String) The token of this source. This token is used to identify and route the data you will send to Logtail.
 - **updated_at** (String) The time when this monitor group was updated.

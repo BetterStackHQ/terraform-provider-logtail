@@ -13,7 +13,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 )
 
-var platformTypes = []string{"apache2", "aws_cloudwatch", "aws_ecs", "aws_elb", "aws_fargate", "cloudflare_logpush", "cloudflare_worker", "datadog_agent", "docker", "dokku", "dotnet", "elasticsearch", "filebeat", "fluentbit", "fluentd", "fly_io", "haproxy", "heroku", "http", "java", "javascript", "kubernetes", "logstash", "minio", "mongodb", "mysql", "nginx", "open_telemetry", "php", "postgresql", "prometheus", "python", "rabbitmq", "redis", "render", "rsyslog", "ruby", "syslog-ng", "traefik", "ubuntu", "vector", "vercel_integration"}
+var platformTypes = []string{"apache2", "aws_cloudwatch", "aws_ecs", "aws_elb", "aws_fargate", "cloudflare_logpush", "cloudflare_worker", "datadog_agent", "docker", "dokku", "dotnet", "elasticsearch", "filebeat", "fluentbit", "fluentd", "fly_io", "haproxy", "heroku", "http", "java", "javascript", "kubernetes", "logstash", "minio", "mongodb", "mysql", "nginx", "open_telemetry", "php", "postgresql", "prometheus", "prometheus_scrape", "python", "rabbitmq", "redis", "render", "rsyslog", "ruby", "syslog-ng", "traefik", "ubuntu", "vector", "vercel_integration"}
 
 var sourceSchema = map[string]*schema.Schema{
 	"team_name": {
@@ -82,6 +82,7 @@ var sourceSchema = map[string]*schema.Schema{
     - **php**
     - **postgresql**
     - **prometheus**
+    - **prometheus_scrape**
     - **python**
     - **rabbitmq**
     - **redis**
@@ -151,6 +152,19 @@ var sourceSchema = map[string]*schema.Schema{
 		Optional:    false,
 		Computed:    true,
 	},
+	"scrape_urls": {
+		Description: "For scrape platform types, the set of urls to scrape.",
+		Type:        schema.TypeList,
+		Optional:    true,
+		Elem: &schema.Schema{
+			Type: schema.TypeString,
+		},
+	},
+	"scrape_frequency_secs": {
+		Description: "For scrape platform types, how often to scrape the URLs.",
+		Type:        schema.TypeInt,
+		Optional:    true,
+	},
 }
 
 func newSourceResource() *schema.Resource {
@@ -168,17 +182,19 @@ func newSourceResource() *schema.Resource {
 }
 
 type source struct {
-	Name             *string `json:"name,omitempty"`
-	Token            *string `json:"token,omitempty"`
-	TableName        *string `json:"table_name,omitempty"`
-	Platform         *string `json:"platform,omitempty"`
-	IngestingPaused  *bool   `json:"ingesting_paused,omitempty"`
-	LogsRetention    *int    `json:"logs_retention,omitempty"`
-	MetricsRetention *int    `json:"metrics_retention,omitempty"`
-	LiveTailPattern  *string `json:"live_tail_pattern,omitempty"`
-	CreatedAt        *string `json:"created_at,omitempty"`
-	UpdatedAt        *string `json:"updated_at,omitempty"`
-	TeamName         *string `json:"team_name,omitempty"`
+	Name                *string   `json:"name,omitempty"`
+	Token               *string   `json:"token,omitempty"`
+	TableName           *string   `json:"table_name,omitempty"`
+	Platform            *string   `json:"platform,omitempty"`
+	IngestingPaused     *bool     `json:"ingesting_paused,omitempty"`
+	LogsRetention       *int      `json:"logs_retention,omitempty"`
+	MetricsRetention    *int      `json:"metrics_retention,omitempty"`
+	LiveTailPattern     *string   `json:"live_tail_pattern,omitempty"`
+	CreatedAt           *string   `json:"created_at,omitempty"`
+	UpdatedAt           *string   `json:"updated_at,omitempty"`
+	TeamName            *string   `json:"team_name,omitempty"`
+	ScrapeURLs          *[]string `json:"scrape_urls,omitempty"`
+	ScrapeFrequencySecs *int      `json:"scrape_frequency_secs,omitempty"`
 }
 
 type sourceHTTPResponse struct {
@@ -206,6 +222,8 @@ func sourceRef(in *source) []struct {
 		{k: "live_tail_pattern", v: &in.LiveTailPattern},
 		{k: "created_at", v: &in.CreatedAt},
 		{k: "updated_at", v: &in.UpdatedAt},
+		{k: "scrape_urls", v: &in.ScrapeURLs},
+		{k: "scrape_frequency_secs", v: &in.ScrapeFrequencySecs},
 	}
 }
 

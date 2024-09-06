@@ -144,6 +144,92 @@ func TestResourceSource(t *testing.T) {
 			},
 		},
 	})
+
+	var platform_scrape = "prometheus_scrape"
+
+	resource.Test(t, resource.TestCase{
+		IsUnitTest: true,
+		ProviderFactories: map[string]func() (*schema.Provider, error){
+			"logtail": func() (*schema.Provider, error) {
+				return New(WithURL(server.URL)), nil
+			},
+		},
+		Steps: []resource.TestStep{
+			// Step 1 - create.
+			{
+				Config: fmt.Sprintf(`
+				provider "logtail" {
+					api_token = "foo"
+				}
+
+				resource "logtail_source" "this" {
+					name             = "%s"
+					platform         = "%s"
+					scrape_urls      = ["http://localhost:9100/metrics", "http://localhost:9101/metrics"]
+					scrape_frequency_secs = 60
+				}
+				`, name, platform_scrape),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttrSet("logtail_source.this", "id"),
+					resource.TestCheckResourceAttr("logtail_source.this", "name", name),
+					resource.TestCheckResourceAttr("logtail_source.this", "platform", platform_scrape),
+					resource.TestCheckResourceAttr("logtail_source.this", "token", "generated_by_logtail"),
+					resource.TestCheckResourceAttr("logtail_source.this", "scrape_urls.#", "2"),
+					resource.TestCheckResourceAttr("logtail_source.this", "scrape_frequency_secs", "60"),
+				),
+			},
+			// Step 2 - update.
+			{
+				Config: fmt.Sprintf(`
+				provider "logtail" {
+					api_token = "foo"
+				}
+
+				resource "logtail_source" "this" {
+					name              = "%s"
+					platform          = "%s"
+					logs_retention    = 14
+					metrics_retention = 60
+   					live_tail_pattern = "{level} {message}"
+					ingesting_paused  = true
+					scrape_urls      = ["http://localhost:9100/metrics"]
+					scrape_frequency_secs = 30
+				}
+				`, name, platform_scrape),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttrSet("logtail_source.this", "id"),
+					resource.TestCheckResourceAttr("logtail_source.this", "name", name),
+					resource.TestCheckResourceAttr("logtail_source.this", "platform", platform_scrape),
+					resource.TestCheckResourceAttr("logtail_source.this", "ingesting_paused", "true"),
+					resource.TestCheckResourceAttr("logtail_source.this", "token", "generated_by_logtail"),
+					resource.TestCheckResourceAttr("logtail_source.this", "scrape_urls.#", "1"),
+					resource.TestCheckResourceAttr("logtail_source.this", "scrape_frequency_secs", "30"),
+				),
+			},
+			// Step 3 - make no changes, check plan is empty (omitted attributes are not controlled)
+			{
+				Config: fmt.Sprintf(`
+				provider "logtail" {
+					api_token = "foo"
+				}
+
+				resource "logtail_source" "this" {
+					name             = "%s"
+					platform         = "%s"
+					scrape_urls      = ["http://localhost:9100/metrics"]
+					scrape_frequency_secs = 30
+				}
+				`, name, platform_scrape),
+				PlanOnly: true,
+			},
+			// Step 4 - destroy.
+			{
+				ResourceName:      "logtail_source.this",
+				ImportState:       true,
+				ImportStateVerify: true,
+			},
+		},
+	})
 }
 
 func inject(t *testing.T, body json.RawMessage, key string, value interface{}) json.RawMessage {
