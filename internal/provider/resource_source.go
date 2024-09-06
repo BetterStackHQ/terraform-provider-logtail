@@ -82,7 +82,7 @@ var sourceSchema = map[string]*schema.Schema{
     - **php**
     - **postgresql**
     - **prometheus**
-	- **prometheus_scrape**
+    - **prometheus_scrape**
     - **python**
     - **rabbitmq**
     - **redis**

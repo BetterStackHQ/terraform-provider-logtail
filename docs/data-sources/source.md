@@ -61,7 +61,7 @@ This Data Source allows you to look up existing Logtail Sources using their tabl
     - `php`
     - `postgresql`
     - `prometheus`
-	  - `prometheus_scrape`
+    - `prometheus_scrape`
     - `python`
     - `rabbitmq`
     - `redis`
