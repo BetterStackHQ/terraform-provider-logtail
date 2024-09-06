@@ -182,17 +182,17 @@ func newSourceResource() *schema.Resource {
 }
 
 type source struct {
-	Name             *string `json:"name,omitempty"`
-	Token            *string `json:"token,omitempty"`
-	TableName        *string `json:"table_name,omitempty"`
-	Platform         *string `json:"platform,omitempty"`
-	IngestingPaused  *bool   `json:"ingesting_paused,omitempty"`
-	LogsRetention    *int    `json:"logs_retention,omitempty"`
-	MetricsRetention *int    `json:"metrics_retention,omitempty"`
-	LiveTailPattern  *string `json:"live_tail_pattern,omitempty"`
-	CreatedAt        *string `json:"created_at,omitempty"`
-	UpdatedAt        *string `json:"updated_at,omitempty"`
-	TeamName         *string `json:"team_name,omitempty"`
+	Name                *string   `json:"name,omitempty"`
+	Token               *string   `json:"token,omitempty"`
+	TableName           *string   `json:"table_name,omitempty"`
+	Platform            *string   `json:"platform,omitempty"`
+	IngestingPaused     *bool     `json:"ingesting_paused,omitempty"`
+	LogsRetention       *int      `json:"logs_retention,omitempty"`
+	MetricsRetention    *int      `json:"metrics_retention,omitempty"`
+	LiveTailPattern     *string   `json:"live_tail_pattern,omitempty"`
+	CreatedAt           *string   `json:"created_at,omitempty"`
+	UpdatedAt           *string   `json:"updated_at,omitempty"`
+	TeamName            *string   `json:"team_name,omitempty"`
 	ScrapeURLs          *[]string `json:"scrape_urls,omitempty"`
 	ScrapeFrequencySecs *int      `json:"scrape_frequency_secs,omitempty"`
 }
