@@ -194,6 +194,14 @@ func TestResourceSource(t *testing.T) {
 					ingesting_paused  = true
 					scrape_urls      = ["http://localhost:9100/metrics"]
 					scrape_frequency_secs = 30
+					scrape_request_basic_auth_user = "user1"
+					scrape_request_basic_auth_password = "password1"
+					scrape_request_headers = [
+						{ 
+							name = "Authorization",
+							value = "Bearer foo"
+						}
+					]
 				}
 				`, name, platform_scrape),
 				Check: resource.ComposeTestCheckFunc(
@@ -203,7 +211,12 @@ func TestResourceSource(t *testing.T) {
 					resource.TestCheckResourceAttr("logtail_source.this", "ingesting_paused", "true"),
 					resource.TestCheckResourceAttr("logtail_source.this", "token", "generated_by_logtail"),
 					resource.TestCheckResourceAttr("logtail_source.this", "scrape_urls.#", "1"),
-					resource.TestCheckResourceAttr("logtail_source.this", "scrape_frequency_secs", "30"),
+					resource.TestCheckResourceAttr("logtail_source.this", "scrape_urls.0", "http://localhost:9100/metrics"),
+					resource.TestCheckResourceAttr("logtail_source.this", "scrape_request_headers.#", "1"),
+					resource.TestCheckResourceAttr("logtail_source.this", "scrape_request_headers.0.name", "Authorization"),
+					resource.TestCheckResourceAttr("logtail_source.this", "scrape_request_headers.0.value", "Bearer foo"),
+					resource.TestCheckResourceAttr("logtail_source.this", "scrape_request_basic_auth_user", "user1"),
+					resource.TestCheckResourceAttr("logtail_source.this", "scrape_request_basic_auth_password", "password1"),
 				),
 			},
 			// Step 3 - make no changes, check plan is empty (omitted attributes are not controlled)
@@ -218,6 +231,14 @@ func TestResourceSource(t *testing.T) {
 					platform         = "%s"
 					scrape_urls      = ["http://localhost:9100/metrics"]
 					scrape_frequency_secs = 30
+					scrape_request_basic_auth_user = "user1"
+					scrape_request_basic_auth_password = "password1"
+					scrape_request_headers = [
+						{ 
+							name = "Authorization",
+							value = "Bearer foo"
+						}
+					]
 				}
 				`, name, platform_scrape),
 				PlanOnly: true,
