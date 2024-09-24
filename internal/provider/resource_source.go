@@ -198,8 +198,9 @@ func newSourceResource() *schema.Resource {
 		Importer: &schema.ResourceImporter{
 			StateContext: schema.ImportStatePassthroughContext,
 		},
-		Description: "This resource allows you to create, modify, and delete Logtail Sources. For more information about the Sources API check https://docs.logtail.com/api/sources-api",
-		Schema:      sourceSchema,
+		CustomizeDiff: validateRequestHeaders,
+		Description:   "This resource allows you to create, modify, and delete Logtail Sources. For more information about the Sources API check https://docs.logtail.com/api/sources-api",
+		Schema:        sourceSchema,
 	}
 }
 
@@ -302,4 +303,40 @@ func sourceUpdate(ctx context.Context, d *schema.ResourceData, meta interface{})
 
 func sourceDelete(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	return resourceDelete(ctx, meta, fmt.Sprintf("/api/v1/sources/%s", url.PathEscape(d.Id())))
+}
+
+func validateRequestHeaders(ctx context.Context, diff *schema.ResourceDiff, v interface{}) error {
+	if headers, ok := diff.GetOk("scrape_request_headers"); ok {
+		for _, header := range headers.([]interface{}) {
+			headerMap := header.(map[string]interface{})
+			if err := validateRequestHeader(headerMap); err != nil {
+				return fmt.Errorf("Invalid request header %v: %v", headerMap, err)
+			}
+		}
+	}
+	return nil
+}
+
+func validateRequestHeader(header map[string]interface{}) error {
+	if len(header) == 0 {
+		// Headers with calculated fields that are not known at the time will be passed as empty maps, ignore them
+		return nil
+	}
+
+	name, nameOk := header["name"].(string)
+	value, valueOk := header["value"].(string)
+
+	if !nameOk || name == "" {
+		return fmt.Errorf("must contain 'name' key with a non-empty string value")
+	}
+
+	if !valueOk || value == "" {
+		return fmt.Errorf("must contain 'value' key with a non-empty string value")
+	}
+
+	if len(header) != 2 {
+		return fmt.Errorf("must only contain 'name' and 'value' keys")
+	}
+
+	return nil
 }
