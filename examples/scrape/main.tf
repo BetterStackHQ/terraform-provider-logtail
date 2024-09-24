@@ -14,5 +14,5 @@ resource "logtail_source" "this" {
     }
   ]
   scrape_request_basic_auth_user     = "foo"
-  scrape_request_basic_auth_password = "bah"
+  scrape_request_basic_auth_password = "bar"
 }

@@ -272,10 +272,6 @@ func TestResourceSource(t *testing.T) {
 				resource "logtail_source" "this" {
 					name             = "%s"
 					platform         = "%s"
-					scrape_urls      = ["http://localhost:9100/metrics"]
-					scrape_frequency_secs = 30
-					scrape_request_basic_auth_user = "user1"
-					scrape_request_basic_auth_password = "password1"
 					scrape_request_headers = [
 						{ 
 							name = "X-TEST",
@@ -299,10 +295,6 @@ func TestResourceSource(t *testing.T) {
 				resource "logtail_source" "this" {
 					name             = "%s"
 					platform         = "%s"
-					scrape_urls      = ["http://localhost:9100/metrics"]
-					scrape_frequency_secs = 30
-					scrape_request_basic_auth_user = "user1"
-					scrape_request_basic_auth_password = "password1"
 					scrape_request_headers = [
 						{ 
 							name = "X-TEST",
@@ -333,10 +325,6 @@ func TestResourceSource(t *testing.T) {
 				resource "logtail_source" "this" {
 					name             = "%s"
 					platform         = "%s"
-					scrape_urls      = ["http://localhost:9100/metrics"]
-					scrape_frequency_secs = 30
-					scrape_request_basic_auth_user = "user1"
-					scrape_request_basic_auth_password = "password1"
 					scrape_request_headers = [
 						{ 
 							name = "X-TEST-2",
@@ -361,10 +349,6 @@ func TestResourceSource(t *testing.T) {
 				resource "logtail_source" "this" {
 					name             = "%s"
 					platform         = "%s"
-					scrape_urls      = ["http://localhost:9100/metrics"]
-					scrape_frequency_secs = 30
-					scrape_request_basic_auth_user = "user1"
-					scrape_request_basic_auth_password = "password1"
 					scrape_request_headers = [
 						{ 
 							name = "",
@@ -386,10 +370,6 @@ func TestResourceSource(t *testing.T) {
 				resource "logtail_source" "this" {
 					name             = "%s"
 					platform         = "%s"
-					scrape_urls      = ["http://localhost:9100/metrics"]
-					scrape_frequency_secs = 30
-					scrape_request_basic_auth_user = "user1"
-					scrape_request_basic_auth_password = "password1"
 					scrape_request_headers = [
 						{ 
 							name = "X-TEST",
@@ -411,10 +391,6 @@ func TestResourceSource(t *testing.T) {
 				resource "logtail_source" "this" {
 					name             = "%s"
 					platform         = "%s"
-					scrape_urls      = ["http://localhost:9100/metrics"]
-					scrape_frequency_secs = 30
-					scrape_request_basic_auth_user = "user1"
-					scrape_request_basic_auth_password = "password1"
 					scrape_request_headers = [
 						{
 							name  = "X-TEST"
@@ -437,10 +413,6 @@ func TestResourceSource(t *testing.T) {
 				resource "logtail_source" "this" {
 					name             = "%s"
 					platform         = "%s"
-					scrape_urls      = ["http://localhost:9100/metrics"]
-					scrape_frequency_secs = 30
-					scrape_request_basic_auth_user = "user1"
-					scrape_request_basic_auth_password = "password1"
 					scrape_request_headers = [
 						{ 
 							"X-TEST" = "test"
