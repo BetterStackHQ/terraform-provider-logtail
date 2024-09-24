@@ -5,7 +5,7 @@ provider "logtail" {
 resource "logtail_source" "this" {
   name                  = "Terraform Scrape Source"
   platform              = "prometheus_scrape"
-  scrape_urls           = "https://myserver.example.com/metrics"
+  scrape_urls           = ["https://myserver.example.com/metrics"]
   scrape_frequency_secs = 30
   scrape_request_headers = [
     {
