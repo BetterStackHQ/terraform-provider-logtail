@@ -8,11 +8,11 @@ resource "logtail_source" "this" {
   scrape_urls           = "https://myserver.example.com/metrics"
   scrape_frequency_secs = 30
   scrape_request_headers = [
-    { 
-      name = "User-Agent"
+    {
+      name  = "User-Agent"
       value = "My Scraper"
     }
-  ],
-  scrape_request_basic_auth_user = "foo"
+  ]
+  scrape_request_basic_auth_user     = "foo"
   scrape_request_basic_auth_password = "bah"
 }
