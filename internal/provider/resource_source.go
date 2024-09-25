@@ -165,6 +165,28 @@ var sourceSchema = map[string]*schema.Schema{
 		Type:        schema.TypeInt,
 		Optional:    true,
 	},
+	"scrape_request_headers": {
+		Description: "An array of request headers, each containing `name` and `value` fields.",
+		Type:        schema.TypeList,
+		Optional:    true,
+		Elem: &schema.Schema{
+			Type: schema.TypeMap,
+			Elem: &schema.Schema{
+				Type: schema.TypeString,
+			},
+		},
+	},
+	"scrape_request_basic_auth_user": {
+		Description: "Basic auth username for scraping.",
+		Type:        schema.TypeString,
+		Optional:    true,
+	},
+	"scrape_request_basic_auth_password": {
+		Description: "Basic auth password for scraping.",
+		Type:        schema.TypeString,
+		Optional:    true,
+		Sensitive:   true,
+	},
 }
 
 func newSourceResource() *schema.Resource {
@@ -176,25 +198,29 @@ func newSourceResource() *schema.Resource {
 		Importer: &schema.ResourceImporter{
 			StateContext: schema.ImportStatePassthroughContext,
 		},
-		Description: "This resource allows you to create, modify, and delete Logtail Sources. For more information about the Sources API check https://docs.logtail.com/api/sources-api",
-		Schema:      sourceSchema,
+		CustomizeDiff: validateRequestHeaders,
+		Description:   "This resource allows you to create, modify, and delete Logtail Sources. For more information about the Sources API check https://docs.logtail.com/api/sources-api",
+		Schema:        sourceSchema,
 	}
 }
 
 type source struct {
-	Name                *string   `json:"name,omitempty"`
-	Token               *string   `json:"token,omitempty"`
-	TableName           *string   `json:"table_name,omitempty"`
-	Platform            *string   `json:"platform,omitempty"`
-	IngestingPaused     *bool     `json:"ingesting_paused,omitempty"`
-	LogsRetention       *int      `json:"logs_retention,omitempty"`
-	MetricsRetention    *int      `json:"metrics_retention,omitempty"`
-	LiveTailPattern     *string   `json:"live_tail_pattern,omitempty"`
-	CreatedAt           *string   `json:"created_at,omitempty"`
-	UpdatedAt           *string   `json:"updated_at,omitempty"`
-	TeamName            *string   `json:"team_name,omitempty"`
-	ScrapeURLs          *[]string `json:"scrape_urls,omitempty"`
-	ScrapeFrequencySecs *int      `json:"scrape_frequency_secs,omitempty"`
+	Name                           *string                   `json:"name,omitempty"`
+	Token                          *string                   `json:"token,omitempty"`
+	TableName                      *string                   `json:"table_name,omitempty"`
+	Platform                       *string                   `json:"platform,omitempty"`
+	IngestingPaused                *bool                     `json:"ingesting_paused,omitempty"`
+	LogsRetention                  *int                      `json:"logs_retention,omitempty"`
+	MetricsRetention               *int                      `json:"metrics_retention,omitempty"`
+	LiveTailPattern                *string                   `json:"live_tail_pattern,omitempty"`
+	CreatedAt                      *string                   `json:"created_at,omitempty"`
+	UpdatedAt                      *string                   `json:"updated_at,omitempty"`
+	TeamName                       *string                   `json:"team_name,omitempty"`
+	ScrapeURLs                     *[]string                 `json:"scrape_urls,omitempty"`
+	ScrapeFrequencySecs            *int                      `json:"scrape_frequency_secs,omitempty"`
+	ScrapeRequestHeaders           *[]map[string]interface{} `json:"scrape_request_headers,omitempty"`
+	ScrapeRequestBasicAuthUser     *string                   `json:"scrape_request_basic_auth_user,omitempty"`
+	ScrapeRequestBasicAuthPassword *string                   `json:"scrape_request_basic_auth_password,omitempty"`
 }
 
 type sourceHTTPResponse struct {
@@ -224,6 +250,9 @@ func sourceRef(in *source) []struct {
 		{k: "updated_at", v: &in.UpdatedAt},
 		{k: "scrape_urls", v: &in.ScrapeURLs},
 		{k: "scrape_frequency_secs", v: &in.ScrapeFrequencySecs},
+		{k: "scrape_request_headers", v: &in.ScrapeRequestHeaders},
+		{k: "scrape_request_basic_auth_user", v: &in.ScrapeRequestBasicAuthUser},
+		{k: "scrape_request_basic_auth_password", v: &in.ScrapeRequestBasicAuthPassword},
 	}
 }
 
@@ -274,4 +303,40 @@ func sourceUpdate(ctx context.Context, d *schema.ResourceData, meta interface{})
 
 func sourceDelete(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	return resourceDelete(ctx, meta, fmt.Sprintf("/api/v1/sources/%s", url.PathEscape(d.Id())))
+}
+
+func validateRequestHeaders(ctx context.Context, diff *schema.ResourceDiff, v interface{}) error {
+	if headers, ok := diff.GetOk("scrape_request_headers"); ok {
+		for _, header := range headers.([]interface{}) {
+			headerMap := header.(map[string]interface{})
+			if err := validateRequestHeader(headerMap); err != nil {
+				return fmt.Errorf("Invalid request header %v: %v", headerMap, err)
+			}
+		}
+	}
+	return nil
+}
+
+func validateRequestHeader(header map[string]interface{}) error {
+	if len(header) == 0 {
+		// Headers with calculated fields that are not known at the time will be passed as empty maps, ignore them
+		return nil
+	}
+
+	name, nameOk := header["name"].(string)
+	value, valueOk := header["value"].(string)
+
+	if !nameOk || name == "" {
+		return fmt.Errorf("must contain 'name' key with a non-empty string value")
+	}
+
+	if !valueOk || value == "" {
+		return fmt.Errorf("must contain 'value' key with a non-empty string value")
+	}
+
+	if len(header) != 2 {
+		return fmt.Errorf("must only contain 'name' and 'value' keys")
+	}
+
+	return nil
 }

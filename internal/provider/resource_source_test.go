@@ -6,6 +6,7 @@ import (
 	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
+	"regexp"
 	"sync/atomic"
 	"testing"
 
@@ -194,6 +195,14 @@ func TestResourceSource(t *testing.T) {
 					ingesting_paused  = true
 					scrape_urls      = ["http://localhost:9100/metrics"]
 					scrape_frequency_secs = 30
+					scrape_request_basic_auth_user = "user1"
+					scrape_request_basic_auth_password = "password1"
+					scrape_request_headers = [
+						{ 
+							name = "Authorization",
+							value = "Bearer foo"
+						}
+					]
 				}
 				`, name, platform_scrape),
 				Check: resource.ComposeTestCheckFunc(
@@ -203,7 +212,13 @@ func TestResourceSource(t *testing.T) {
 					resource.TestCheckResourceAttr("logtail_source.this", "ingesting_paused", "true"),
 					resource.TestCheckResourceAttr("logtail_source.this", "token", "generated_by_logtail"),
 					resource.TestCheckResourceAttr("logtail_source.this", "scrape_urls.#", "1"),
+					resource.TestCheckResourceAttr("logtail_source.this", "scrape_urls.0", "http://localhost:9100/metrics"),
 					resource.TestCheckResourceAttr("logtail_source.this", "scrape_frequency_secs", "30"),
+					resource.TestCheckResourceAttr("logtail_source.this", "scrape_request_headers.#", "1"),
+					resource.TestCheckResourceAttr("logtail_source.this", "scrape_request_headers.0.name", "Authorization"),
+					resource.TestCheckResourceAttr("logtail_source.this", "scrape_request_headers.0.value", "Bearer foo"),
+					resource.TestCheckResourceAttr("logtail_source.this", "scrape_request_basic_auth_user", "user1"),
+					resource.TestCheckResourceAttr("logtail_source.this", "scrape_request_basic_auth_password", "password1"),
 				),
 			},
 			// Step 3 - make no changes, check plan is empty (omitted attributes are not controlled)
@@ -218,6 +233,14 @@ func TestResourceSource(t *testing.T) {
 					platform         = "%s"
 					scrape_urls      = ["http://localhost:9100/metrics"]
 					scrape_frequency_secs = 30
+					scrape_request_basic_auth_user = "user1"
+					scrape_request_basic_auth_password = "password1"
+					scrape_request_headers = [
+						{ 
+							name = "Authorization",
+							value = "Bearer foo"
+						}
+					]
 				}
 				`, name, platform_scrape),
 				PlanOnly: true,
@@ -227,6 +250,178 @@ func TestResourceSource(t *testing.T) {
 				ResourceName:      "logtail_source.this",
 				ImportState:       true,
 				ImportStateVerify: true,
+			},
+		},
+	})
+
+	resource.Test(t, resource.TestCase{
+		IsUnitTest: true,
+		ProviderFactories: map[string]func() (*schema.Provider, error){
+			"logtail": func() (*schema.Provider, error) {
+				return New(WithURL(server.URL)), nil
+			},
+		},
+		Steps: []resource.TestStep{
+			// Step 1 - create.
+			{
+				Config: fmt.Sprintf(`
+				provider "logtail" {
+					api_token = "foo"
+				}
+
+				resource "logtail_source" "this" {
+					name             = "%s"
+					platform         = "%s"
+					scrape_request_headers = [
+						{ 
+							name = "X-TEST",
+							value = "test"
+						}
+					]
+				}
+				`, name, platform_scrape),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr("logtail_source.this", "scrape_request_headers.0.name", "X-TEST"),
+					resource.TestCheckResourceAttr("logtail_source.this", "scrape_request_headers.0.value", "test"),
+				),
+			},
+			// Step 2 - add another request header.
+			{
+				Config: fmt.Sprintf(`
+				provider "logtail" {
+					api_token = "foo"
+				}
+
+				resource "logtail_source" "this" {
+					name             = "%s"
+					platform         = "%s"
+					scrape_request_headers = [
+						{ 
+							name = "X-TEST",
+							value = "test"
+						},
+						{ 
+							name = "X-TEST-2",
+							value = "test-2"	
+						}
+					]
+				}
+				`, name, platform_scrape),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr("logtail_source.this", "scrape_request_headers.0.name", "X-TEST"),
+					resource.TestCheckResourceAttr("logtail_source.this", "scrape_request_headers.0.value", "test"),
+					resource.TestCheckResourceAttr("logtail_source.this", "scrape_request_headers.1.name", "X-TEST-2"),
+					resource.TestCheckResourceAttr("logtail_source.this", "scrape_request_headers.1.value", "test-2"),
+					resource.TestCheckResourceAttr("logtail_source.this", "scrape_request_headers.#", "2"),
+				),
+			},
+			// Step 3 - remove the first header.
+			{
+				Config: fmt.Sprintf(`
+				provider "logtail" {
+					api_token = "foo"
+				}
+
+				resource "logtail_source" "this" {
+					name             = "%s"
+					platform         = "%s"
+					scrape_request_headers = [
+						{ 
+							name = "X-TEST-2",
+							value = "test-2"	
+						}
+					]
+				}
+				`, name, platform_scrape),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr("logtail_source.this", "scrape_request_headers.0.name", "X-TEST-2"),
+					resource.TestCheckResourceAttr("logtail_source.this", "scrape_request_headers.0.value", "test-2"),
+					resource.TestCheckNoResourceAttr("logtail_source.this", "scrape_request_headers.1.name"),
+				),
+			},
+			// Step 4 - invalid header with empty name.
+			{
+				Config: fmt.Sprintf(`
+				provider "logtail" {
+					api_token = "foo"
+				}
+
+				resource "logtail_source" "this" {
+					name             = "%s"
+					platform         = "%s"
+					scrape_request_headers = [
+						{ 
+							name = "",
+							value = "test"	
+						}
+					]
+				}
+				`, name, platform_scrape),
+				PlanOnly:    true,
+				ExpectError: regexp.MustCompile(`Invalid request header map\[name: value:test\]: must contain 'name' key with a non-empty string value`),
+			},
+			// Step 5 - invalid header with empty value.
+			{
+				Config: fmt.Sprintf(`
+				provider "logtail" {
+					api_token = "foo"
+				}
+
+				resource "logtail_source" "this" {
+					name             = "%s"
+					platform         = "%s"
+					scrape_request_headers = [
+						{ 
+							name = "X-TEST",
+							value = ""	
+						}
+					]
+				}
+				`, name, platform_scrape),
+				PlanOnly:    true,
+				ExpectError: regexp.MustCompile(`Invalid request header map\[name:X-TEST value:\]: must contain 'value' key with a non-empty string value`),
+			},
+			// Step 6 - invalid header with extra keys.
+			{
+				Config: fmt.Sprintf(`
+				provider "logtail" {
+					api_token = "foo"
+				}
+
+				resource "logtail_source" "this" {
+					name             = "%s"
+					platform         = "%s"
+					scrape_request_headers = [
+						{
+							name  = "X-TEST"
+							value = "test"
+							extra = "invalid"
+						}
+					]
+				}
+				`, name, platform_scrape),
+				PlanOnly:    true,
+				ExpectError: regexp.MustCompile(`Invalid request header map\[extra:invalid name:X-TEST value:test\]: must only contain 'name' and 'value' keys`),
+			},
+			// Step 7 - invalid header with incorrect format.
+			{
+				Config: fmt.Sprintf(`
+				provider "logtail" {
+					api_token = "foo"
+				}
+
+				resource "logtail_source" "this" {
+					name             = "%s"
+					platform         = "%s"
+					scrape_request_headers = [
+						{ 
+							"X-TEST" = "test"
+						}
+					]
+				}
+				`, name, platform_scrape),
+				PlanOnly:    true,
+				ExpectError: regexp.MustCompile(`Invalid request header map\[X-TEST:test\]: must contain 'name' key with a non-empty string value`),
 			},
 		},
 	})

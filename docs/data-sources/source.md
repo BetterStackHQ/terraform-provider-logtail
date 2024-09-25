@@ -74,6 +74,9 @@ This Data Source allows you to look up existing Logtail Sources using their tabl
     - `vector`
     - `vercel_integration`
 - **scrape_frequency_secs** (Number) For scrape platform types, how often to scrape the URLs.
+- **scrape_request_basic_auth_password** (String, Sensitive) Basic auth password for scraping.
+- **scrape_request_basic_auth_user** (String) Basic auth username for scraping.
+- **scrape_request_headers** (List of Map of String) An array of request headers, each containing `name` and `value` fields.
 - **scrape_urls** (List of String) For scrape platform types, the set of urls to scrape.
 - **team_name** (String) Used to specify the team the resource should be created in when using global tokens.
 - **token** (String) The token of this source. This token is used to identify and route the data you will send to Logtail.
