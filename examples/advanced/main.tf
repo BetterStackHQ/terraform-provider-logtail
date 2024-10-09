@@ -26,8 +26,3 @@ resource "logtail_metric" "service_name" {
   aggregations   = []
   type           = "string_low_cardinality"
 }
-
-data "logtail_metric" "level" {
-  source_id = logtail_source.this.id
-  name      = "level"
-}
