@@ -7,7 +7,7 @@ description: |-
 
 # Better Stack Logs
 
-[Better Stack Logs](https://logs.betterstack.com) provider provides resources to interact with its [API](https://betterstack.com/docs/logs/api/getting-started/).
+[Better Stack Logs](https://logs.betterstack.com) provider provides resources to interact with the [Logs API](https://betterstack.com/docs/logs/api/getting-started/).
 
 ## Installation
 
