@@ -1,18 +1,14 @@
 SHELL := /bin/bash
 GOLANGCI_LINT := golangci-lint run --disable-all \
-	-E deadcode \
 	-E errcheck \
 	-E goimports \
 	-E gosimple \
 	-E govet \
 	-E ineffassign \
-	-E maligned \
 	-E staticcheck \
-	-E structcheck \
 	-E typecheck \
-	-E unused \
-	-E varcheck
-VERSION := 0.3.1
+	-E unused
+VERSION := 0.3.2
 .PHONY: test build
 
 help:
