@@ -10,3 +10,19 @@ resource "logtail_source" "this" {
   logs_retention    = 60
   metrics_retention = 90
 }
+
+resource "logtail_metric" "duration_ms" {
+  source_id      = logtail_source.this.id
+  name           = "duration_ms"
+  sql_expression = "JSONExtract(json, 'duration_ms', 'Nullable(Float)')"
+  aggregations   = ["avg", "max", "min"]
+  type           = "float64_delta"
+}
+
+resource "logtail_metric" "service_name" {
+  source_id      = logtail_source.this.id
+  name           = "service_name"
+  sql_expression = "JSONExtract(json, 'service_name', 'Nullable(String)')"
+  aggregations   = []
+  type           = "string_low_cardinality"
+}
