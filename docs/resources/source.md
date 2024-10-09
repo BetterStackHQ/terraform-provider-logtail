@@ -3,12 +3,12 @@
 page_title: "logtail_source Resource - terraform-provider-logtail"
 subcategory: ""
 description: |-
-  This resource allows you to create, modify, and delete Logtail Sources. For more information about the Sources API check https://docs.logtail.com/api/sources-api
+  This resource allows you to create, modify, and delete your Sources. For more information about the Sources API check https://betterstack.com/docs/logs/api/list-all-existing-sources/
 ---
 
 # logtail_source (Resource)
 
-This resource allows you to create, modify, and delete Logtail Sources. For more information about the Sources API check https://docs.logtail.com/api/sources-api
+This resource allows you to create, modify, and delete your Sources. For more information about the Sources API check https://betterstack.com/docs/logs/api/list-all-existing-sources/
 
 
 
@@ -82,7 +82,7 @@ This resource allows you to create, modify, and delete Logtail Sources. For more
 - **created_at** (String) The time when this monitor group was created.
 - **id** (String) The ID of this source.
 - **table_name** (String) The table name generated for this source.
-- **token** (String) The token of this source. This token is used to identify and route the data you will send to Logtail.
+- **token** (String) The token of this source. This token is used to identify and route the data you will send to Better Stack.
 - **updated_at** (String) The time when this monitor group was updated.
 
 

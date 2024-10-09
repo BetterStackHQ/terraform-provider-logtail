@@ -1,13 +1,13 @@
 ---
 layout: ""
-page_title: "Provider: Logtail"
+page_title: "Provider: logtail"
 description: |-
-  The Logtail provider.
+  The Better Stack Logs provider.
 ---
 
-# Logtail Provider
+# Better Stack Logs
 
-The [Logtail](https://logtail.com) provider provides resources to interact with the [Logtail API](https://docs.logtail.com/api/getting-started).
+[Better Stack Logs](https://logs.betterstack.com) provider provides resources to interact with the [Logs API](https://betterstack.com/docs/logs/api/getting-started/).
 
 ## Installation
 
@@ -46,4 +46,4 @@ output "logtail_source_token" {
 
 ### Required
 
-- **api_token** (String, Sensitive) Logtail API Token. The value can be omitted if `LOGTAIL_API_TOKEN` environment variable is set. See https://docs.logtail.com/api/getting-started#obtaining-an-api-token on how to obtain the API token for your team.
+- **api_token** (String, Sensitive) Better Stack Logs API Token. The value can be omitted if `LOGTAIL_API_TOKEN` environment variable is set. See https://betterstack.com/docs/logs/api/getting-started/#get-an-logs-api-token on how to obtain the API token for your team.

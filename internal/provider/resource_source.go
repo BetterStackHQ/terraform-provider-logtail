@@ -37,7 +37,7 @@ var sourceSchema = map[string]*schema.Schema{
 		Required:    true,
 	},
 	"token": {
-		Description: "The token of this source. This token is used to identify and route the data you will send to Logtail.",
+		Description: "The token of this source. This token is used to identify and route the data you will send to Better Stack.",
 		Type:        schema.TypeString,
 		Optional:    false,
 		Computed:    true,
@@ -199,7 +199,7 @@ func newSourceResource() *schema.Resource {
 			StateContext: schema.ImportStatePassthroughContext,
 		},
 		CustomizeDiff: validateRequestHeaders,
-		Description:   "This resource allows you to create, modify, and delete Logtail Sources. For more information about the Sources API check https://docs.logtail.com/api/sources-api",
+		Description:   "This resource allows you to create, modify, and delete your Sources. For more information about the Sources API check https://betterstack.com/docs/logs/api/list-all-existing-sources/",
 		Schema:        sourceSchema,
 	}
 }

@@ -3,12 +3,12 @@
 page_title: "logtail_source Data Source - terraform-provider-logtail"
 subcategory: ""
 description: |-
-  This Data Source allows you to look up existing Logtail Sources using their table name. The table name is shown on the Source settings page on Logtail.com or you can list all your existing sources via the Sources API https://docs.logtail.com/api/sources-api#get-sources.
+  This Data Source allows you to look up existing Sources using their table name. The table name is shown on the Source settings page on logs.betterstack.com or you can list all your existing sources via the Sources API https://betterstack.com/docs/logs/api/list-all-existing-sources/.
 ---
 
 # logtail_source (Data Source)
 
-This Data Source allows you to look up existing Logtail Sources using their table name. The table name is shown on the Source settings page on Logtail.com or you can list all your existing sources via the [Sources API](https://docs.logtail.com/api/sources-api#get-sources).
+This Data Source allows you to look up existing Sources using their table name. The table name is shown on the Source settings page on logs.betterstack.com or you can list all your existing sources via the [Sources API](https://betterstack.com/docs/logs/api/list-all-existing-sources/).
 
 
 
@@ -79,7 +79,7 @@ This Data Source allows you to look up existing Logtail Sources using their tabl
 - **scrape_request_headers** (List of Map of String) An array of request headers, each containing `name` and `value` fields.
 - **scrape_urls** (List of String) For scrape platform types, the set of urls to scrape.
 - **team_name** (String) Used to specify the team the resource should be created in when using global tokens.
-- **token** (String) The token of this source. This token is used to identify and route the data you will send to Logtail.
+- **token** (String) The token of this source. This token is used to identify and route the data you will send to Better Stack.
 - **updated_at** (String) The time when this monitor group was updated.
 
 
