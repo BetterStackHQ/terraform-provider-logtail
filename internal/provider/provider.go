@@ -47,11 +47,9 @@ func New(opts ...Option) *schema.Provider {
 		},
 		DataSourcesMap: map[string]*schema.Resource{
 			"logtail_source": newSourceDataSource(),
-			"logtail_metric": newMetricDataSource(),
 		},
 		ResourcesMap: map[string]*schema.Resource{
 			"logtail_source": newSourceResource(),
-			"logtail_metric": newMetricResource(),
 		},
 		ConfigureContextFunc: func(ctx context.Context, r *schema.ResourceData) (interface{}, diag.Diagnostics) {
 			var userAgent string

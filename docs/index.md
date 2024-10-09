@@ -5,7 +5,7 @@ description: |-
   The Better Stack Logs provider.
 ---
 
-# Better Stack Logs Provider
+# Better Stack Logs
 
 [Better Stack Logs](https://logs.betterstack.com) provider provides resources to interact with the [Logs API](https://betterstack.com/docs/logs/api/getting-started/).
 
