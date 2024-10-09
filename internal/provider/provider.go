@@ -30,7 +30,7 @@ func WithVersion(v string) Option {
 
 func New(opts ...Option) *schema.Provider {
 	spec := provider{
-		url: "https://logtail.com",
+		url: "https://logs.betterstack.com",
 	}
 	for _, opt := range opts {
 		opt(&spec)
@@ -42,7 +42,7 @@ func New(opts ...Option) *schema.Provider {
 				Sensitive:   true,
 				Required:    true,
 				DefaultFunc: schema.EnvDefaultFunc("LOGTAIL_API_TOKEN", nil),
-				Description: "Logtail API Token. The value can be omitted if `LOGTAIL_API_TOKEN` environment variable is set. See https://docs.logtail.com/api/getting-started#obtaining-an-api-token on how to obtain the API token for your team.",
+				Description: "Better Stack Logs API Token. The value can be omitted if `LOGTAIL_API_TOKEN` environment variable is set. See https://betterstack.com/docs/logs/api/getting-started/#get-an-logs-api-token on how to obtain the API token for your team.",
 			},
 		},
 		DataSourcesMap: map[string]*schema.Resource{
