@@ -31,11 +31,13 @@ This resource allows you to create, modify, and delete your Sources. For more in
     - `dokku`
     - `dotnet`
     - `elasticsearch`
+    - `erlang`
     - `filebeat`
     - `flights`
     - `fluentbit`
     - `fluentd`
     - `fly_io`
+    - `go`
     - `haproxy`
     - `heroku`
     - `http`
