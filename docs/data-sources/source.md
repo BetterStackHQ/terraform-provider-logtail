@@ -41,11 +41,13 @@ This Data Source allows you to look up existing Sources using their table name. 
     - `dokku`
     - `dotnet`
     - `elasticsearch`
+    - `erlang`
     - `filebeat`
     - `flights`
     - `fluentbit`
     - `fluentd`
     - `fly_io`
+    - `go`
     - `haproxy`
     - `heroku`
     - `http`
