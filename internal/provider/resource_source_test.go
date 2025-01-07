@@ -90,6 +90,7 @@ func TestResourceSource(t *testing.T) {
 				resource "logtail_source" "this" {
 					name             = "%s"
 					platform         = "%s"
+					data_region      = "eu-hel-1-legacy"
 				}
 				`, name, platform),
 				Check: resource.ComposeTestCheckFunc(
@@ -97,6 +98,7 @@ func TestResourceSource(t *testing.T) {
 					resource.TestCheckResourceAttr("logtail_source.this", "name", name),
 					resource.TestCheckResourceAttr("logtail_source.this", "platform", platform),
 					resource.TestCheckResourceAttr("logtail_source.this", "token", "generated_by_logtail"),
+					resource.TestCheckResourceAttr("logtail_source.this", "data_region", "eu-hel-1-legacy"),
 				),
 			},
 			// Step 2 - update.
@@ -121,6 +123,7 @@ func TestResourceSource(t *testing.T) {
 					resource.TestCheckResourceAttr("logtail_source.this", "platform", platform),
 					resource.TestCheckResourceAttr("logtail_source.this", "ingesting_paused", "true"),
 					resource.TestCheckResourceAttr("logtail_source.this", "token", "generated_by_logtail"),
+					resource.TestCheckResourceAttr("logtail_source.this", "data_region", "eu-hel-1-legacy"),
 				),
 			},
 			// Step 3 - make no changes, check plan is empty (omitted attributes are not controlled)
@@ -422,6 +425,28 @@ func TestResourceSource(t *testing.T) {
 				`, name, platform_scrape),
 				PlanOnly:    true,
 				ExpectError: regexp.MustCompile(`Invalid request header map\[X-TEST:test\]: must contain 'name' key with a non-empty string value`),
+			},
+			// Step 8 - change of data region
+			{
+				Config: fmt.Sprintf(`
+				provider "logtail" {
+					api_token = "foo"
+				}
+
+				resource "logtail_source" "this" {
+					name             = "%s"
+					platform         = "%s"
+					scrape_request_headers = [
+						{ 
+							name = "X-TEST"
+							value = "test"
+						}
+					]
+					data_region = "new_data_region"
+				}
+				`, name, platform_scrape),
+				PlanOnly:    true,
+				ExpectError: regexp.MustCompile(`data_region cannot be changed after source is created`),
 			},
 		},
 	})
