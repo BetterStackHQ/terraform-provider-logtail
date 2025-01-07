@@ -90,6 +90,7 @@ func TestResourceSource(t *testing.T) {
 				resource "logtail_source" "this" {
 					name             = "%s"
 					platform         = "%s"
+					data_region      = "eu-hel-1-legacy"
 				}
 				`, name, platform),
 				Check: resource.ComposeTestCheckFunc(
@@ -97,6 +98,7 @@ func TestResourceSource(t *testing.T) {
 					resource.TestCheckResourceAttr("logtail_source.this", "name", name),
 					resource.TestCheckResourceAttr("logtail_source.this", "platform", platform),
 					resource.TestCheckResourceAttr("logtail_source.this", "token", "generated_by_logtail"),
+					resource.TestCheckResourceAttr("logtail_source.this", "data_region", "eu-hel-1-legacy"),
 				),
 			},
 			// Step 2 - update.
@@ -113,6 +115,7 @@ func TestResourceSource(t *testing.T) {
 					metrics_retention = 60
    					live_tail_pattern = "{level} {message}"
 					ingesting_paused  = true
+					data_region       = "eu-hel-1-legacy"
 				}
 				`, name, platform),
 				Check: resource.ComposeTestCheckFunc(
@@ -121,6 +124,7 @@ func TestResourceSource(t *testing.T) {
 					resource.TestCheckResourceAttr("logtail_source.this", "platform", platform),
 					resource.TestCheckResourceAttr("logtail_source.this", "ingesting_paused", "true"),
 					resource.TestCheckResourceAttr("logtail_source.this", "token", "generated_by_logtail"),
+					resource.TestCheckResourceAttr("logtail_source.this", "data_region", "eu-hel-1-legacy"),
 				),
 			},
 			// Step 3 - make no changes, check plan is empty (omitted attributes are not controlled)

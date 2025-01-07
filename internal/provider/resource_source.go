@@ -189,6 +189,11 @@ var sourceSchema = map[string]*schema.Schema{
 		Optional:    true,
 		Sensitive:   true,
 	},
+	"data_region": {
+		Description: "Region where we store your data."
+		Type:        schema.TypeString,
+		Optional:    true,
+	},
 }
 
 func newSourceResource() *schema.Resource {
@@ -223,6 +228,7 @@ type source struct {
 	ScrapeRequestHeaders           *[]map[string]interface{} `json:"scrape_request_headers,omitempty"`
 	ScrapeRequestBasicAuthUser     *string                   `json:"scrape_request_basic_auth_user,omitempty"`
 	ScrapeRequestBasicAuthPassword *string                   `json:"scrape_request_basic_auth_password,omitempty"`
+	DataRegion                     *string                   `json:"data_region,omitempty"`
 }
 
 type sourceHTTPResponse struct {
@@ -255,6 +261,7 @@ func sourceRef(in *source) []struct {
 		{k: "scrape_request_headers", v: &in.ScrapeRequestHeaders},
 		{k: "scrape_request_basic_auth_user", v: &in.ScrapeRequestBasicAuthUser},
 		{k: "scrape_request_basic_auth_password", v: &in.ScrapeRequestBasicAuthPassword},
+		{k: "data_region", v: &in.DataRegion},
 	}
 }
 
