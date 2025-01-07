@@ -190,9 +190,12 @@ var sourceSchema = map[string]*schema.Schema{
 		Sensitive:   true,
 	},
 	"data_region": {
-		Description: "Region where we store your data."
+		Description: "Region where we store your data.",
 		Type:        schema.TypeString,
 		Optional:    true,
+		DiffSuppressFunc: func(k, old, new string, d *schema.ResourceData) bool {
+			return d.Id() != ""
+		},
 	},
 }
 
@@ -261,7 +264,6 @@ func sourceRef(in *source) []struct {
 		{k: "scrape_request_headers", v: &in.ScrapeRequestHeaders},
 		{k: "scrape_request_basic_auth_user", v: &in.ScrapeRequestBasicAuthUser},
 		{k: "scrape_request_basic_auth_password", v: &in.ScrapeRequestBasicAuthPassword},
-		{k: "data_region", v: &in.DataRegion},
 	}
 }
 
@@ -270,7 +272,10 @@ func sourceCreate(ctx context.Context, d *schema.ResourceData, meta interface{})
 	for _, e := range sourceRef(&in) {
 		load(d, e.k, e.v)
 	}
+
 	load(d, "team_name", &in.TeamName)
+	load(d, "data_region", &in.DataRegion)
+
 	var out sourceHTTPResponse
 	if err := resourceCreate(ctx, meta, "/api/v1/sources", &in, &out); err != nil {
 		return err
@@ -297,6 +302,13 @@ func sourceCopyAttrs(d *schema.ResourceData, in *source) diag.Diagnostics {
 			derr = append(derr, diag.FromErr(err)[0])
 		}
 	}
+
+	if in.DataRegion != nil {
+		if err := d.Set("data_region", reflect.Indirect(reflect.ValueOf(in.DataRegion)).Interface()); err != nil {
+			derr = append(derr, diag.FromErr(err)[0])
+		}
+	}
+
 	return derr
 }
 

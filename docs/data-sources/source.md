@@ -22,6 +22,7 @@ This Data Source allows you to look up existing Sources using their table name. 
 ### Read-Only
 
 - **created_at** (String) The time when this monitor group was created.
+- **data_region** (String) Region where we store your data.
 - **id** (String) The ID of this source.
 - **ingesting_paused** (Boolean) This property allows you to temporarily pause data ingesting for this source (e.g., when you are reaching your plan's usage quota and you want to prioritize some sources over others).
 - **live_tail_pattern** (String) Freeform text template for formatting Live tail output with columns wrapped in {column} brackets. Example: "PID: {message_json.pid} {level} {message}"

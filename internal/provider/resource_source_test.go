@@ -115,7 +115,6 @@ func TestResourceSource(t *testing.T) {
 					metrics_retention = 60
    					live_tail_pattern = "{level} {message}"
 					ingesting_paused  = true
-					data_region       = "eu-hel-1-legacy"
 				}
 				`, name, platform),
 				Check: resource.ComposeTestCheckFunc(
