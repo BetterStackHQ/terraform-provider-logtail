@@ -193,9 +193,7 @@ var sourceSchema = map[string]*schema.Schema{
 		Description: "Region where we store your data.",
 		Type:        schema.TypeString,
 		Optional:    true,
-		DiffSuppressFunc: func(k, old, new string, d *schema.ResourceData) bool {
-			return d.Id() != ""
-		},
+		Computed:    true,
 	},
 }
 
@@ -208,7 +206,7 @@ func newSourceResource() *schema.Resource {
 		Importer: &schema.ResourceImporter{
 			StateContext: schema.ImportStatePassthroughContext,
 		},
-		CustomizeDiff: validateRequestHeaders,
+		CustomizeDiff: validateSource,
 		Description:   "This resource allows you to create, modify, and delete your Sources. For more information about the Sources API check https://betterstack.com/docs/logs/api/list-all-existing-sources/",
 		Schema:        sourceSchema,
 	}
@@ -264,6 +262,7 @@ func sourceRef(in *source) []struct {
 		{k: "scrape_request_headers", v: &in.ScrapeRequestHeaders},
 		{k: "scrape_request_basic_auth_user", v: &in.ScrapeRequestBasicAuthUser},
 		{k: "scrape_request_basic_auth_password", v: &in.ScrapeRequestBasicAuthPassword},
+		{k: "data_region", v: &in.DataRegion},
 	}
 }
 
@@ -274,7 +273,6 @@ func sourceCreate(ctx context.Context, d *schema.ResourceData, meta interface{})
 	}
 
 	load(d, "team_name", &in.TeamName)
-	load(d, "data_region", &in.DataRegion)
 
 	var out sourceHTTPResponse
 	if err := resourceCreate(ctx, meta, "/api/v1/sources", &in, &out); err != nil {
@@ -303,12 +301,6 @@ func sourceCopyAttrs(d *schema.ResourceData, in *source) diag.Diagnostics {
 		}
 	}
 
-	if in.DataRegion != nil {
-		if err := d.Set("data_region", reflect.Indirect(reflect.ValueOf(in.DataRegion)).Interface()); err != nil {
-			derr = append(derr, diag.FromErr(err)[0])
-		}
-	}
-
 	return derr
 }
 
@@ -324,6 +316,18 @@ func sourceUpdate(ctx context.Context, d *schema.ResourceData, meta interface{})
 
 func sourceDelete(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	return resourceDelete(ctx, meta, fmt.Sprintf("/api/v1/sources/%s", url.PathEscape(d.Id())))
+}
+
+func validateSource(ctx context.Context, diff *schema.ResourceDiff, v interface{}) error {
+	if diff.Id() != "" && diff.HasChange("data_region") {
+		return fmt.Errorf("data_region cannot be changed after source is created")
+	}
+
+	if err := validateRequestHeaders(ctx, diff, v); err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func validateRequestHeaders(ctx context.Context, diff *schema.ResourceDiff, v interface{}) error {

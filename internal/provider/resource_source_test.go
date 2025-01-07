@@ -426,6 +426,28 @@ func TestResourceSource(t *testing.T) {
 				PlanOnly:    true,
 				ExpectError: regexp.MustCompile(`Invalid request header map\[X-TEST:test\]: must contain 'name' key with a non-empty string value`),
 			},
+			// Step 8 - change of data region
+			{
+				Config: fmt.Sprintf(`
+				provider "logtail" {
+					api_token = "foo"
+				}
+
+				resource "logtail_source" "this" {
+					name             = "%s"
+					platform         = "%s"
+					scrape_request_headers = [
+						{ 
+							name = "X-TEST"
+							value = "test"
+						}
+					]
+					data_region = "new_data_region"
+				}
+				`, name, platform_scrape),
+				PlanOnly:    true,
+				ExpectError: regexp.MustCompile(`data_region cannot be changed after source is created`),
+			},
 		},
 	})
 }
