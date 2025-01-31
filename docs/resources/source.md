@@ -27,6 +27,7 @@ This resource allows you to create, modify, and delete your Sources. For more in
     - `cloudflare_logpush`
     - `cloudflare_worker`
     - `datadog_agent`
+    - `digitalocean`
     - `docker`
     - `dokku`
     - `dotnet`

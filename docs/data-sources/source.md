@@ -38,6 +38,7 @@ This Data Source allows you to look up existing Sources using their table name. 
     - `cloudflare_logpush`
     - `cloudflare_worker`
     - `datadog_agent`
+    - `digitalocean`
     - `docker`
     - `dokku`
     - `dotnet`
