@@ -1,3 +1,3 @@
-output "logtail_source_token" {
-  value = logtail_source.this.token
+output "logtail_scrape_urls" {
+  value = logtail_source.this.scrape_urls
 }
