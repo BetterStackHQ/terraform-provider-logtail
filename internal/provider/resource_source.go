@@ -117,7 +117,7 @@ var sourceSchema = map[string]*schema.Schema{
 			}
 		},
 	},
-	"ingestion_host": {
+	"ingesting_host": {
 		Description: "The host where the logs or metrics should be sent. See [documentation](https://betterstack.com/docs/logs/start/) for your specific source platform for details.",
 		Type:        schema.TypeString,
 		Optional:    false,
@@ -224,7 +224,7 @@ type source struct {
 	Token                          *string                   `json:"token,omitempty"`
 	TableName                      *string                   `json:"table_name,omitempty"`
 	Platform                       *string                   `json:"platform,omitempty"`
-	IngestionHost                  *string                   `json:"ingestion_host,omitempty"`
+	IngestingHost                  *string                   `json:"ingesting_host,omitempty"`
 	IngestingPaused                *bool                     `json:"ingesting_paused,omitempty"`
 	LogsRetention                  *int                      `json:"logs_retention,omitempty"`
 	MetricsRetention               *int                      `json:"metrics_retention,omitempty"`
@@ -259,7 +259,7 @@ func sourceRef(in *source) []struct {
 		{k: "token", v: &in.Token},
 		{k: "table_name", v: &in.TableName},
 		{k: "platform", v: &in.Platform},
-		{k: "ingestion_host", v: &in.IngestionHost},
+		{k: "ingesting_host", v: &in.IngestingHost},
 		{k: "ingesting_paused", v: &in.IngestingPaused},
 		{k: "logs_retention", v: &in.LogsRetention},
 		{k: "metrics_retention", v: &in.MetricsRetention},

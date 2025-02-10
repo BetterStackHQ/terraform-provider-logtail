@@ -25,7 +25,7 @@ This Data Source allows you to look up existing Sources using their table name. 
 - **data_region** (String) Region where we store your data.
 - **id** (String) The ID of this source.
 - **ingesting_paused** (Boolean) This property allows you to temporarily pause data ingesting for this source (e.g., when you are reaching your plan's usage quota and you want to prioritize some sources over others).
-- **ingestion_host** (String) The host where the logs or metrics should be sent. See [documentation](https://betterstack.com/docs/logs/start/) for your specific source platform for details.
+- **ingesting_host** (String) The host where the logs or metrics should be sent. See [documentation](https://betterstack.com/docs/logs/start/) for your specific source platform for details.
 - **live_tail_pattern** (String) Freeform text template for formatting Live tail output with columns wrapped in {column} brackets. Example: "PID: {message_json.pid} {level} {message}"
 - **logs_retention** (Number) Data retention for logs in days. There might be additional charges for longer retention.
 - **metrics_retention** (Number) Data retention for metrics in days. There might be additional charges for longer retention.
