@@ -14,7 +14,7 @@ resource "logtail_source" "this" {
 resource "logtail_metric" "duration_ms" {
   source_id      = logtail_source.this.id
   name           = "duration_ms"
-  sql_expression = "JSONExtract(json, 'duration_ms', 'Nullable(Float)')"
+  sql_expression = "getJSON(raw, 'duration_ms')"
   aggregations   = ["avg", "max", "min"]
   type           = "float64_delta"
 }
@@ -22,7 +22,7 @@ resource "logtail_metric" "duration_ms" {
 resource "logtail_metric" "service_name" {
   source_id      = logtail_source.this.id
   name           = "service_name"
-  sql_expression = "JSONExtract(json, 'service_name', 'Nullable(String)')"
+  sql_expression = "getJSON(raw, 'service_name')"
   aggregations   = []
   type           = "string_low_cardinality"
 }
