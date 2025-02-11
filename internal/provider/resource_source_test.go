@@ -34,7 +34,7 @@ func TestResourceSource(t *testing.T) {
 				t.Fatal(err)
 			}
 			body = inject(t, body, "token", "generated_by_logtail")
-			body = inject(t, body, "ingestion_host", "in.logs.betterstack.com")
+			body = inject(t, body, "ingesting_host", "in.logs.betterstack.com")
 			body = inject(t, body, "table_name", "test_source")
 			data.Store(body)
 			w.WriteHeader(http.StatusCreated)
@@ -58,7 +58,7 @@ func TestResourceSource(t *testing.T) {
 				t.Fatal(err)
 			}
 			patched = inject(t, patched, "token", "generated_by_logtail")
-			patched = inject(t, patched, "ingestion_host", "in.logs.betterstack.com")
+			patched = inject(t, patched, "ingesting_host", "in.logs.betterstack.com")
 			patched = inject(t, patched, "table_name", "test_source")
 			data.Store(patched)
 			_, _ = w.Write([]byte(fmt.Sprintf(`{"data":{"id":%q,"attributes":%s}}`, id, patched)))
@@ -100,7 +100,7 @@ func TestResourceSource(t *testing.T) {
 					resource.TestCheckResourceAttr("logtail_source.this", "name", name),
 					resource.TestCheckResourceAttr("logtail_source.this", "platform", platform),
 					resource.TestCheckResourceAttr("logtail_source.this", "token", "generated_by_logtail"),
-					resource.TestCheckResourceAttr("logtail_source.this", "ingestion_host", "in.logs.betterstack.com"),
+					resource.TestCheckResourceAttr("logtail_source.this", "ingesting_host", "in.logs.betterstack.com"),
 					resource.TestCheckResourceAttr("logtail_source.this", "data_region", "eu-hel-1-legacy"),
 				),
 			},
@@ -126,7 +126,7 @@ func TestResourceSource(t *testing.T) {
 					resource.TestCheckResourceAttr("logtail_source.this", "platform", platform),
 					resource.TestCheckResourceAttr("logtail_source.this", "ingesting_paused", "true"),
 					resource.TestCheckResourceAttr("logtail_source.this", "token", "generated_by_logtail"),
-					resource.TestCheckResourceAttr("logtail_source.this", "ingestion_host", "in.logs.betterstack.com"),
+					resource.TestCheckResourceAttr("logtail_source.this", "ingesting_host", "in.logs.betterstack.com"),
 					resource.TestCheckResourceAttr("logtail_source.this", "data_region", "eu-hel-1-legacy"),
 				),
 			},

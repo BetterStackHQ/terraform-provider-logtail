@@ -85,7 +85,7 @@ This resource allows you to create, modify, and delete your Sources. For more in
 
 - **created_at** (String) The time when this monitor group was created.
 - **id** (String) The ID of this source.
-- **ingestion_host** (String) The host where the logs or metrics should be sent. See [documentation](https://betterstack.com/docs/logs/start/) for your specific source platform for details.
+- **ingesting_host** (String) The host where the logs or metrics should be sent. See [documentation](https://betterstack.com/docs/logs/start/) for your specific source platform for details.
 - **table_name** (String) The table name generated for this source.
 - **token** (String) The token of this source. This token is used to identify and route the data you will send to Better Stack.
 - **updated_at** (String) The time when this monitor group was updated.
