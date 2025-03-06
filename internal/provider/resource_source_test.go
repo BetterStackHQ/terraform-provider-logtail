@@ -3,7 +3,7 @@ package provider
 import (
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"regexp"
@@ -29,7 +29,7 @@ func TestResourceSource(t *testing.T) {
 
 		switch {
 		case r.Method == http.MethodPost && r.RequestURI == prefix:
-			body, err := ioutil.ReadAll(r.Body)
+			body, err := io.ReadAll(r.Body)
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -42,7 +42,7 @@ func TestResourceSource(t *testing.T) {
 		case r.Method == http.MethodGet && r.RequestURI == prefix+"/"+id:
 			_, _ = w.Write([]byte(fmt.Sprintf(`{"data":{"id":%q,"attributes":%s}}`, id, data.Load().([]byte))))
 		case r.Method == http.MethodPatch && r.RequestURI == prefix+"/"+id:
-			body, err := ioutil.ReadAll(r.Body)
+			body, err := io.ReadAll(r.Body)
 			if err != nil {
 				t.Fatal(err)
 			}

@@ -43,7 +43,7 @@ See Terraform Registry [docs](https://registry.terraform.io/providers/BetterStac
 
 ## Development
 
-> PREREQUISITE: [go1.16+](https://golang.org/dl/).
+> PREREQUISITE: [go1.23+](https://golang.org/dl/).
 
 ```shell script
 git clone https://github.com/betterstackhq/terraform-provider-logtail && \
