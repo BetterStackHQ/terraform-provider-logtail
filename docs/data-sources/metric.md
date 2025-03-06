@@ -17,15 +17,13 @@ This Data Source allows you to look up existing Metrics using their name. You ca
 
 ### Required
 
-- **name** (String) The name of this metric.
-- **source_id** (String) The ID of the source this metric belongs to.
+- `name` (String) The name of this metric.
+- `source_id` (String) The ID of the source this metric belongs to.
 
 ### Read-Only
 
-- **aggregations** (List of String) The list of aggregations to perform on the metric.
-- **id** (String) The ID of this metric.
-- **sql_expression** (String) The SQL expression used to extract the metric value.
-- **team_name** (String) Used to specify the team the resource should be created in when using global tokens.
-- **type** (String) The type of the metric.
-
-
+- `aggregations` (List of String) The list of aggregations to perform on the metric.
+- `id` (String) The ID of this metric.
+- `sql_expression` (String) The SQL expression used to extract the metric value.
+- `team_name` (String) Used to specify the team the resource should be created in when using global tokens.
+- `type` (String) The type of the metric.

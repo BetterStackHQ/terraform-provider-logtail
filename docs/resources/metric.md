@@ -17,18 +17,16 @@ This resource allows you to create and delete Metrics.
 
 ### Required
 
-- **aggregations** (List of String) The list of aggregations to perform on the metric.
-- **name** (String) The name of this metric.
-- **source_id** (String) The ID of the source this metric belongs to.
-- **sql_expression** (String) The SQL expression used to extract the metric value.
-- **type** (String) The type of the metric.
+- `aggregations` (List of String) The list of aggregations to perform on the metric.
+- `name` (String) The name of this metric.
+- `source_id` (String) The ID of the source this metric belongs to.
+- `sql_expression` (String) The SQL expression used to extract the metric value.
+- `type` (String) The type of the metric.
 
 ### Optional
 
-- **team_name** (String) Used to specify the team the resource should be created in when using global tokens.
+- `team_name` (String) Used to specify the team the resource should be created in when using global tokens.
 
 ### Read-Only
 
-- **id** (String) The ID of this metric.
-
-
+- `id` (String) The ID of this metric.

@@ -17,20 +17,20 @@ This Data Source allows you to look up existing Sources using their table name. 
 
 ### Required
 
-- **table_name** (String) The table name generated for this source.
+- `table_name` (String) The table name generated for this source.
 
 ### Read-Only
 
-- **created_at** (String) The time when this monitor group was created.
-- **data_region** (String) Region where we store your data.
-- **id** (String) The ID of this source.
-- **ingesting_host** (String) The host where the logs or metrics should be sent. See [documentation](https://betterstack.com/docs/logs/start/) for your specific source platform for details.
-- **ingesting_paused** (Boolean) This property allows you to temporarily pause data ingesting for this source (e.g., when you are reaching your plan's usage quota and you want to prioritize some sources over others).
-- **live_tail_pattern** (String) Freeform text template for formatting Live tail output with columns wrapped in {column} brackets. Example: "PID: {message_json.pid} {level} {message}"
-- **logs_retention** (Number) Data retention for logs in days. There might be additional charges for longer retention.
-- **metrics_retention** (Number) Data retention for metrics in days. There might be additional charges for longer retention.
-- **name** (String) The name of this source.
-- **platform** (String) The platform of this source. This value can be set only when you're creating a new source. You can't update this value later. Valid values are:
+- `created_at` (String) The time when this monitor group was created.
+- `data_region` (String) Region where we store your data.
+- `id` (String) The ID of this source.
+- `ingesting_host` (String) The host where the logs or metrics should be sent. See [documentation](https://betterstack.com/docs/logs/start/) for your specific source platform for details.
+- `ingesting_paused` (Boolean) This property allows you to temporarily pause data ingesting for this source (e.g., when you are reaching your plan's usage quota and you want to prioritize some sources over others).
+- `live_tail_pattern` (String) Freeform text template for formatting Live tail output with columns wrapped in {column} brackets. Example: "PID: {message_json.pid} {level} {message}"
+- `logs_retention` (Number) Data retention for logs in days. There might be additional charges for longer retention.
+- `metrics_retention` (Number) Data retention for metrics in days. There might be additional charges for longer retention.
+- `name` (String) The name of this source.
+- `platform` (String) The platform of this source. This value can be set only when you're creating a new source. You can't update this value later. Valid values are:
     - `apache2`
     - `aws_cloudwatch`
     - `aws_ecs`
@@ -78,13 +78,11 @@ This Data Source allows you to look up existing Sources using their table name. 
     - `ubuntu`
     - `vector`
     - `vercel_integration`
-- **scrape_frequency_secs** (Number) For scrape platform types, how often to scrape the URLs.
-- **scrape_request_basic_auth_password** (String, Sensitive) Basic auth password for scraping.
-- **scrape_request_basic_auth_user** (String) Basic auth username for scraping.
-- **scrape_request_headers** (List of Map of String) An array of request headers, each containing `name` and `value` fields.
-- **scrape_urls** (List of String) For scrape platform types, the set of urls to scrape.
-- **team_name** (String) Used to specify the team the resource should be created in when using global tokens.
-- **token** (String) The token of this source. This token is used to identify and route the data you will send to Better Stack.
-- **updated_at** (String) The time when this monitor group was updated.
-
-
+- `scrape_frequency_secs` (Number) For scrape platform types, how often to scrape the URLs.
+- `scrape_request_basic_auth_password` (String, Sensitive) Basic auth password for scraping.
+- `scrape_request_basic_auth_user` (String) Basic auth username for scraping.
+- `scrape_request_headers` (List of Map of String) An array of request headers, each containing `name` and `value` fields.
+- `scrape_urls` (List of String) For scrape platform types, the set of urls to scrape.
+- `team_name` (String) Used to specify the team the resource should be created in when using global tokens.
+- `token` (String) The token of this source. This token is used to identify and route the data you will send to Better Stack.
+- `updated_at` (String) The time when this monitor group was updated.
