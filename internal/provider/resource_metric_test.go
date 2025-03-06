@@ -105,7 +105,7 @@ func TestResourceMetric(t *testing.T) {
 				}
 				`, sourceID, name, sqlExpression),
 				Check:       resource.ComposeTestCheckFunc(),
-				ExpectError: regexp.MustCompile(`expected type to be one of \[string_low_cardinality int64_delta float64_delta datetime64_delta boolean], got mystery_column(.|\n)*expected aggregations\.2 to be one of \[avg count uniq max min anyLast sum p50 p90 p95 p99], got best`),
+				ExpectError: regexp.MustCompile(`expected type to be one of \["string_low_cardinality" "int64_delta" "float64_delta" "datetime64_delta" "boolean"], got mystery_column(.|\n)*expected aggregations\.2 to be one of \["avg" "count" "uniq" "max" "min" "anyLast" "sum" "p50" "p90" "p95" "p99"], got best`),
 				PreConfig: func() {
 					t.Log("step 2")
 				},
