@@ -3,7 +3,7 @@
 [![tests](https://github.com/BetterStackHQ/terraform-provider-logtail/actions/workflows/test.yml/badge.svg?branch=main)](https://github.com/BetterStackHQ/terraform-provider-logtail/actions/workflows/test.yml)
 [![documentation](https://img.shields.io/badge/-documentation-blue)](https://registry.terraform.io/providers/BetterStackHQ/logtail/latest/docs)
 
-Terraform (0.13+) provider for [Better Stack Logs](https://betterstack.com/logs) (formerly *Logtail.com*).
+Terraform (0.13+) provider for [Better Stack Telemetry](https://betterstack.com/logs) (formerly *Logtail.com*).
 
 ## Installation
 
@@ -19,7 +19,10 @@ terraform {
 }
 ```
 
-## Example Usage
+## Example usage
+
+See [`/examples` directory](./examples) for multiple ready-to-use examples.
+Here's a simple one to get you started:
 
 ```terraform
 provider "logtail" {
@@ -39,7 +42,8 @@ output "logtail_source_token" {
 
 ## Documentation
 
-See Terraform Registry [docs](https://registry.terraform.io/providers/BetterStackHQ/logtail/latest/docs).
+See [Better Stack Telemetry API docs](https://betterstack.com/docs/logs/api/getting-started/) to obtain API token and get the complete list of parameter options.
+Or explore the [Terraform Registry provider documentation](https://registry.terraform.io/providers/BetterStackHQ/logtail/latest/docs).
 
 ## Development
 
