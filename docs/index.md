@@ -23,7 +23,7 @@ terraform {
 }
 ```
 
-## Example Usage
+## Example usage
 
 ```terraform
 provider "logtail" {
@@ -46,4 +46,4 @@ output "logtail_source_token" {
 
 ### Required
 
-- `api_token` (String, Sensitive) Better Stack Logs API Token. The value can be omitted if `LOGTAIL_API_TOKEN` environment variable is set. See https://betterstack.com/docs/logs/api/getting-started/#get-an-logs-api-token on how to obtain the API token for your team.
+- `api_token` (String, Sensitive) Better Stack Logs API token. The value can be omitted if `LOGTAIL_API_TOKEN` environment variable is set. See https://betterstack.com/docs/logs/api/getting-started/#get-an-logs-api-token on how to obtain the API token for your team.

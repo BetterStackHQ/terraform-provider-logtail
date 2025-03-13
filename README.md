@@ -19,9 +19,9 @@ terraform {
 }
 ```
 
-## Example Usage
+## Example usage
 
-See [`/examples` directory](./examples) for multiple executable configurations.
+See [`/examples` directory](./examples) for multiple ready-to-use examples.
 Here's a simple one to get you started:
 
 ```terraform
@@ -42,7 +42,7 @@ output "logtail_source_token" {
 
 ## Documentation
 
-See [Better Stack Telemetry API docs](https://betterstack.com/docs/logs/api/getting-started/) to obtain API Token and get the complete list of parameter options.
+See [Better Stack Telemetry API docs](https://betterstack.com/docs/logs/api/getting-started/) to obtain API token and get the complete list of parameter options.
 Or explore the [Terraform Registry provider documentation](https://registry.terraform.io/providers/BetterStackHQ/logtail/latest/docs).
 
 ## Development
