@@ -42,7 +42,7 @@ func New(opts ...Option) *schema.Provider {
 				Sensitive:   true,
 				Required:    true,
 				DefaultFunc: schema.EnvDefaultFunc("LOGTAIL_API_TOKEN", nil),
-				Description: "Better Stack Logs API token. The value can be omitted if `LOGTAIL_API_TOKEN` environment variable is set. See https://betterstack.com/docs/logs/api/getting-started/#get-an-logs-api-token on how to obtain the API token for your team.",
+				Description: "Better Stack Telemetry API token. The value can be omitted if `LOGTAIL_API_TOKEN` environment variable is set. See https://betterstack.com/docs/logs/api/getting-started/#get-an-logs-api-token on how to obtain the API token for your team.",
 			},
 		},
 		DataSourcesMap: map[string]*schema.Resource{

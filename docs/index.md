@@ -2,12 +2,12 @@
 layout: ""
 page_title: "Provider: logtail"
 description: |-
-  The Better Stack Logs provider.
+  The Better Stack Telemetry provider.
 ---
 
-# Better Stack Logs Provider
+# Better Stack Telemetry Provider
 
-[Better Stack Logs](https://logs.betterstack.com) provider provides resources to interact with the [Logs API](https://betterstack.com/docs/logs/api/getting-started/).
+[Better Stack Telemetry](https://logs.betterstack.com) provider provides resources to interact with the [Logs API](https://betterstack.com/docs/logs/api/getting-started/).
 
 ## Installation
 
@@ -24,6 +24,9 @@ terraform {
 ```
 
 ## Example usage
+
+In our GitHub repository, you can [see multiple executable examples](https://github.com/BetterStackHQ/terraform-provider-logtail/tree/master/examples).
+Here's a simple one to get you started:
 
 ```terraform
 provider "logtail" {
@@ -46,4 +49,4 @@ output "logtail_source_token" {
 
 ### Required
 
-- `api_token` (String, Sensitive) Better Stack Logs API token. The value can be omitted if `LOGTAIL_API_TOKEN` environment variable is set. See https://betterstack.com/docs/logs/api/getting-started/#get-an-logs-api-token on how to obtain the API token for your team.
+- `api_token` (String, Sensitive) Better Stack Telemetry API token. The value can be omitted if `LOGTAIL_API_TOKEN` environment variable is set. See https://betterstack.com/docs/logs/api/getting-started/#get-an-logs-api-token on how to obtain the API token for your team.
