@@ -39,6 +39,7 @@ This resource allows you to create, modify, and delete your Sources. For more in
     - `fluentd`
     - `fly_io`
     - `go`
+    - `google_cloud_pubsub`
     - `haproxy`
     - `heroku`
     - `http`

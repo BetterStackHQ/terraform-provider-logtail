@@ -51,6 +51,7 @@ This Data Source allows you to look up existing Sources using their table name. 
     - `fluentd`
     - `fly_io`
     - `go`
+    - `google_cloud_pubsub`
     - `haproxy`
     - `heroku`
     - `http`
