@@ -75,6 +75,7 @@ This resource allows you to create, modify, and delete your Sources. For more in
 - `live_tail_pattern` (String) Freeform text template for formatting Live tail output with columns wrapped in {column} brackets. Example: "PID: {message_json.pid} {level} {message}"
 - `logs_retention` (Number) Data retention for logs in days. There might be additional charges for longer retention.
 - `metrics_retention` (Number) Data retention for metrics in days. There might be additional charges for longer retention.
+- `resource_group_id` (Number) The ID of the resource group this source belongs to.
 - `scrape_frequency_secs` (Number) For scrape platform types, how often to scrape the URLs.
 - `scrape_request_basic_auth_password` (String, Sensitive) Basic auth password for scraping.
 - `scrape_request_basic_auth_user` (String) Basic auth username for scraping.

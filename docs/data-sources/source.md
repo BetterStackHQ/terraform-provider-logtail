@@ -79,6 +79,7 @@ This Data Source allows you to look up existing Sources using their table name. 
     - `ubuntu`
     - `vector`
     - `vercel_integration`
+- `resource_group_id` (Number) The ID of the resource group this source belongs to.
 - `scrape_frequency_secs` (Number) For scrape platform types, how often to scrape the URLs.
 - `scrape_request_basic_auth_password` (String, Sensitive) Basic auth password for scraping.
 - `scrape_request_basic_auth_user` (String) Basic auth username for scraping.
