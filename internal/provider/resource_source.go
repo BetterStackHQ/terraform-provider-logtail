@@ -203,6 +203,11 @@ var sourceSchema = map[string]*schema.Schema{
 		Optional:    true,
 		Computed:    true,
 	},
+	"resource_group_id": {
+		Description: "The ID of the resource group this source belongs to.",
+		Type:        schema.TypeInt,
+		Optional:    true,
+	},
 }
 
 func newSourceResource() *schema.Resource {
@@ -239,6 +244,7 @@ type source struct {
 	ScrapeRequestBasicAuthUser     *string                   `json:"scrape_request_basic_auth_user,omitempty"`
 	ScrapeRequestBasicAuthPassword *string                   `json:"scrape_request_basic_auth_password,omitempty"`
 	DataRegion                     *string                   `json:"data_region,omitempty"`
+	ResourceGroupID                *int                      `json:"resource_group_id,omitempty"`
 }
 
 type sourceHTTPResponse struct {
@@ -273,6 +279,7 @@ func sourceRef(in *source) []struct {
 		{k: "scrape_request_basic_auth_user", v: &in.ScrapeRequestBasicAuthUser},
 		{k: "scrape_request_basic_auth_password", v: &in.ScrapeRequestBasicAuthPassword},
 		{k: "data_region", v: &in.DataRegion},
+		{k: "resource_group_id", v: &in.ResourceGroupID},
 	}
 }
 

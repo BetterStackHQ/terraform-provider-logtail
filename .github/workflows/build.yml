@@ -8,20 +8,26 @@ on:
       - main
 jobs:
   lint:
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v3
       - uses: actions/setup-go@v4
         with:
           go-version: '1.23.x'
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 'latest'
       - run: make lint
   check_docs:
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v3
       - uses: actions/setup-go@v4
         with:
           go-version: '1.23.x'
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 'latest'
       - name: Generate docs automatically
         run: make gen
       - name: Check no versioned file has been updated
