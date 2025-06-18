@@ -93,7 +93,7 @@ func TestResourceSource(t *testing.T) {
 					name             = "%s"
 					platform         = "%s"
 					data_region      = "eu-hel-1-legacy"
-					resource_group_id = 123
+					source_group_id = 123
 				}
 				`, name, platform),
 				Check: resource.ComposeTestCheckFunc(
@@ -103,7 +103,7 @@ func TestResourceSource(t *testing.T) {
 					resource.TestCheckResourceAttr("logtail_source.this", "token", "generated_by_logtail"),
 					resource.TestCheckResourceAttr("logtail_source.this", "ingesting_host", "in.logs.betterstack.com"),
 					resource.TestCheckResourceAttr("logtail_source.this", "data_region", "eu-hel-1-legacy"),
-					resource.TestCheckResourceAttr("logtail_source.this", "resource_group_id", "123"),
+					resource.TestCheckResourceAttr("logtail_source.this", "source_group_id", "123"),
 				),
 			},
 			// Step 2 - update.
@@ -120,7 +120,7 @@ func TestResourceSource(t *testing.T) {
 					metrics_retention = 60
    					live_tail_pattern = "{level} {message}"
 					ingesting_paused  = true
-					resource_group_id = 456
+					source_group_id = 456
 				}
 				`, name, platform),
 				Check: resource.ComposeTestCheckFunc(
@@ -131,7 +131,7 @@ func TestResourceSource(t *testing.T) {
 					resource.TestCheckResourceAttr("logtail_source.this", "token", "generated_by_logtail"),
 					resource.TestCheckResourceAttr("logtail_source.this", "ingesting_host", "in.logs.betterstack.com"),
 					resource.TestCheckResourceAttr("logtail_source.this", "data_region", "eu-hel-1-legacy"),
-					resource.TestCheckResourceAttr("logtail_source.this", "resource_group_id", "456"),
+					resource.TestCheckResourceAttr("logtail_source.this", "source_group_id", "456"),
 				),
 			},
 			// Step 3 - make no changes, check plan is empty (omitted attributes are not controlled)
@@ -144,7 +144,7 @@ func TestResourceSource(t *testing.T) {
 				resource "logtail_source" "this" {
 					name             = "%s"
 					platform         = "%s"
-					resource_group_id = 456
+					source_group_id = 456
 				}
 				`, name, platform),
 				PlanOnly: true,
