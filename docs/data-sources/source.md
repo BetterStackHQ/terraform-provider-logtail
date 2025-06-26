@@ -22,6 +22,7 @@ This Data Source allows you to look up existing Sources using their table name. 
 ### Read-Only
 
 - `created_at` (String) The time when this monitor group was created.
+- `custom_bucket` (List of Object) Optional custom bucket configuration for the source. When provided, all fields (name, endpoint, access_key_id, secret_access_key) are required. (see [below for nested schema](#nestedatt--custom_bucket))
 - `data_region` (String) Region where we store your data.
 - `id` (String) The ID of this source.
 - `ingesting_host` (String) The host where the logs or metrics should be sent. See [documentation](https://betterstack.com/docs/logs/start/) for your specific source platform for details.
@@ -88,3 +89,13 @@ This Data Source allows you to look up existing Sources using their table name. 
 - `team_name` (String) Used to specify the team the resource should be created in when using global tokens.
 - `token` (String) The token of this source. This token is used to identify and route the data you will send to Better Stack.
 - `updated_at` (String) The time when this monitor group was updated.
+
+<a id="nestedatt--custom_bucket"></a>
+### Nested Schema for `custom_bucket`
+
+Read-Only:
+
+- `access_key_id` (String)
+- `endpoint` (String)
+- `name` (String)
+- `secret_access_key` (String)

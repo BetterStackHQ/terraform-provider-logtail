@@ -36,6 +36,10 @@ func TestResourceSource(t *testing.T) {
 			body = inject(t, body, "token", "generated_by_logtail")
 			body = inject(t, body, "ingesting_host", "in.logs.betterstack.com")
 			body = inject(t, body, "table_name", "test_source")
+
+			// Handle custom_bucket - remove secret_access_key from response as API doesn't return it
+			body = removeCustomBucketSecret(t, body)
+
 			data.Store(body)
 			w.WriteHeader(http.StatusCreated)
 			_, _ = w.Write([]byte(fmt.Sprintf(`{"data":{"id":%q,"attributes":%s}}`, id, body)))
@@ -60,6 +64,10 @@ func TestResourceSource(t *testing.T) {
 			patched = inject(t, patched, "token", "generated_by_logtail")
 			patched = inject(t, patched, "ingesting_host", "in.logs.betterstack.com")
 			patched = inject(t, patched, "table_name", "test_source")
+
+			// Handle custom_bucket - remove secret_access_key from response as API doesn't return it
+			patched = removeCustomBucketSecret(t, patched)
+
 			data.Store(patched)
 			_, _ = w.Write([]byte(fmt.Sprintf(`{"data":{"id":%q,"attributes":%s}}`, id, patched)))
 		case r.Method == http.MethodDelete && r.RequestURI == prefix+"/"+id:
@@ -210,7 +218,7 @@ func TestResourceSource(t *testing.T) {
 					scrape_request_basic_auth_user = "user1"
 					scrape_request_basic_auth_password = "password1"
 					scrape_request_headers = [
-						{ 
+						{
 							name = "Authorization",
 							value = "Bearer foo"
 						}
@@ -248,7 +256,7 @@ func TestResourceSource(t *testing.T) {
 					scrape_request_basic_auth_user = "user1"
 					scrape_request_basic_auth_password = "password1"
 					scrape_request_headers = [
-						{ 
+						{
 							name = "Authorization",
 							value = "Bearer foo"
 						}
@@ -285,7 +293,7 @@ func TestResourceSource(t *testing.T) {
 					name             = "%s"
 					platform         = "%s"
 					scrape_request_headers = [
-						{ 
+						{
 							name = "X-TEST",
 							value = "test"
 						}
@@ -308,13 +316,13 @@ func TestResourceSource(t *testing.T) {
 					name             = "%s"
 					platform         = "%s"
 					scrape_request_headers = [
-						{ 
+						{
 							name = "X-TEST",
 							value = "test"
 						},
-						{ 
+						{
 							name = "X-TEST-2",
-							value = "test-2"	
+							value = "test-2"
 						}
 					]
 				}
@@ -338,9 +346,9 @@ func TestResourceSource(t *testing.T) {
 					name             = "%s"
 					platform         = "%s"
 					scrape_request_headers = [
-						{ 
+						{
 							name = "X-TEST-2",
-							value = "test-2"	
+							value = "test-2"
 						}
 					]
 				}
@@ -362,9 +370,9 @@ func TestResourceSource(t *testing.T) {
 					name             = "%s"
 					platform         = "%s"
 					scrape_request_headers = [
-						{ 
+						{
 							name = "",
-							value = "test"	
+							value = "test"
 						}
 					]
 				}
@@ -383,9 +391,9 @@ func TestResourceSource(t *testing.T) {
 					name             = "%s"
 					platform         = "%s"
 					scrape_request_headers = [
-						{ 
+						{
 							name = "X-TEST",
-							value = ""	
+							value = ""
 						}
 					]
 				}
@@ -426,7 +434,7 @@ func TestResourceSource(t *testing.T) {
 					name             = "%s"
 					platform         = "%s"
 					scrape_request_headers = [
-						{ 
+						{
 							"X-TEST" = "test"
 						}
 					]
@@ -446,7 +454,7 @@ func TestResourceSource(t *testing.T) {
 					name             = "%s"
 					platform         = "%s"
 					scrape_request_headers = [
-						{ 
+						{
 							name = "X-TEST"
 							value = "test"
 						}
@@ -456,6 +464,247 @@ func TestResourceSource(t *testing.T) {
 				`, name, platform_scrape),
 				PlanOnly:    true,
 				ExpectError: regexp.MustCompile(`data_region cannot be changed after source is created`),
+			},
+		},
+	})
+
+	// Test custom_bucket functionality
+	resource.Test(t, resource.TestCase{
+		IsUnitTest: true,
+		ProviderFactories: map[string]func() (*schema.Provider, error){
+			"logtail": func() (*schema.Provider, error) {
+				return New(WithURL(server.URL)), nil
+			},
+		},
+		Steps: []resource.TestStep{
+			// Step 1 - create with custom_bucket
+			{
+				Config: fmt.Sprintf(`
+				provider "logtail" {
+					api_token = "foo"
+				}
+
+				resource "logtail_source" "this" {
+					name     = "%s"
+					platform = "%s"
+					custom_bucket {
+						name              = "my-test-bucket"
+						endpoint          = "https://s3.amazonaws.com"
+						access_key_id     = "AKIAIOSFODNN7EXAMPLE"
+						secret_access_key = "wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY"
+					}
+				}
+				`, name, platform),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttrSet("logtail_source.this", "id"),
+					resource.TestCheckResourceAttr("logtail_source.this", "name", name),
+					resource.TestCheckResourceAttr("logtail_source.this", "platform", platform),
+					resource.TestCheckResourceAttr("logtail_source.this", "custom_bucket.#", "1"),
+					resource.TestCheckResourceAttr("logtail_source.this", "custom_bucket.0.name", "my-test-bucket"),
+					resource.TestCheckResourceAttr("logtail_source.this", "custom_bucket.0.endpoint", "https://s3.amazonaws.com"),
+					resource.TestCheckResourceAttr("logtail_source.this", "custom_bucket.0.access_key_id", "AKIAIOSFODNN7EXAMPLE"),
+					resource.TestCheckResourceAttr("logtail_source.this", "custom_bucket.0.secret_access_key", "wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY"),
+				),
+			},
+			// Step 2 - update without custom_bucket (should preserve it in state since API doesn't return secret)
+			{
+				Config: fmt.Sprintf(`
+				provider "logtail" {
+					api_token = "foo"
+				}
+
+				resource "logtail_source" "this" {
+					name             = "%s"
+					platform         = "%s"
+					ingesting_paused = true
+					custom_bucket {
+						name              = "my-test-bucket"
+						endpoint          = "https://s3.amazonaws.com"
+						access_key_id     = "AKIAIOSFODNN7EXAMPLE"
+						secret_access_key = "wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY"
+					}
+				}
+				`, name, platform),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr("logtail_source.this", "ingesting_paused", "true"),
+					resource.TestCheckResourceAttr("logtail_source.this", "custom_bucket.#", "1"),
+					resource.TestCheckResourceAttr("logtail_source.this", "custom_bucket.0.name", "my-test-bucket"),
+					resource.TestCheckResourceAttr("logtail_source.this", "custom_bucket.0.endpoint", "https://s3.amazonaws.com"),
+					resource.TestCheckResourceAttr("logtail_source.this", "custom_bucket.0.access_key_id", "AKIAIOSFODNN7EXAMPLE"),
+					resource.TestCheckResourceAttr("logtail_source.this", "custom_bucket.0.secret_access_key", "wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY"),
+				),
+			},
+		},
+	})
+
+	// Test custom_bucket validation errors
+	resource.Test(t, resource.TestCase{
+		IsUnitTest: true,
+		ProviderFactories: map[string]func() (*schema.Provider, error){
+			"logtail": func() (*schema.Provider, error) {
+				return New(WithURL(server.URL)), nil
+			},
+		},
+		Steps: []resource.TestStep{
+			// Step 1 - custom_bucket missing name (schema validation)
+			{
+				Config: fmt.Sprintf(`
+				provider "logtail" {
+					api_token = "foo"
+				}
+
+				resource "logtail_source" "this" {
+					name     = "%s"
+					platform = "%s"
+					custom_bucket {
+						endpoint          = "https://s3.amazonaws.com"
+						access_key_id     = "AKIAIOSFODNN7EXAMPLE"
+						secret_access_key = "wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY"
+					}
+				}
+				`, name, platform),
+				PlanOnly:    true,
+				ExpectError: regexp.MustCompile(`The argument "name" is required`),
+			},
+			// Step 2 - custom_bucket missing endpoint (schema validation)
+			{
+				Config: fmt.Sprintf(`
+				provider "logtail" {
+					api_token = "foo"
+				}
+
+				resource "logtail_source" "this" {
+					name     = "%s"
+					platform = "%s"
+					custom_bucket {
+						name              = "my-test-bucket"
+						access_key_id     = "AKIAIOSFODNN7EXAMPLE"
+						secret_access_key = "wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY"
+					}
+				}
+				`, name, platform),
+				PlanOnly:    true,
+				ExpectError: regexp.MustCompile(`The argument "endpoint" is required`),
+			},
+			// Step 3 - custom_bucket missing access_key_id (schema validation)
+			{
+				Config: fmt.Sprintf(`
+				provider "logtail" {
+					api_token = "foo"
+				}
+
+				resource "logtail_source" "this" {
+					name     = "%s"
+					platform = "%s"
+					custom_bucket {
+						name              = "my-test-bucket"
+						endpoint          = "https://s3.amazonaws.com"
+						secret_access_key = "wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY"
+					}
+				}
+				`, name, platform),
+				PlanOnly:    true,
+				ExpectError: regexp.MustCompile(`The argument "access_key_id" is required`),
+			},
+			// Step 4 - custom_bucket missing secret_access_key (schema validation)
+			{
+				Config: fmt.Sprintf(`
+				provider "logtail" {
+					api_token = "foo"
+				}
+
+				resource "logtail_source" "this" {
+					name     = "%s"
+					platform = "%s"
+					custom_bucket {
+						name          = "my-test-bucket"
+						endpoint      = "https://s3.amazonaws.com"
+						access_key_id = "AKIAIOSFODNN7EXAMPLE"
+					}
+				}
+				`, name, platform),
+				PlanOnly:    true,
+				ExpectError: regexp.MustCompile(`The argument "secret_access_key" is required`),
+			},
+		},
+	})
+
+	// Test custom_bucket removal validation
+	resource.Test(t, resource.TestCase{
+		IsUnitTest: true,
+		ProviderFactories: map[string]func() (*schema.Provider, error){
+			"logtail": func() (*schema.Provider, error) {
+				return New(WithURL(server.URL)), nil
+			},
+		},
+		Steps: []resource.TestStep{
+			// Step 1 - create with custom_bucket
+			{
+				Config: fmt.Sprintf(`
+				provider "logtail" {
+					api_token = "foo"
+				}
+
+				resource "logtail_source" "this" {
+					name     = "%s"
+					platform = "%s"
+					custom_bucket {
+						name              = "my-test-bucket"
+						endpoint          = "https://s3.amazonaws.com"
+						access_key_id     = "AKIAIOSFODNN7EXAMPLE"
+						secret_access_key = "wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY"
+					}
+				}
+				`, name, platform),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr("logtail_source.this", "custom_bucket.#", "1"),
+				),
+			},
+			// Step 2 - try to remove custom_bucket (should fail)
+			{
+				Config: fmt.Sprintf(`
+				provider "logtail" {
+					api_token = "foo"
+				}
+
+				resource "logtail_source" "this" {
+					name     = "%s"
+					platform = "%s"
+				}
+				`, name, platform),
+				PlanOnly:    true,
+				ExpectError: regexp.MustCompile(`custom_bucket cannot be removed once set - it is a create-only field`),
+			},
+		},
+	})
+
+	// Test source without custom_bucket (should work as before)
+	resource.Test(t, resource.TestCase{
+		IsUnitTest: true,
+		ProviderFactories: map[string]func() (*schema.Provider, error){
+			"logtail": func() (*schema.Provider, error) {
+				return New(WithURL(server.URL)), nil
+			},
+		},
+		Steps: []resource.TestStep{
+			// Step 1 - create without custom_bucket
+			{
+				Config: fmt.Sprintf(`
+				provider "logtail" {
+					api_token = "foo"
+				}
+
+				resource "logtail_source" "this" {
+					name     = "%s"
+					platform = "%s"
+				}
+				`, name, platform),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttrSet("logtail_source.this", "id"),
+					resource.TestCheckResourceAttr("logtail_source.this", "name", name),
+					resource.TestCheckResourceAttr("logtail_source.this", "platform", platform),
+					resource.TestCheckResourceAttr("logtail_source.this", "custom_bucket.#", "0"),
+				),
 			},
 		},
 	})
@@ -469,6 +718,26 @@ func inject(t *testing.T, body json.RawMessage, key string, value interface{}) j
 	}
 	computed[key] = value
 	body, err := json.Marshal(computed)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	return body
+}
+
+func removeCustomBucketSecret(t *testing.T, body json.RawMessage) json.RawMessage {
+	// Remove secret_access_key from custom_bucket to simulate API behavior
+	response := make(map[string]interface{})
+	if err := json.Unmarshal(body, &response); err != nil {
+		t.Fatal(err)
+	}
+
+	if customBucket, ok := response["custom_bucket"].(map[string]interface{}); ok {
+		delete(customBucket, "secret_access_key")
+		response["custom_bucket"] = customBucket
+	}
+
+	body, err := json.Marshal(response)
 	if err != nil {
 		t.Fatal(err)
 	}

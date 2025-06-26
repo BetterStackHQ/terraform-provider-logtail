@@ -208,6 +208,37 @@ var sourceSchema = map[string]*schema.Schema{
 		Type:        schema.TypeInt,
 		Optional:    true,
 	},
+	"custom_bucket": {
+		Description: "Optional custom bucket configuration for the source. When provided, all fields (name, endpoint, access_key_id, secret_access_key) are required.",
+		Type:        schema.TypeList,
+		Optional:    true,
+		MaxItems:    1,
+		Elem: &schema.Resource{
+			Schema: map[string]*schema.Schema{
+				"name": {
+					Description: "Bucket name",
+					Type:        schema.TypeString,
+					Required:    true,
+				},
+				"endpoint": {
+					Description: "Bucket endpoint",
+					Type:        schema.TypeString,
+					Required:    true,
+				},
+				"access_key_id": {
+					Description: "Access key ID",
+					Type:        schema.TypeString,
+					Required:    true,
+				},
+				"secret_access_key": {
+					Description: "Secret access key",
+					Type:        schema.TypeString,
+					Required:    true,
+					Sensitive:   true,
+				},
+			},
+		},
+	},
 }
 
 func newSourceResource() *schema.Resource {
@@ -223,6 +254,13 @@ func newSourceResource() *schema.Resource {
 		Description:   "This resource allows you to create, modify, and delete your Sources. For more information about the Sources API check https://betterstack.com/docs/logs/api/list-all-existing-sources/",
 		Schema:        sourceSchema,
 	}
+}
+
+type sourceCustomBucket struct {
+	Name            *string `json:"name,omitempty"`
+	Endpoint        *string `json:"endpoint,omitempty"`
+	AccessKeyID     *string `json:"access_key_id,omitempty"`
+	SecretAccessKey *string `json:"secret_access_key,omitempty"`
 }
 
 type source struct {
@@ -245,6 +283,7 @@ type source struct {
 	ScrapeRequestBasicAuthPassword *string                   `json:"scrape_request_basic_auth_password,omitempty"`
 	DataRegion                     *string                   `json:"data_region,omitempty"`
 	SourceGroupID                  *int                      `json:"source_group_id,omitempty"`
+	CustomBucket                   *sourceCustomBucket       `json:"custom_bucket,omitempty"`
 }
 
 type sourceHTTPResponse struct {
@@ -291,6 +330,19 @@ func sourceCreate(ctx context.Context, d *schema.ResourceData, meta interface{})
 
 	load(d, "team_name", &in.TeamName)
 
+	if customBucketData, ok := d.GetOk("custom_bucket"); ok {
+		customBucketList := customBucketData.([]interface{})
+		if len(customBucketList) > 0 {
+			customBucketMap := customBucketList[0].(map[string]interface{})
+			in.CustomBucket = &sourceCustomBucket{
+				Name:            stringPtr(customBucketMap["name"].(string)),
+				Endpoint:        stringPtr(customBucketMap["endpoint"].(string)),
+				AccessKeyID:     stringPtr(customBucketMap["access_key_id"].(string)),
+				SecretAccessKey: stringPtr(customBucketMap["secret_access_key"].(string)),
+			}
+		}
+	}
+
 	var out sourceHTTPResponse
 	if err := resourceCreate(ctx, meta, "/api/v1/sources", &in, &out); err != nil {
 		return err
@@ -318,6 +370,32 @@ func sourceCopyAttrs(d *schema.ResourceData, in *source) diag.Diagnostics {
 		}
 	}
 
+	if in.CustomBucket != nil {
+		customBucketData := make(map[string]interface{})
+		if in.CustomBucket.Name != nil {
+			customBucketData["name"] = *in.CustomBucket.Name
+		}
+		if in.CustomBucket.Endpoint != nil {
+			customBucketData["endpoint"] = *in.CustomBucket.Endpoint
+		}
+		if in.CustomBucket.AccessKeyID != nil {
+			customBucketData["access_key_id"] = *in.CustomBucket.AccessKeyID
+		}
+		// Note: secret_access_key is never returned from API, so we preserve the existing value
+		if existingCustomBucket, ok := d.GetOk("custom_bucket"); ok {
+			existingCustomBucketList := existingCustomBucket.([]interface{})
+			if len(existingCustomBucketList) > 0 {
+				existingCustomBucketMap := existingCustomBucketList[0].(map[string]interface{})
+				if secretKey, ok := existingCustomBucketMap["secret_access_key"]; ok {
+					customBucketData["secret_access_key"] = secretKey
+				}
+			}
+		}
+		if err := d.Set("custom_bucket", []interface{}{customBucketData}); err != nil {
+			derr = append(derr, diag.FromErr(err)[0])
+		}
+	}
+
 	return derr
 }
 
@@ -341,6 +419,10 @@ func validateSource(ctx context.Context, diff *schema.ResourceDiff, v interface{
 	}
 
 	if err := validateRequestHeaders(ctx, diff, v); err != nil {
+		return err
+	}
+
+	if err := validateCustomBucketRemoval(ctx, diff, v); err != nil {
 		return err
 	}
 
@@ -381,4 +463,24 @@ func validateRequestHeader(header map[string]interface{}) error {
 	}
 
 	return nil
+}
+
+func validateCustomBucketRemoval(ctx context.Context, diff *schema.ResourceDiff, v interface{}) error {
+	// Only validate for existing resources (not during creation)
+	if diff.Id() != "" && diff.HasChange("custom_bucket") {
+		oldVal, newVal := diff.GetChange("custom_bucket")
+
+		// Check if custom_bucket was removed (had value, now empty)
+		oldList := oldVal.([]interface{})
+		newList := newVal.([]interface{})
+
+		if len(oldList) > 0 && len(newList) == 0 {
+			return fmt.Errorf("custom_bucket cannot be removed once set - it is a create-only field")
+		}
+	}
+	return nil
+}
+
+func stringPtr(s string) *string {
+	return &s
 }
