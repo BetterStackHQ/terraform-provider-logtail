@@ -20,6 +20,16 @@ func newSourceDataSource() *schema.Resource {
 			cp.Computed = false
 			cp.Optional = false
 			cp.Required = true
+		case "custom_bucket":
+			cp.Computed = true
+			cp.Optional = false
+			cp.Required = false
+			cp.ValidateFunc = nil
+			cp.ValidateDiagFunc = nil
+			cp.Default = nil
+			cp.DefaultFunc = nil
+			cp.DiffSuppressFunc = nil
+			cp.MaxItems = 0
 		default:
 			cp.Computed = true
 			cp.Optional = false

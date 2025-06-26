@@ -70,6 +70,7 @@ This resource allows you to create, modify, and delete your Sources. For more in
 
 ### Optional
 
+- `custom_bucket` (Block List, Max: 1) Optional custom bucket configuration for the source. When provided, all fields (name, endpoint, access_key_id, secret_access_key) are required. (see [below for nested schema](#nestedblock--custom_bucket))
 - `data_region` (String) Region where we store your data.
 - `ingesting_paused` (Boolean) This property allows you to temporarily pause data ingesting for this source (e.g., when you are reaching your plan's usage quota and you want to prioritize some sources over others).
 - `live_tail_pattern` (String) Freeform text template for formatting Live tail output with columns wrapped in {column} brackets. Example: "PID: {message_json.pid} {level} {message}"
@@ -91,3 +92,13 @@ This resource allows you to create, modify, and delete your Sources. For more in
 - `table_name` (String) The table name generated for this source.
 - `token` (String) The token of this source. This token is used to identify and route the data you will send to Better Stack.
 - `updated_at` (String) The time when this monitor group was updated.
+
+<a id="nestedblock--custom_bucket"></a>
+### Nested Schema for `custom_bucket`
+
+Required:
+
+- `access_key_id` (String) Access key ID
+- `endpoint` (String) Bucket endpoint
+- `name` (String) Bucket name
+- `secret_access_key` (String, Sensitive) Secret access key
