@@ -207,6 +207,10 @@ var sourceSchema = map[string]*schema.Schema{
 		Description: "The ID of the source group this source belongs to.",
 		Type:        schema.TypeInt,
 		Optional:    true,
+		DiffSuppressFunc: func(k, old, new string, d *schema.ResourceData) bool {
+			// Treat 0 as equivalent to unset/null
+			return (old == "0" || old == "") && (new == "0" || new == "")
+		},
 	},
 	"custom_bucket": {
 		Description: "Optional custom bucket configuration for the source. When provided, all fields (name, endpoint, access_key_id, secret_access_key) are required.",
