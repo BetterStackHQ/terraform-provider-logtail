@@ -2,6 +2,10 @@ provider "logtail" {
   api_token = var.logtail_api_token
 }
 
+resource "logtail_source_group" "group" {
+  name = "Terraform Advanced Source Group"
+}
+
 resource "logtail_source" "this" {
   name              = "Terraform Advanced Source"
   platform          = "http"
@@ -9,6 +13,7 @@ resource "logtail_source" "this" {
   live_tail_pattern = "{level} {message}"
   logs_retention    = 60
   metrics_retention = 90
+  source_group_id   = logtail_source_group.group.id
 }
 
 resource "logtail_metric" "duration_ms" {
