@@ -708,6 +708,102 @@ func TestResourceSource(t *testing.T) {
 			},
 		},
 	})
+
+	// Test VRL transformation functionality
+	resource.Test(t, resource.TestCase{
+		IsUnitTest: true,
+		ProviderFactories: map[string]func() (*schema.Provider, error){
+			"logtail": func() (*schema.Provider, error) {
+				return New(WithURL(server.URL)), nil
+			},
+		},
+		Steps: []resource.TestStep{
+			// Step 1 - create with VRL transformation
+			{
+				Config: fmt.Sprintf(`
+				provider "logtail" {
+					api_token = "foo"
+				}
+
+				resource "logtail_source" "this" {
+					name     = "%s"
+					platform = "%s"
+					vrl_transformation = <<EOT
+					# Expected msg format: [svc:router] GET /api/health succeeded in 12.345ms
+					.duration_ms = extract(.message, "in (\d+(?:\.\d+)?)ms")
+					.service_name = extract(.message, "\[svc:([a-zA-Z_-])\]")
+					EOT
+				}
+				`, name, platform),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttrSet("logtail_source.this", "id"),
+					resource.TestCheckResourceAttr("logtail_source.this", "name", name),
+					resource.TestCheckResourceAttr("logtail_source.this", "platform", platform),
+					resource.TestCheckResourceAttrSet("logtail_source.this", "vrl_transformation"),
+				),
+			},
+			// Step 2 - update VRL transformation with different formatting (should not cause diff due to normalization)
+			{
+				Config: fmt.Sprintf(`
+				provider "logtail" {
+					api_token = "foo"
+				}
+
+				resource "logtail_source" "this" {
+					name     = "%s"
+					platform = "%s"
+					vrl_transformation = <<EOT
+					# Expected msg format: [svc:router] GET /api/health succeeded in 12.345ms
+					
+					.duration_ms = extract(.message, "in (\d+(?:\.\d+)?)ms") .
+					.service_name = extract(.message, "\[svc:([a-zA-Z_-])\]") .
+					.
+					EOT
+				}
+				`, name, platform),
+				PlanOnly: true, // Should not show any changes due to DiffSuppressFunc
+			},
+			// Step 3 - update VRL transformation with actual changes
+			{
+				Config: fmt.Sprintf(`
+				provider "logtail" {
+					api_token = "foo"
+				}
+
+				resource "logtail_source" "this" {
+					name     = "%s"
+					platform = "%s"
+					vrl_transformation = <<EOT
+					# Updated VRL transformation
+					.duration_ms = extract(.message, "in (\d+(?:\.\d+)?)ms")
+					.service_name = extract(.message, "\[svc:([a-zA-Z_-]+)\]")
+					.method = extract(.message, "([A-Z]+) /")
+					EOT
+				}
+				`, name, platform),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttrSet("logtail_source.this", "vrl_transformation"),
+				),
+			},
+			// Step 4 - remove VRL transformation (set to empty)
+			{
+				Config: fmt.Sprintf(`
+				provider "logtail" {
+					api_token = "foo"
+				}
+
+				resource "logtail_source" "this" {
+					name     = "%s"
+					platform = "%s"
+					vrl_transformation = ""
+				}
+				`, name, platform),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr("logtail_source.this", "vrl_transformation", ""),
+				),
+			},
+		},
+	})
 }
 
 func inject(t *testing.T, body json.RawMessage, key string, value interface{}) json.RawMessage {

@@ -7,13 +7,18 @@ resource "logtail_source_group" "group" {
 }
 
 resource "logtail_source" "this" {
-  name              = "Terraform Advanced Source"
-  platform          = "http"
-  ingesting_paused  = true
-  live_tail_pattern = "{level} {message}"
-  logs_retention    = 60
-  metrics_retention = 90
-  source_group_id   = logtail_source_group.group.id
+  name               = "Terraform Advanced Source"
+  platform           = "http"
+  ingesting_paused   = true
+  live_tail_pattern  = "{level} {message}"
+  logs_retention     = 60
+  metrics_retention  = 90
+  vrl_transformation = <<EOT
+    # Expected msg format: [svc:router] GET /api/health succeeded in 12.345ms
+    .duration_ms = extract(.message, "in (\d+(?:\.\d+)?)ms")
+    .service_name = extract(.message, "\[svc:([a-zA-Z_-])\]")
+    EOT
+  source_group_id    = logtail_source_group.group.id
 }
 
 resource "logtail_metric" "duration_ms" {
