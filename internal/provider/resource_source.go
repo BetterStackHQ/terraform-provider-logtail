@@ -198,7 +198,7 @@ var sourceSchema = map[string]*schema.Schema{
 		Sensitive:   true,
 	},
 	"data_region": {
-		Description: "Region where we store your data.",
+		Description: "Data region or private cluster name to create the source in. Permitted values for most plans are: `us_east`, `us_west`, `germany`, `singapore`.",
 		Type:        schema.TypeString,
 		Optional:    true,
 		Computed:    true,
@@ -369,7 +369,11 @@ func sourceRead(ctx context.Context, d *schema.ResourceData, meta interface{}) d
 func sourceCopyAttrs(d *schema.ResourceData, in *source) diag.Diagnostics {
 	var derr diag.Diagnostics
 	for _, e := range sourceRef(in) {
-		if err := d.Set(e.k, reflect.Indirect(reflect.ValueOf(e.v)).Interface()); err != nil {
+		if e.k == "data_region" && d.Get("data_region").(string) != "" {
+			// Don't update data region from API if it's already set - data_region can't change
+			// This prevents e.g. "germany" being overwritten by "eu-nbg-2"
+			continue
+		} else if err := d.Set(e.k, reflect.Indirect(reflect.ValueOf(e.v)).Interface()); err != nil {
 			derr = append(derr, diag.FromErr(err)[0])
 		}
 	}
