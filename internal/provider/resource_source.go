@@ -396,20 +396,6 @@ func sourceRead(ctx context.Context, d *schema.ResourceData, meta interface{}) d
 func sourceCopyAttrs(d *schema.ResourceData, in *source) diag.Diagnostics {
 	var derr diag.Diagnostics
 	for _, e := range sourceRef(in) {
-		// Special handling for vrl_transformation
-		if e.k == "vrl_transformation" && in.VrlTransformation != nil {
-			// Remove the API-added trailing "\n." if the original was empty or didn't have it
-			vrl := *in.VrlTransformation
-			if vrl == "\n." || vrl == "." {
-				// API returns "\n." for empty VRL, set to empty string
-				if err := d.Set(e.k, ""); err != nil {
-					derr = append(derr, diag.FromErr(err)[0])
-				}
-				continue
-			}
-			// Otherwise use the value as-is
-		}
-
 		if err := d.Set(e.k, reflect.Indirect(reflect.ValueOf(e.v)).Interface()); err != nil {
 			derr = append(derr, diag.FromErr(err)[0])
 		}
