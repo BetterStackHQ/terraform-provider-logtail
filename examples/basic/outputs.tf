@@ -4,3 +4,6 @@ output "logtail_source_token" {
 output "logtail_ingesting_host" {
   value = logtail_source.this.ingesting_host
 }
+output "logtail_data_region" {
+  value = logtail_source.this.data_region
+}
