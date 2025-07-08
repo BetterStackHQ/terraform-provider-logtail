@@ -243,6 +243,31 @@ var sourceSchema = map[string]*schema.Schema{
 			},
 		},
 	},
+	"vrl_transformation": {
+		Description: "The VRL code that's used to transform events. Read more about [VRL transformations](https://betterstack.com/docs/logs/using-logtail/transforming-ingested-data/logs-vrl/).",
+		Type:        schema.TypeString,
+		Optional:    true,
+		DiffSuppressFunc: func(k, old, new string, d *schema.ResourceData) bool {
+			normalizeVRL := func(vrl string) string {
+				if vrl == "" {
+					return ""
+				}
+				lines := strings.Split(vrl, "\n")
+				var normalized []string
+				for _, line := range lines {
+					normalizedLine := strings.TrimSpace(line)
+					normalizedLine = strings.TrimSuffix(normalizedLine, ".")
+					normalizedLine = strings.TrimSpace(normalizedLine)
+					if normalizedLine != "" {
+						normalized = append(normalized, normalizedLine)
+					}
+				}
+				return strings.Join(normalized, "\n")
+			}
+
+			return normalizeVRL(old) == normalizeVRL(new)
+		},
+	},
 }
 
 func newSourceResource() *schema.Resource {
@@ -288,6 +313,7 @@ type source struct {
 	DataRegion                     *string                   `json:"data_region,omitempty"`
 	SourceGroupID                  *int                      `json:"source_group_id,omitempty"`
 	CustomBucket                   *sourceCustomBucket       `json:"custom_bucket,omitempty"`
+	VrlTransformation              *string                   `json:"vrl_transformation,omitempty"`
 }
 
 type sourceHTTPResponse struct {
@@ -323,6 +349,7 @@ func sourceRef(in *source) []struct {
 		{k: "scrape_request_basic_auth_password", v: &in.ScrapeRequestBasicAuthPassword},
 		{k: "data_region", v: &in.DataRegion},
 		{k: "source_group_id", v: &in.SourceGroupID},
+		{k: "vrl_transformation", v: &in.VrlTransformation},
 	}
 }
 
