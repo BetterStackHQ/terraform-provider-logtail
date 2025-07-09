@@ -98,5 +98,6 @@ Read-Only:
 
 - `access_key_id` (String)
 - `endpoint` (String)
+- `keep_data_after_retention` (Boolean)
 - `name` (String)
 - `secret_access_key` (String)

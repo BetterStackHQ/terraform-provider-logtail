@@ -103,3 +103,7 @@ Required:
 - `endpoint` (String) Bucket endpoint
 - `name` (String) Bucket name
 - `secret_access_key` (String, Sensitive) Secret access key
+
+Optional:
+
+- `keep_data_after_retention` (Boolean) Whether we should keep data in the bucket after the retention period.
