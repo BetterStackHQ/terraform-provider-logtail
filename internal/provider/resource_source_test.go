@@ -504,6 +504,7 @@ func TestResourceSource(t *testing.T) {
 					resource.TestCheckResourceAttr("logtail_source.this", "custom_bucket.0.endpoint", "https://s3.amazonaws.com"),
 					resource.TestCheckResourceAttr("logtail_source.this", "custom_bucket.0.access_key_id", "AKIAIOSFODNN7EXAMPLE"),
 					resource.TestCheckResourceAttr("logtail_source.this", "custom_bucket.0.secret_access_key", "wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY"),
+					resource.TestCheckResourceAttr("logtail_source.this", "custom_bucket.0.keep_data_after_retention", "false"),
 				),
 			},
 			// Step 2 - update without custom_bucket (should preserve it in state since API doesn't return secret)
@@ -532,6 +533,50 @@ func TestResourceSource(t *testing.T) {
 					resource.TestCheckResourceAttr("logtail_source.this", "custom_bucket.0.endpoint", "https://s3.amazonaws.com"),
 					resource.TestCheckResourceAttr("logtail_source.this", "custom_bucket.0.access_key_id", "AKIAIOSFODNN7EXAMPLE"),
 					resource.TestCheckResourceAttr("logtail_source.this", "custom_bucket.0.secret_access_key", "wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY"),
+					resource.TestCheckResourceAttr("logtail_source.this", "custom_bucket.0.keep_data_after_retention", "false"),
+				),
+			},
+		},
+	})
+
+	// Test custom_bucket keep data after retention functionality
+	resource.Test(t, resource.TestCase{
+		IsUnitTest: true,
+		ProviderFactories: map[string]func() (*schema.Provider, error){
+			"logtail": func() (*schema.Provider, error) {
+				return New(WithURL(server.URL)), nil
+			},
+		},
+		Steps: []resource.TestStep{
+			// Step 1 - create with custom_bucket and keep data after retention
+			{
+				Config: fmt.Sprintf(`
+				provider "logtail" {
+					api_token = "foo"
+				}
+
+				resource "logtail_source" "this" {
+					name     = "%s"
+					platform = "%s"
+					custom_bucket {
+						name                      = "my-test-bucket"
+						endpoint                  = "https://s3.amazonaws.com"
+						access_key_id             = "AKIAIOSFODNN7EXAMPLE"
+						secret_access_key         = "wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY"
+						keep_data_after_retention = true
+					}
+				}
+				`, name, platform),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttrSet("logtail_source.this", "id"),
+					resource.TestCheckResourceAttr("logtail_source.this", "name", name),
+					resource.TestCheckResourceAttr("logtail_source.this", "platform", platform),
+					resource.TestCheckResourceAttr("logtail_source.this", "custom_bucket.#", "1"),
+					resource.TestCheckResourceAttr("logtail_source.this", "custom_bucket.0.name", "my-test-bucket"),
+					resource.TestCheckResourceAttr("logtail_source.this", "custom_bucket.0.endpoint", "https://s3.amazonaws.com"),
+					resource.TestCheckResourceAttr("logtail_source.this", "custom_bucket.0.access_key_id", "AKIAIOSFODNN7EXAMPLE"),
+					resource.TestCheckResourceAttr("logtail_source.this", "custom_bucket.0.secret_access_key", "wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY"),
+					resource.TestCheckResourceAttr("logtail_source.this", "custom_bucket.0.keep_data_after_retention", "true"),
 				),
 			},
 		},

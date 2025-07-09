@@ -240,6 +240,12 @@ var sourceSchema = map[string]*schema.Schema{
 					Required:    true,
 					Sensitive:   true,
 				},
+				"keep_data_after_retention": {
+					Description: "Whether we should keep data in the bucket after the retention period.",
+					Type:        schema.TypeBool,
+					Optional:    true,
+					Default:     false,
+				},
 			},
 		},
 	},
@@ -286,10 +292,11 @@ func newSourceResource() *schema.Resource {
 }
 
 type sourceCustomBucket struct {
-	Name            *string `json:"name,omitempty"`
-	Endpoint        *string `json:"endpoint,omitempty"`
-	AccessKeyID     *string `json:"access_key_id,omitempty"`
-	SecretAccessKey *string `json:"secret_access_key,omitempty"`
+	Name                   *string `json:"name,omitempty"`
+	Endpoint               *string `json:"endpoint,omitempty"`
+	AccessKeyID            *string `json:"access_key_id,omitempty"`
+	SecretAccessKey        *string `json:"secret_access_key,omitempty"`
+	KeepDataAfterRetention *bool   `json:"keep_data_after_retention,omitempty"`
 }
 
 type source struct {
@@ -366,10 +373,11 @@ func sourceCreate(ctx context.Context, d *schema.ResourceData, meta interface{})
 		if len(customBucketList) > 0 {
 			customBucketMap := customBucketList[0].(map[string]interface{})
 			in.CustomBucket = &sourceCustomBucket{
-				Name:            stringPtr(customBucketMap["name"].(string)),
-				Endpoint:        stringPtr(customBucketMap["endpoint"].(string)),
-				AccessKeyID:     stringPtr(customBucketMap["access_key_id"].(string)),
-				SecretAccessKey: stringPtr(customBucketMap["secret_access_key"].(string)),
+				Name:                   stringPtr(customBucketMap["name"].(string)),
+				Endpoint:               stringPtr(customBucketMap["endpoint"].(string)),
+				AccessKeyID:            stringPtr(customBucketMap["access_key_id"].(string)),
+				SecretAccessKey:        stringPtr(customBucketMap["secret_access_key"].(string)),
+				KeepDataAfterRetention: boolPtr(customBucketMap["keep_data_after_retention"].(bool)),
 			}
 		}
 	}
@@ -425,6 +433,9 @@ func sourceCopyAttrs(d *schema.ResourceData, in *source) diag.Diagnostics {
 					customBucketData["secret_access_key"] = secretKey
 				}
 			}
+		}
+		if in.CustomBucket.KeepDataAfterRetention != nil {
+			customBucketData["keep_data_after_retention"] = *in.CustomBucket.KeepDataAfterRetention
 		}
 		if err := d.Set("custom_bucket", []interface{}{customBucketData}); err != nil {
 			derr = append(derr, diag.FromErr(err)[0])
@@ -518,4 +529,7 @@ func validateCustomBucketRemoval(ctx context.Context, diff *schema.ResourceDiff,
 
 func stringPtr(s string) *string {
 	return &s
+}
+func boolPtr(b bool) *bool {
+	return &b
 }
