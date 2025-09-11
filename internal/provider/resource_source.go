@@ -13,7 +13,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 )
 
-var platformTypes = []string{"apache2", "aws_cloudwatch", "aws_ecs", "aws_elb", "aws_fargate", "cloudflare_logpush", "cloudflare_worker", "datadog_agent", "digitalocean", "docker", "dokku", "dotnet", "elasticsearch", "erlang", "filebeat", "fluentbit", "fluentd", "fly_io", "go", "google_cloud_pubsub", "haproxy", "heroku", "http", "java", "javascript", "kubernetes", "logstash", "minio", "mongodb", "mysql", "nginx", "open_telemetry", "php", "postgresql", "prometheus", "prometheus_scrape", "python", "rabbitmq", "redis", "render", "rsyslog", "ruby", "syslog-ng", "traefik", "ubuntu", "vector", "vercel_integration"}
+var platformTypes = []string{"apache2", "aws_cloudwatch", "aws_ecs", "aws_elb", "aws_fargate", "azure_logs", "cloudflare_logpush", "cloudflare_worker", "datadog_agent", "digitalocean", "docker", "dokku", "dotnet", "elasticsearch", "erlang", "filebeat", "fluentbit", "fluentd", "fly_io", "go", "google_cloud_pubsub", "haproxy", "heroku", "http", "java", "javascript", "kubernetes", "logstash", "minio", "mongodb", "mysql", "nginx", "open_telemetry", "php", "postgresql", "prometheus", "prometheus_scrape", "python", "rabbitmq", "redis", "render", "rsyslog", "ruby", "syslog-ng", "traefik", "ubuntu", "vector", "vercel_integration"}
 
 var sourceSchema = map[string]*schema.Schema{
 	"team_name": {
@@ -55,6 +55,7 @@ var sourceSchema = map[string]*schema.Schema{
     - **aws_ecs**
     - **aws_elb**
     - **aws_fargate**
+    - **azure_logs**
     - **cloudflare_logpush**
     - **cloudflare_worker**
     - **datadog_agent**

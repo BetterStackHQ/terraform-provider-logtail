@@ -37,6 +37,7 @@ This Data Source allows you to look up existing Sources using their table name. 
     - `aws_ecs`
     - `aws_elb`
     - `aws_fargate`
+    - `azure_logs`
     - `cloudflare_logpush`
     - `cloudflare_worker`
     - `datadog_agent`
