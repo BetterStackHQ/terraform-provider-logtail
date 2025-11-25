@@ -45,3 +45,20 @@ data "logtail_metric" "level" {
   source_id = logtail_source.this.id
   name      = "level"
 }
+
+resource "logtail_errors_application_group" "errors_group" {
+  name = "Terraform Advanced Errors Application Group"
+}
+
+resource "logtail_errors_application" "this" {
+  name                    = "Terraform Advanced Errors Application"
+  platform                = "ruby_errors"
+  ingesting_paused        = true
+  data_region             = "germany"
+  errors_retention        = 60
+  application_group_id    = logtail_errors_application_group.errors_group.id
+}
+
+data "logtail_errors_application" "lookup" {
+  name = logtail_errors_application.this.name
+}
