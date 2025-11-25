@@ -51,12 +51,12 @@ resource "logtail_errors_application_group" "errors_group" {
 }
 
 resource "logtail_errors_application" "this" {
-  name                    = "Terraform Advanced Errors Application"
-  platform                = "ruby_errors"
-  ingesting_paused        = true
-  data_region             = "germany"
-  errors_retention        = 60
-  application_group_id    = logtail_errors_application_group.errors_group.id
+  name                 = "Terraform Advanced Errors Application"
+  platform             = "ruby_errors"
+  ingesting_paused     = true
+  data_region          = "germany"
+  errors_retention     = 60
+  application_group_id = logtail_errors_application_group.errors_group.id
 }
 
 data "logtail_errors_application" "lookup" {
