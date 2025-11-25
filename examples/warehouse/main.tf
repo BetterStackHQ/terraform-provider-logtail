@@ -1,5 +1,6 @@
 provider "logtail" {
   api_token = var.logtail_api_token
+  version   = "0.7.0"
 }
 
 resource "logtail_warehouse_source_group" "group" {
@@ -7,13 +8,13 @@ resource "logtail_warehouse_source_group" "group" {
 }
 
 resource "logtail_warehouse_source" "this" {
-  name                  = "Terraform Warehouse Source"
-  data_region           = "us_east"
-  events_retention      = 30
-  time_series_retention = 60
-  live_tail_pattern     = "{status} {message}"
-  source_group_id       = logtail_warehouse_source_group.group.id
-  vrl_transformation    = <<EOT
+  name                      = "Terraform Warehouse Source"
+  data_region               = "us_east"
+  events_retention          = 30
+  time_series_retention     = 60
+  live_tail_pattern         = "{status} {message}"
+  warehouse_source_group_id = logtail_warehouse_source_group.group.id
+  vrl_transformation        = <<EOT
 # Transform warehouse events
 .user_id = getJSON(.raw, "user_id")
 .event_type = getJSON(.raw, "event_type")
@@ -36,10 +37,3 @@ resource "logtail_warehouse_time_series" "response_time" {
   aggregations   = ["avg", "min", "max"]
 }
 
-data "logtail_warehouse_source" "lookup" {
-  name = logtail_warehouse_source.this.name
-}
-
-data "logtail_warehouse_source_group" "lookup" {
-  name = logtail_warehouse_source_group.group.name
-}

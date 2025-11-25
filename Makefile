@@ -8,7 +8,7 @@ GOLANGCI_LINT := golangci-lint run --disable-all \
 	-E staticcheck \
 	-E typecheck \
 	-E unused
-VERSION := 0.6.2
+VERSION := 0.7.0
 .PHONY: test build
 
 help:
@@ -86,7 +86,7 @@ testacc:
 
 terraform: install
 	cd $(CONFIGURATION) && rm -f .terraform.lock.hcl && terraform init && \
- 		TF_LOG=DEBUG TF_PROVIDER_LOGTAIL_LOG_INSECURE=1 terraform $(ARGS)
+ 		TF_LOG=DEBUG TF_PROVIDER_LOGTAIL_LOG_INSECURE=1 terraform $(ARGS) -var=logtail_api_token=EQ9YQz32QyWnFPMnHUWwxZa5
 
 build:
 # -gcflags "all=-N -l" is here for delve (`go tool compile -help` for more)

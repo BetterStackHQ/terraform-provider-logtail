@@ -31,13 +31,13 @@ The actual region created may differ slightly due to dynamic load balancing.
 - `ingesting_host` (String) The host where the data should be sent. See documentation for details.
 - `ingesting_paused` (Boolean) This property allows you to temporarily pause data ingesting for this source.
 - `live_tail_pattern` (String) A display template for live tail messages. Default is `"{status} {message}"`.
-- `source_group_id` (String) The ID of the source group this source belongs to.
 - `table_name` (String) The table name generated for this warehouse source.
 - `team_name` (String) Used to specify the team the resource should be created in when using global tokens.
 - `time_series_retention` (Number) The retention period for time series data in days. Default is 9999999 days (effectively infinite).
 - `token` (String) The token of this warehouse source. This token is used to identify and route the data you will send to Better Stack.
 - `updated_at` (String) The time when this warehouse source was updated.
 - `vrl_transformation` (String) A VRL program for real-time data transformation. Read more about [VRL transformations](https://betterstack.com/docs/logs/using-logtail/transforming-ingested-data/logs-vrl/).
+- `warehouse_source_group_id` (Number) The ID of the warehouse source group this source belongs to.
 
 <a id="nestedatt--custom_bucket"></a>
 ### Nested Schema for `custom_bucket`

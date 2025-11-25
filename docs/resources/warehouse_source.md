@@ -18,6 +18,7 @@ This resource allows you to create, modify, and delete your Warehouse sources. F
 ### Required
 
 - `name` (String) The name of the new Warehouse source. Can contain letters, numbers, spaces, and special characters. Source names do not need to be unique.
+- `warehouse_source_group_id` (Number) The ID of the warehouse source group this source belongs to.
 
 ### Optional
 
@@ -28,7 +29,6 @@ The actual region created may differ slightly due to dynamic load balancing.
 - `events_retention` (Number) The retention period for event data in days. Default is 9999999 days (effectively infinite).
 - `ingesting_paused` (Boolean) This property allows you to temporarily pause data ingesting for this source.
 - `live_tail_pattern` (String) A display template for live tail messages. Default is `"{status} {message}"`.
-- `source_group_id` (String) The ID of the source group this source belongs to.
 - `team_name` (String) Used to specify the team the resource should be created in when using global tokens.
 - `time_series_retention` (Number) The retention period for time series data in days. Default is 9999999 days (effectively infinite).
 - `vrl_transformation` (String) A VRL program for real-time data transformation. Read more about [VRL transformations](https://betterstack.com/docs/logs/using-logtail/transforming-ingested-data/logs-vrl/).

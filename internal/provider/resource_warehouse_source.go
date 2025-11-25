@@ -100,14 +100,11 @@ The actual region created may differ slightly due to dynamic load balancing.`, "
 		Optional: true,
 		Computed: true,
 	},
-	"source_group_id": {
-		Description: "The ID of the source group this source belongs to.",
-		Type:        schema.TypeString,
-		Optional:    true,
-		DiffSuppressFunc: func(k, old, new string, d *schema.ResourceData) bool {
-			// Treat 0 as equivalent to unset/null
-			return (old == "0" || old == "") && (new == "0" || new == "")
-		},
+	"warehouse_source_group_id": {
+		Description: "The ID of the warehouse source group this source belongs to.",
+		Type:        schema.TypeInt,
+		Required:    true,
+		ForceNew:    true,
 	},
 	"custom_bucket": {
 		Description: "Optional custom bucket configuration for the source. When provided, all fields (name, endpoint, access_key_id, secret_access_key) are required.",
@@ -196,21 +193,21 @@ type warehouseSourceCustomBucket struct {
 }
 
 type warehouseSource struct {
-	Name                *string                      `json:"name,omitempty"`
-	Token               *string                      `json:"token,omitempty"`
-	TableName           *string                      `json:"table_name,omitempty"`
-	IngestingHost       *string                      `json:"ingesting_host,omitempty"`
-	IngestingPaused     *bool                        `json:"ingesting_paused,omitempty"`
-	EventsRetention     *int                         `json:"events_retention,omitempty"`
-	TimeSeriesRetention *int                         `json:"time_series_retention,omitempty"`
-	LiveTailPattern     *string                      `json:"live_tail_pattern,omitempty"`
-	CreatedAt           *string                      `json:"created_at,omitempty"`
-	UpdatedAt           *string                      `json:"updated_at,omitempty"`
-	TeamName            *string                      `json:"team_name,omitempty"`
-	DataRegion          *string                      `json:"data_region,omitempty"`
-	SourceGroupID       *string                      `json:"source_group_id,omitempty"`
-	CustomBucket        *warehouseSourceCustomBucket `json:"custom_bucket,omitempty"`
-	VrlTransformation   *string                      `json:"vrl_transformation,omitempty"`
+	Name                   *string                      `json:"name,omitempty"`
+	Token                  *string                      `json:"token,omitempty"`
+	TableName              *string                      `json:"table_name,omitempty"`
+	IngestingHost          *string                      `json:"ingesting_host,omitempty"`
+	IngestingPaused        *bool                        `json:"ingesting_paused,omitempty"`
+	EventsRetention        *int                         `json:"events_retention,omitempty"`
+	TimeSeriesRetention    *int                         `json:"time_series_retention,omitempty"`
+	LiveTailPattern        *string                      `json:"live_tail_pattern,omitempty"`
+	CreatedAt              *string                      `json:"created_at,omitempty"`
+	UpdatedAt              *string                      `json:"updated_at,omitempty"`
+	TeamName               *string                      `json:"team_name,omitempty"`
+	DataRegion             *string                      `json:"data_region,omitempty"`
+	WarehouseSourceGroupID *int                         `json:"warehouse_source_group_id,omitempty"`
+	CustomBucket           *warehouseSourceCustomBucket `json:"custom_bucket,omitempty"`
+	VrlTransformation      *string                      `json:"vrl_transformation,omitempty"`
 }
 
 type warehouseSourceHTTPResponse struct {
@@ -239,7 +236,7 @@ func warehouseSourceRef(in *warehouseSource) []struct {
 		{k: "created_at", v: &in.CreatedAt},
 		{k: "updated_at", v: &in.UpdatedAt},
 		{k: "data_region", v: &in.DataRegion},
-		{k: "source_group_id", v: &in.SourceGroupID},
+		{k: "warehouse_source_group_id", v: &in.WarehouseSourceGroupID},
 		{k: "vrl_transformation", v: &in.VrlTransformation},
 	}
 }

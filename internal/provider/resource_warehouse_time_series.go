@@ -2,7 +2,10 @@ package provider
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
+	"io"
+	"net/http"
 	"net/url"
 	"reflect"
 
@@ -120,6 +123,19 @@ type warehouseTimeSeriesHTTPResponse struct {
 	} `json:"data"`
 }
 
+type warehouseTimeSeriesPageHTTPResponse struct {
+	Data []struct {
+		ID         string              `json:"id"`
+		Attributes warehouseTimeSeries `json:"attributes"`
+	} `json:"data"`
+	Pagination struct {
+		First string `json:"first"`
+		Last  string `json:"last"`
+		Prev  string `json:"prev"`
+		Next  string `json:"next"`
+	} `json:"pagination"`
+}
+
 func warehouseTimeSeriesRef(in *warehouseTimeSeries) []struct {
 	k string
 	v interface{}
@@ -156,14 +172,47 @@ func warehouseTimeSeriesCreate(ctx context.Context, d *schema.ResourceData, meta
 
 func warehouseTimeSeriesRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	sourceID := d.Get("source_id").(string)
-	var out warehouseTimeSeriesHTTPResponse
-	if err, ok := resourceReadWithBaseURL(ctx, meta, meta.(*client).WarehouseBaseURL(), fmt.Sprintf("/api/v1/sources/%s/time_series/%s", url.PathEscape(sourceID), url.PathEscape(d.Id())), &out); err != nil {
-		return err
-	} else if !ok {
-		d.SetId("") // Force "create" on 404.
-		return nil
+	fetch := func(page int) (*warehouseTimeSeriesPageHTTPResponse, error) {
+		res, err := meta.(*client).do(ctx, "GET", meta.(*client).WarehouseBaseURL(), fmt.Sprintf("/api/v1/sources/%s/time_series?page=%d", url.PathEscape(sourceID), page), nil)
+		if err != nil {
+			return nil, err
+		}
+		defer func() {
+			// Keep-Alive.
+			_, _ = io.Copy(io.Discard, res.Body)
+			_ = res.Body.Close()
+		}()
+		body, err := io.ReadAll(res.Body)
+		if res.StatusCode != http.StatusOK {
+			return nil, fmt.Errorf("GET %s returned %d: %s", res.Request.URL.String(), res.StatusCode, string(body))
+		}
+		if err != nil {
+			return nil, err
+		}
+		var tr warehouseTimeSeriesPageHTTPResponse
+		return &tr, json.Unmarshal(body, &tr)
 	}
-	return warehouseTimeSeriesCopyAttrs(d, &out.Data.Attributes)
+	page := 1
+	for {
+		res, err := fetch(page)
+		if err != nil {
+			return diag.FromErr(err)
+		}
+		for _, e := range res.Data {
+			if e.ID == d.Id() {
+				if derr := warehouseTimeSeriesCopyAttrs(d, &e.Attributes); derr != nil {
+					return derr
+				}
+				return nil
+			}
+		}
+		page++
+		if res.Pagination.Next == "" {
+			break
+		}
+	}
+	d.SetId("") // Not found, force "create".
+	return nil
 }
 
 func warehouseTimeSeriesCopyAttrs(d *schema.ResourceData, in *warehouseTimeSeries) diag.Diagnostics {

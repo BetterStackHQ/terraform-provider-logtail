@@ -55,7 +55,7 @@ resource "logtail_errors_application" "this" {
   platform             = "ruby_errors"
   ingesting_paused     = true
   data_region          = "germany"
-  errors_retention     = 60
+  errors_retention     = 90
   application_group_id = logtail_errors_application_group.errors_group.id
 }
 

@@ -6,6 +6,7 @@ import (
 	"io"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"sync/atomic"
 	"testing"
 
@@ -37,6 +38,9 @@ func TestResourceWarehouseTimeSeries(t *testing.T) {
 			_, _ = w.Write([]byte(fmt.Sprintf(`{"data":{"id":%q,"attributes":%s}}`, id, body)))
 		case r.Method == http.MethodGet && r.RequestURI == prefix+"/"+id:
 			_, _ = w.Write([]byte(fmt.Sprintf(`{"data":{"id":%q,"attributes":%s}}`, id, data.Load().([]byte))))
+		case r.Method == http.MethodGet && strings.HasPrefix(r.RequestURI, prefix+"?"):
+			// Handle list requests for the read operation
+			_, _ = w.Write([]byte(fmt.Sprintf(`{"data":[{"id":%q,"attributes":%s}],"pagination":{"first":"1","last":"1","prev":null,"next":null}}`, id, data.Load().([]byte))))
 		case r.Method == http.MethodPatch && r.RequestURI == prefix+"/"+id:
 			body, err := io.ReadAll(r.Body)
 			if err != nil {

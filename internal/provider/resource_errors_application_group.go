@@ -112,6 +112,11 @@ func errorsApplicationGroupCreate(ctx context.Context, d *schema.ResourceData, m
 		load(d, e.k, e.v)
 	}
 
+	// Set platform to "errors" if not provided
+	if in.Platform == nil {
+		in.Platform = stringPtr("errors")
+	}
+
 	load(d, "team_name", &in.TeamName)
 
 	var out errorsApplicationGroupHTTPResponse
@@ -134,6 +139,11 @@ func errorsApplicationGroupRead(ctx context.Context, d *schema.ResourceData, met
 }
 
 func errorsApplicationGroupCopyAttrs(d *schema.ResourceData, in *errorsApplicationGroup) diag.Diagnostics {
+	// Set platform to "errors" if not provided by API
+	if in.Platform == nil {
+		in.Platform = stringPtr("errors")
+	}
+
 	var derr diag.Diagnostics
 	for _, e := range errorsApplicationGroupRef(in) {
 		if err := d.Set(e.k, reflect.Indirect(reflect.ValueOf(e.v)).Interface()); err != nil {

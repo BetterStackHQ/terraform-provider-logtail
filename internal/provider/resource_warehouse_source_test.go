@@ -95,11 +95,12 @@ func TestResourceWarehouseSource(t *testing.T) {
 				}
 
 				resource "logtail_warehouse_source" "this" {
-					name               = "%s"
-					data_region        = "us-east-9"
-					events_retention   = 30
-					time_series_retention = 60
-					live_tail_pattern  = "{status} {message}"
+					name                      = "%s"
+					data_region               = "us-east-9"
+					events_retention          = 30
+					time_series_retention     = 60
+					live_tail_pattern         = "{status} {message}"
+					warehouse_source_group_id = 123
 				}
 				`, name),
 				Check: resource.ComposeTestCheckFunc(
@@ -121,10 +122,11 @@ func TestResourceWarehouseSource(t *testing.T) {
 				}
 
 				resource "logtail_warehouse_source" "this" {
-					name               = "%s"
-					events_retention   = 60
-					time_series_retention = 90
-					ingesting_paused   = true
+					name                      = "%s"
+					events_retention          = 60
+					time_series_retention     = 90
+					ingesting_paused          = true
+					warehouse_source_group_id = 456
 				}
 				`, name),
 				Check: resource.ComposeTestCheckFunc(
@@ -144,7 +146,8 @@ func TestResourceWarehouseSource(t *testing.T) {
 				}
 
 				resource "logtail_warehouse_source" "this" {
-					name = "%s"
+					name                      = "%s"
+					warehouse_source_group_id = 456
 				}
 				`, name),
 				PlanOnly: true,
