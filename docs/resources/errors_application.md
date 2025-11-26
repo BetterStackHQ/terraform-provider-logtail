@@ -18,6 +18,7 @@ This resource allows you to create, modify, and delete your Errors applications.
 ### Required
 
 - `name` (String) Application name. Must be unique within your team.
+- `platform` (String) The platform type for the application. This helps configure appropriate SDKs and integrations. Examples: dot_net_errors, dot_net_maui_errors, dot_net_http_errors, aiohttp_errors, asgi_errors, asp_dot_net_errors, asp_dot_net_core_errors, aws_lambda_dot_net_errors, aws_lambda_node_errors, aws_lambda_python_errors... Must be suffixed with _errors.
 
 ### Optional
 
@@ -25,7 +26,6 @@ This resource allows you to create, modify, and delete your Errors applications.
 - `data_region` (String) Data region or cluster name where application data will be stored. If omitted, the default data region for your team will be used.
 - `errors_retention` (Number) Error data retention period in days. Default retention is 90 days.
 - `ingesting_paused` (Boolean) This property allows you to temporarily pause data ingesting for this application.
-- `platform` (String) The platform type for the application. This helps configure appropriate SDKs and integrations. Examples: dot_net_errors, dot_net_maui_errors, dot_net_http_errors, aiohttp_errors, asgi_errors, asp_dot_net_errors, asp_dot_net_core_errors, aws_lambda_dot_net_errors, aws_lambda_node_errors, aws_lambda_python_errors... Must be suffixed with _errors.
 - `team_name` (String) Used to specify the team the resource should be created in when using global tokens.
 
 ### Read-Only

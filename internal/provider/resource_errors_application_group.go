@@ -49,8 +49,7 @@ var errorsApplicationGroupSchema = map[string]*schema.Schema{
 	"sort_index": {
 		Description: "The sort index of this application group.",
 		Type:        schema.TypeInt,
-		Optional:    false,
-		Computed:    true,
+		Optional:    true,
 	},
 }
 

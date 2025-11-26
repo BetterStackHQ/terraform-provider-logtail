@@ -21,11 +21,11 @@ This resource allows you to create, modify, and delete your Warehouse source gro
 
 ### Optional
 
+- `sort_index` (Number) The sort index of this warehouse source group.
 - `team_name` (String) Used to specify the team the resource should be created in when using global tokens.
 
 ### Read-Only
 
 - `created_at` (String) The time when this warehouse source group was created.
 - `id` (String) The ID of this warehouse source group.
-- `sort_index` (Number) The sort index of this warehouse source group.
 - `updated_at` (String) The time when this warehouse source group was updated.

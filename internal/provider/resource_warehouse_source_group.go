@@ -49,8 +49,7 @@ var warehouseSourceGroupSchema = map[string]*schema.Schema{
 	"sort_index": {
 		Description: "The sort index of this warehouse source group.",
 		Type:        schema.TypeInt,
-		Optional:    false,
-		Computed:    true,
+		Optional:    true,
 	},
 }
 

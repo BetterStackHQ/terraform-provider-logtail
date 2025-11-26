@@ -73,8 +73,7 @@ var errorsApplicationSchema = map[string]*schema.Schema{
 	"platform": {
 		Description: strings.ReplaceAll(fmt.Sprintf(`The platform type for the application. This helps configure appropriate SDKs and integrations. Examples: %s... Must be suffixed with `+"_errors"+`.`, strings.Join(errorsPlatformTypes[:10], ", ")), "**", "`"),
 		Type:        schema.TypeString,
-		Optional:    true,
-		Computed:    true,
+		Required:    true,
 		ForceNew:    true,
 		ValidateDiagFunc: func(v interface{}, path cty.Path) diag.Diagnostics {
 			s := v.(string)
@@ -200,11 +199,6 @@ func errorsApplicationRef(in *errorsApplication) []struct {
 }
 
 func errorsApplicationCreate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	// Validate that platform is provided since it's required by the API
-	if d.Get("platform").(string) == "" {
-		return diag.Errorf("platform is required")
-	}
-
 	var in errorsApplication
 	for _, e := range errorsApplicationRef(&in) {
 		load(d, e.k, e.v)
