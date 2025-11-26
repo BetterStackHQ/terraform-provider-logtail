@@ -219,7 +219,9 @@ func errorsApplicationCreate(ctx context.Context, d *schema.ResourceData, meta i
 	d.SetId(out.Data.ID)
 	// Ensure platform is set in state since API doesn't return it
 	if platform := d.Get("platform").(string); platform != "" {
-		d.Set("platform", platform)
+		if err := d.Set("platform", platform); err != nil {
+			return diag.FromErr(err)
+		}
 	}
 	return errorsApplicationCopyAttrs(d, &out.Data.Attributes)
 }
