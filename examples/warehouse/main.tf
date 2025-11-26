@@ -1,6 +1,5 @@
 provider "logtail" {
   api_token = var.logtail_api_token
-  version   = "0.7.0"
 }
 
 resource "logtail_warehouse_source_group" "group" {
@@ -15,25 +14,42 @@ resource "logtail_warehouse_source" "this" {
   live_tail_pattern         = "{status} {message}"
   warehouse_source_group_id = logtail_warehouse_source_group.group.id
   vrl_transformation        = <<EOT
-# Transform warehouse events
-.user_id = getJSON(.raw, "user_id")
-.event_type = getJSON(.raw, "event_type")
+# Make .message into an object
+.message.text = .message
 EOT
 }
 
-resource "logtail_warehouse_time_series" "user_events" {
+resource "logtail_warehouse_time_series" "user" {
   source_id      = logtail_warehouse_source.this.id
-  name           = "user_events"
+  name           = "user"
   type           = "string_low_cardinality"
-  sql_expression = "JSONExtract(raw, 'event_type', 'Nullable(String)')"
+  sql_expression = "JSONExtract(raw, 'context', 'user', 'Nullable(String)')"
   aggregations   = []
 }
 
-resource "logtail_warehouse_time_series" "response_time" {
+resource "logtail_warehouse_time_series" "message_length" {
   source_id      = logtail_warehouse_source.this.id
-  name           = "response_time"
-  type           = "float64_delta"
-  sql_expression = "JSONExtract(raw, 'response_time', 'Nullable(Float64)')"
+  name           = "message_length"
+  type           = "int64_delta"
+  sql_expression = "LENGTH(JSONExtractString(raw, 'message', 'text'))"
   aggregations   = ["avg", "min", "max"]
 }
 
+resource "logtail_warehouse_embedding" "message" {
+  source_id  = logtail_warehouse_source.this.id
+  model      = "embeddinggemma:300m"
+  embed_from = "message.text"
+  embed_to   = "message.embedding"
+  dimension  = 512
+}
+
+resource "logtail_warehouse_time_series" "message_embedding" {
+  source_id                = logtail_warehouse_source.this.id
+  name                     = "message_embedding"
+  type                     = "array_float32"
+  sql_expression           = "JSONExtract(raw, 'message', 'embedding', 'Array(Float32)')"
+  aggregations             = []
+  expression_index         = "vector_similarity"
+  vector_dimension         = 512
+  vector_distance_function = "cosine"
+}

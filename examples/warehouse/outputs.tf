@@ -14,12 +14,12 @@ output "warehouse_source_token" {
   sensitive   = true
 }
 
-output "warehouse_time_series_user_events_id" {
-  description = "ID of the user events time series"
-  value       = logtail_warehouse_time_series.user_events.id
+output "warehouse_embedding_message_id" {
+  description = "ID of the message embedding"
+  value       = logtail_warehouse_embedding.message.id
 }
 
-output "warehouse_time_series_response_time_id" {
-  description = "ID of the response time time series"
-  value       = logtail_warehouse_time_series.response_time.id
+output "warehouse_time_series_message_embedding_id" {
+  description = "ID of the message embedding time series with vector index"
+  value       = logtail_warehouse_time_series.message_embedding.id
 }
