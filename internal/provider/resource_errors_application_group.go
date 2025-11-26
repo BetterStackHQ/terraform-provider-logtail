@@ -34,12 +34,6 @@ var errorsApplicationGroupSchema = map[string]*schema.Schema{
 		Type:        schema.TypeString,
 		Required:    true,
 	},
-	"platform": {
-		Description: "Platform type for the application group. Automatically set to `errors`.",
-		Type:        schema.TypeString,
-		Optional:    true,
-		Computed:    true,
-	},
 	"created_at": {
 		Description: "The time when this application group was created.",
 		Type:        schema.TypeString,
@@ -76,7 +70,6 @@ func newErrorsApplicationGroupResource() *schema.Resource {
 
 type errorsApplicationGroup struct {
 	Name      *string `json:"name,omitempty"`
-	Platform  *string `json:"platform,omitempty"`
 	CreatedAt *string `json:"created_at,omitempty"`
 	UpdatedAt *string `json:"updated_at,omitempty"`
 	TeamName  *string `json:"team_name,omitempty"`
@@ -99,7 +92,6 @@ func errorsApplicationGroupRef(in *errorsApplicationGroup) []struct {
 		v interface{}
 	}{
 		{k: "name", v: &in.Name},
-		{k: "platform", v: &in.Platform},
 		{k: "created_at", v: &in.CreatedAt},
 		{k: "updated_at", v: &in.UpdatedAt},
 		{k: "sort_index", v: &in.SortIndex},
@@ -110,11 +102,6 @@ func errorsApplicationGroupCreate(ctx context.Context, d *schema.ResourceData, m
 	var in errorsApplicationGroup
 	for _, e := range errorsApplicationGroupRef(&in) {
 		load(d, e.k, e.v)
-	}
-
-	// Set platform to "errors" if not provided
-	if in.Platform == nil {
-		in.Platform = stringPtr("errors")
 	}
 
 	load(d, "team_name", &in.TeamName)
@@ -139,11 +126,6 @@ func errorsApplicationGroupRead(ctx context.Context, d *schema.ResourceData, met
 }
 
 func errorsApplicationGroupCopyAttrs(d *schema.ResourceData, in *errorsApplicationGroup) diag.Diagnostics {
-	// Set platform to "errors" if not provided by API
-	if in.Platform == nil {
-		in.Platform = stringPtr("errors")
-	}
-
 	var derr diag.Diagnostics
 	for _, e := range errorsApplicationGroupRef(in) {
 		if err := d.Set(e.k, reflect.Indirect(reflect.ValueOf(e.v)).Interface()); err != nil {

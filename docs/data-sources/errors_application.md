@@ -21,7 +21,7 @@ This Data Source allows you to look up existing Errors applications using their 
 
 ### Read-Only
 
-- `application_group_id` (String) ID of the application group this application belongs to.
+- `application_group_id` (Number) ID of the application group this application belongs to.
 - `created_at` (String) The time when this application was created.
 - `data_region` (String) Data region or cluster name where application data will be stored. If omitted, the default data region for your team will be used.
 - `errors_retention` (Number) Error data retention period in days. Default retention is 90 days.

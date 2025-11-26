@@ -21,7 +21,6 @@ This resource allows you to create, modify, and delete your Errors application g
 
 ### Optional
 
-- `platform` (String) Platform type for the application group. Automatically set to `errors`.
 - `team_name` (String) Used to specify the team the resource should be created in when using global tokens.
 
 ### Read-Only

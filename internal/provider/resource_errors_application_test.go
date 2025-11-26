@@ -130,7 +130,7 @@ func TestResourceErrorsApplication(t *testing.T) {
 					resource.TestCheckResourceAttr("logtail_errors_application.this", "errors_retention", "60"),
 				),
 			},
-			// Step 3 - make no changes, check plan is empty (omitted attributes are not controlled)
+			// Step 3 - update platform (should force recreation)
 			{
 				Config: fmt.Sprintf(`
 				provider "logtail" {
@@ -139,12 +139,31 @@ func TestResourceErrorsApplication(t *testing.T) {
 
 				resource "logtail_errors_application" "this" {
 					name     = "%s"
-					platform = "%s"
+					platform = "javascript_errors"
 				}
-				`, name, platform),
+				`, name),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttrSet("logtail_errors_application.this", "id"),
+					resource.TestCheckResourceAttr("logtail_errors_application.this", "name", name),
+					resource.TestCheckResourceAttr("logtail_errors_application.this", "platform", "javascript_errors"),
+					resource.TestCheckResourceAttr("logtail_errors_application.this", "token", "generated_by_logtail"),
+				),
+			},
+			// Step 4 - make no changes, check plan is empty (omitted attributes are not controlled)
+			{
+				Config: fmt.Sprintf(`
+				provider "logtail" {
+					api_token = "foo"
+				}
+
+				resource "logtail_errors_application" "this" {
+					name     = "%s"
+					platform = "javascript_errors"
+				}
+				`, name),
 				PlanOnly: true,
 			},
-			// Step 4 - destroy.
+			// Step 5 - destroy.
 			{
 				ResourceName:      "logtail_errors_application.this",
 				ImportState:       true,

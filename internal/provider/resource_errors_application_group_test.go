@@ -89,7 +89,6 @@ func TestResourceErrorsApplicationGroup(t *testing.T) {
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttrSet("logtail_errors_application_group.this", "id"),
 					resource.TestCheckResourceAttr("logtail_errors_application_group.this", "name", name),
-					resource.TestCheckResourceAttr("logtail_errors_application_group.this", "platform", "errors"),
 				),
 			},
 			// Step 2 - update.
@@ -106,7 +105,6 @@ func TestResourceErrorsApplicationGroup(t *testing.T) {
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttrSet("logtail_errors_application_group.this", "id"),
 					resource.TestCheckResourceAttr("logtail_errors_application_group.this", "name", name+" Updated"),
-					resource.TestCheckResourceAttr("logtail_errors_application_group.this", "platform", "errors"),
 				),
 			},
 			// Step 3 - destroy.

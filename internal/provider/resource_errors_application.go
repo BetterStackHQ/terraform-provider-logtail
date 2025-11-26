@@ -132,11 +132,11 @@ var errorsApplicationSchema = map[string]*schema.Schema{
 	},
 	"application_group_id": {
 		Description: "ID of the application group this application belongs to.",
-		Type:        schema.TypeString,
+		Type:        schema.TypeInt,
 		Optional:    true,
 		DiffSuppressFunc: func(k, old, new string, d *schema.ResourceData) bool {
 			// Treat 0 as equivalent to unset/null
-			return (old == "0" || old == "") && (new == "0" || new == "")
+			return old == "0" && new == "0"
 		},
 	},
 }
@@ -167,7 +167,7 @@ type errorsApplication struct {
 	UpdatedAt          *string `json:"updated_at,omitempty"`
 	TeamName           *string `json:"team_name,omitempty"`
 	DataRegion         *string `json:"data_region,omitempty"`
-	ApplicationGroupID *string `json:"application_group_id,omitempty"`
+	ApplicationGroupID *int    `json:"application_group_id,omitempty"`
 }
 
 type errorsApplicationHTTPResponse struct {
@@ -217,6 +217,10 @@ func errorsApplicationCreate(ctx context.Context, d *schema.ResourceData, meta i
 		return err
 	}
 	d.SetId(out.Data.ID)
+	// Ensure platform is set in state since API doesn't return it
+	if platform := d.Get("platform").(string); platform != "" {
+		d.Set("platform", platform)
+	}
 	return errorsApplicationCopyAttrs(d, &out.Data.Attributes)
 }
 
@@ -236,6 +240,9 @@ func errorsApplicationCopyAttrs(d *schema.ResourceData, in *errorsApplication) d
 	for _, e := range errorsApplicationRef(in) {
 		if e.k == "data_region" && d.Get("data_region").(string) != "" {
 			// Don't update data region from API if it's already set - data_region can't change
+			continue
+		} else if e.k == "platform" && d.Get("platform").(string) != "" {
+			// Don't update platform from API if it's already set - platform can't change and API doesn't return it
 			continue
 		} else if err := d.Set(e.k, reflect.Indirect(reflect.ValueOf(e.v)).Interface()); err != nil {
 			derr = append(derr, diag.FromErr(err)[0])
@@ -330,13 +337,8 @@ func errorsApplicationLookup(ctx context.Context, d *schema.ResourceData, meta i
 		}
 		for _, e := range res.Data {
 			if *e.Attributes.Name == name {
-				if d.Id() != "" {
-					return diag.Errorf("duplicate")
-				}
 				d.SetId(e.ID)
-				if derr := errorsApplicationCopyAttrs(d, &e.Attributes); derr != nil {
-					return derr
-				}
+				return errorsApplicationCopyAttrs(d, &e.Attributes)
 			}
 		}
 		page++

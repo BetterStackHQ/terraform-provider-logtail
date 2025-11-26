@@ -23,7 +23,6 @@ This Data Source allows you to look up existing Errors application groups using 
 
 - `created_at` (String) The time when this application group was created.
 - `id` (String) The ID of this application group.
-- `platform` (String) Platform type for the application group. Automatically set to `errors`.
 - `sort_index` (Number) The sort index of this application group.
 - `team_name` (String) Used to specify the team the resource should be created in when using global tokens.
 - `updated_at` (String) The time when this application group was updated.

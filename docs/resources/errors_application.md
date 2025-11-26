@@ -21,7 +21,7 @@ This resource allows you to create, modify, and delete your Errors applications.
 
 ### Optional
 
-- `application_group_id` (String) ID of the application group this application belongs to.
+- `application_group_id` (Number) ID of the application group this application belongs to.
 - `data_region` (String) Data region or cluster name where application data will be stored. If omitted, the default data region for your team will be used.
 - `errors_retention` (Number) Error data retention period in days. Default retention is 90 days.
 - `ingesting_paused` (Boolean) This property allows you to temporarily pause data ingesting for this application.
