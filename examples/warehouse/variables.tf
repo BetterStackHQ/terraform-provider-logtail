@@ -1,5 +1,9 @@
 variable "logtail_api_token" {
-  description = "Better Stack API token"
   type        = string
-  sensitive   = true
+  description = <<EOF
+Better Stack Telemetry API token
+(https://betterstack.com/docs/logs/api/getting-started/#get-an-logs-api-token)
+EOF
+  # The value can be omitted if the LOGTAIL_API_TOKEN env var is set.
+  default = null
 }
