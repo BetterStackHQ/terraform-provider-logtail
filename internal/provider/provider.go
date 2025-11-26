@@ -49,11 +49,13 @@ func New(opts ...Option) *schema.Provider {
 			"logtail_source":       newSourceDataSource(),
 			"logtail_metric":       newMetricDataSource(),
 			"logtail_source_group": newSourceGroupDataSource(),
+			"logtail_connection":   newConnectionDataSource(),
 		},
 		ResourcesMap: map[string]*schema.Resource{
 			"logtail_source":       newSourceResource(),
 			"logtail_metric":       newMetricResource(),
 			"logtail_source_group": newSourceGroupResource(),
+			"logtail_connection":   newConnectionResource(),
 		},
 		ConfigureContextFunc: func(ctx context.Context, r *schema.ResourceData) (interface{}, diag.Diagnostics) {
 			var userAgent string
