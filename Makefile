@@ -86,7 +86,7 @@ testacc:
 
 terraform: install
 	cd $(CONFIGURATION) && rm -f .terraform.lock.hcl && terraform init && \
- 		TF_LOG=DEBUG TF_PROVIDER_LOGTAIL_LOG_INSECURE=1 terraform $(ARGS) -var=logtail_api_token=EQ9YQz32QyWnFPMnHUWwxZa5
+ 		TF_LOG=DEBUG TF_PROVIDER_LOGTAIL_LOG_INSECURE=1 terraform $(ARGS)
 
 build:
 # -gcflags "all=-N -l" is here for delve (`go tool compile -help` for more)
