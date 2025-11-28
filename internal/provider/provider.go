@@ -30,7 +30,7 @@ func WithVersion(v string) Option {
 
 func New(opts ...Option) *schema.Provider {
 	spec := provider{
-		url: "https://logs.betterstack.com",
+		url: "https://telemetry.betterstack.com",
 	}
 	for _, opt := range opts {
 		opt(&spec)
@@ -46,16 +46,27 @@ func New(opts ...Option) *schema.Provider {
 			},
 		},
 		DataSourcesMap: map[string]*schema.Resource{
-			"logtail_source":       newSourceDataSource(),
-			"logtail_metric":       newMetricDataSource(),
-			"logtail_source_group": newSourceGroupDataSource(),
-			"logtail_connection":   newConnectionDataSource(),
+			"logtail_source":                   newSourceDataSource(),
+			"logtail_metric":                   newMetricDataSource(),
+			"logtail_source_group":             newSourceGroupDataSource(),
+			"logtail_errors_application":       newErrorsApplicationDataSource(),
+			"logtail_errors_application_group": newErrorsApplicationGroupDataSource(),
+			"logtail_warehouse_source":         newWarehouseSourceDataSource(),
+			"logtail_warehouse_source_group":   newWarehouseSourceGroupDataSource(),
+			"logtail_warehouse_embedding":      newWarehouseEmbeddingDataSource(),
+			"logtail_connection":               newConnectionDataSource(),
 		},
 		ResourcesMap: map[string]*schema.Resource{
-			"logtail_source":       newSourceResource(),
-			"logtail_metric":       newMetricResource(),
-			"logtail_source_group": newSourceGroupResource(),
-			"logtail_connection":   newConnectionResource(),
+			"logtail_source":                   newSourceResource(),
+			"logtail_metric":                   newMetricResource(),
+			"logtail_source_group":             newSourceGroupResource(),
+			"logtail_errors_application":       newErrorsApplicationResource(),
+			"logtail_errors_application_group": newErrorsApplicationGroupResource(),
+			"logtail_warehouse_source":         newWarehouseSourceResource(),
+			"logtail_warehouse_source_group":   newWarehouseSourceGroupResource(),
+			"logtail_warehouse_time_series":    newWarehouseTimeSeriesResource(),
+			"logtail_warehouse_embedding":      newWarehouseEmbeddingResource(),
+			"logtail_connection":               newConnectionResource(),
 		},
 		ConfigureContextFunc: func(ctx context.Context, r *schema.ResourceData) (interface{}, diag.Diagnostics) {
 			var userAgent string

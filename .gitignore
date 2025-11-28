@@ -19,3 +19,7 @@ terraform.tfstate.backup
 terraform.tfvars
 .terraform
 .terraform.lock.hcl
+
+# Local Claude code settings
+.claude/instructions.local.md
+.claude/settings.local.json
