@@ -112,7 +112,7 @@ func sourceGroupCreate(ctx context.Context, d *schema.ResourceData, meta interfa
 
 func sourceGroupRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	var out sourceGroupHTTPResponse
-	if err, ok := resourceRead(ctx, meta, fmt.Sprintf("/api/v1/source-groups/%s", url.PathEscape(d.Id())), &out); err != nil {
+	if err, ok := resourceReadWithBaseURL(ctx, meta, meta.(*client).TelemetryBaseURL(), fmt.Sprintf("/api/v1/source-groups/%s", url.PathEscape(d.Id())), &out); err != nil {
 		return err
 	} else if !ok {
 		d.SetId("") // Force "create" on 404.

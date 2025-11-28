@@ -69,35 +69,6 @@ func resourceCreateWithBaseURL(ctx context.Context, meta interface{}, baseURL, p
 	return nil
 }
 
-func resourceRead(ctx context.Context, meta interface{}, url string, out interface{}) (derr diag.Diagnostics, ok bool) {
-	log.Printf("GET %s", url)
-	res, err := meta.(*client).Get(ctx, url)
-	if err != nil {
-		return diag.FromErr(err), false
-	}
-	defer func() {
-		// Keep-Alive.
-		_, _ = io.Copy(io.Discard, res.Body)
-		_ = res.Body.Close()
-	}()
-	if res.StatusCode == http.StatusNotFound {
-		return nil, false
-	}
-	body, err := io.ReadAll(res.Body)
-	if res.StatusCode != http.StatusOK {
-		return diag.Errorf("GET %s returned %d: %s", res.Request.URL.String(), res.StatusCode, string(body)), false
-	}
-	if err != nil {
-		return diag.FromErr(err), false
-	}
-	log.Printf("GET %s returned %d: %s", res.Request.URL.String(), res.StatusCode, string(body))
-	err = json.Unmarshal(body, &out)
-	if err != nil {
-		return diag.FromErr(err), false
-	}
-	return nil, true
-}
-
 func resourceReadWithBaseURL(ctx context.Context, meta interface{}, baseURL, path string, out interface{}) (derr diag.Diagnostics, ok bool) {
 	log.Printf("GET %s%s", baseURL, path)
 	res, err := meta.(*client).GetWithBaseURL(ctx, baseURL, path)

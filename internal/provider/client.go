@@ -83,6 +83,10 @@ func (c *client) DeleteWithBaseURL(ctx context.Context, baseURL, path string) (*
 	return c.do(ctx, http.MethodDelete, baseURL, path, nil)
 }
 
+func (c *client) TelemetryBaseURL() string {
+	return c.baseURL
+}
+
 func (c *client) ErrorsBaseURL() string {
 	return c.errorsBaseURL
 }
