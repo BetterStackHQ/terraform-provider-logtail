@@ -238,7 +238,7 @@ func connectionRead(ctx context.Context, d *schema.ResourceData, meta interface{
 	currentValidUntil := d.Get("valid_until").(string)
 
 	var out connectionHTTPResponse
-	if err, ok := resourceRead(ctx, meta, fmt.Sprintf("/api/v1/connections/%s", url.PathEscape(d.Id())), &out); err != nil {
+	if err, ok := resourceReadWithBaseURL(ctx, meta, meta.(*client).TelemetryBaseURL(), fmt.Sprintf("/api/v1/connections/%s", url.PathEscape(d.Id())), &out); err != nil {
 		if !ok {
 			d.SetId("") // Force "create" on 404.
 			return nil

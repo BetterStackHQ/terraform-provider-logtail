@@ -135,7 +135,7 @@ func dataSourceConnectionRead(ctx context.Context, d *schema.ResourceData, meta 
 	// If ID is provided, fetch specific connection
 	if id != "" {
 		var singleOut connectionHTTPResponse
-		if err, ok := resourceRead(ctx, meta, fmt.Sprintf("/api/v1/connections/%s", url.PathEscape(id)), &singleOut); err != nil {
+		if err, ok := resourceReadWithBaseURL(ctx, meta, meta.(*client).TelemetryBaseURL(), fmt.Sprintf("/api/v1/connections/%s", url.PathEscape(id)), &singleOut); err != nil {
 			if !ok {
 				return diag.Errorf("connection with ID %s not found", id)
 			}
