@@ -54,6 +54,7 @@ func New(opts ...Option) *schema.Provider {
 			"logtail_warehouse_source":         newWarehouseSourceDataSource(),
 			"logtail_warehouse_source_group":   newWarehouseSourceGroupDataSource(),
 			"logtail_warehouse_embedding":      newWarehouseEmbeddingDataSource(),
+			"logtail_connection":               newConnectionDataSource(),
 		},
 		ResourcesMap: map[string]*schema.Resource{
 			"logtail_source":                   newSourceResource(),
@@ -65,6 +66,7 @@ func New(opts ...Option) *schema.Provider {
 			"logtail_warehouse_source_group":   newWarehouseSourceGroupResource(),
 			"logtail_warehouse_time_series":    newWarehouseTimeSeriesResource(),
 			"logtail_warehouse_embedding":      newWarehouseEmbeddingResource(),
+			"logtail_connection":               newConnectionResource(),
 		},
 		ConfigureContextFunc: func(ctx context.Context, r *schema.ResourceData) (interface{}, diag.Diagnostics) {
 			var userAgent string

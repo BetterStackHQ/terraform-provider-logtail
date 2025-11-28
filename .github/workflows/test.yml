@@ -29,7 +29,7 @@ jobs:
     strategy:
       matrix:
         terraform-version: ["0.13", "1.0", "1.8", "latest"]
-        config: [examples/basic, examples/advanced, examples/scrape, examples/warehouse]
+        config: [examples/basic, examples/advanced, examples/connection, examples/scrape, examples/warehouse]
       fail-fast: false
     runs-on: ubuntu-latest
     steps:
@@ -46,7 +46,7 @@ jobs:
       - name: Add resources via Terraform
         run: make terraform CONFIGURATION="${{ matrix.config }}" ARGS="apply --auto-approve --input=false"
         env:
-          LOGTAIL_API_TOKEN: ${{ secrets.LOGS_E2E_TEAM_TOKEN }}
+          LOGTAIL_API_TOKEN: ${{ matrix.config == 'examples/connection' && secrets.GLOBAL_E2E_API_TOKEN || secrets.LOGS_E2E_TEAM_TOKEN }}
       - name: Plan resources via Terraform - must be empty
         run: |
           make terraform CONFIGURATION="${{ matrix.config }}" ARGS="plan --input=false --out=tfplan"
@@ -59,9 +59,9 @@ jobs:
             exit 1
           fi
         env:
-          LOGTAIL_API_TOKEN: ${{ secrets.LOGS_E2E_TEAM_TOKEN }}
+          LOGTAIL_API_TOKEN: ${{ matrix.config == 'examples/connection' && secrets.GLOBAL_E2E_API_TOKEN || secrets.LOGS_E2E_TEAM_TOKEN }}
       - name: Destroy resources via Terraform
         if: always()
         run: make terraform CONFIGURATION="${{ matrix.config }}" ARGS="destroy --auto-approve --input=false"
         env:
-          LOGTAIL_API_TOKEN: ${{ secrets.LOGS_E2E_TEAM_TOKEN }}
+          LOGTAIL_API_TOKEN: ${{ matrix.config == 'examples/connection' && secrets.GLOBAL_E2E_API_TOKEN || secrets.LOGS_E2E_TEAM_TOKEN }}
