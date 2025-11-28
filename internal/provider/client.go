@@ -41,7 +41,7 @@ func newClient(baseURL, token string, opts ...option) (*client, error) {
 		httpClient:       http.DefaultClient,
 	}
 	// Override with test URL if baseURL is not the production URL
-	if baseURL != "https://logs.betterstack.com" {
+	if baseURL != "https://telemetry.betterstack.com" {
 		c.errorsBaseURL = baseURL
 		c.warehouseBaseURL = baseURL
 	}

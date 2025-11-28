@@ -30,7 +30,7 @@ func WithVersion(v string) Option {
 
 func New(opts ...Option) *schema.Provider {
 	spec := provider{
-		url: "https://logs.betterstack.com",
+		url: "https://telemetry.betterstack.com",
 	}
 	for _, opt := range opts {
 		opt(&spec)
