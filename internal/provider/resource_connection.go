@@ -164,19 +164,6 @@ type connectionHTTPResponse struct {
 	} `json:"data"`
 }
 
-type connectionPageHTTPResponse struct {
-	Data []struct {
-		ID         string     `json:"id"`
-		Attributes connection `json:"attributes"`
-	} `json:"data"`
-	Pagination struct {
-		First string `json:"first"`
-		Last  string `json:"last"`
-		Prev  string `json:"prev"`
-		Next  string `json:"next"`
-	} `json:"pagination"`
-}
-
 func connectionRef(in *connection) []struct {
 	k string
 	v interface{}
