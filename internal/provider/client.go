@@ -10,10 +10,12 @@ import (
 )
 
 type client struct {
-	baseURL    string
-	token      string
-	httpClient *http.Client
-	userAgent  string
+	baseURL          string
+	errorsBaseURL    string
+	warehouseBaseURL string
+	token            string
+	httpClient       *http.Client
+	userAgent        string
 }
 
 type option func(c *client)
@@ -32,9 +34,16 @@ func withUserAgent(userAgent string) option {
 
 func newClient(baseURL, token string, opts ...option) (*client, error) {
 	c := client{
-		baseURL:    baseURL,
-		token:      token,
-		httpClient: http.DefaultClient,
+		baseURL:          baseURL,
+		errorsBaseURL:    "https://errors.betterstack.com",
+		warehouseBaseURL: "https://warehouse.betterstack.com",
+		token:            token,
+		httpClient:       http.DefaultClient,
+	}
+	// Override with test URL if baseURL is not the production URL
+	if baseURL != "https://telemetry.betterstack.com" {
+		c.errorsBaseURL = baseURL
+		c.warehouseBaseURL = baseURL
 	}
 	for _, opt := range opts {
 		opt(&c)
@@ -43,23 +52,51 @@ func newClient(baseURL, token string, opts ...option) (*client, error) {
 }
 
 func (c *client) Get(ctx context.Context, path string) (*http.Response, error) {
-	return c.do(ctx, http.MethodGet, path, nil)
+	return c.do(ctx, http.MethodGet, c.baseURL, path, nil)
 }
 
 func (c *client) Post(ctx context.Context, path string, body io.Reader) (*http.Response, error) {
-	return c.do(ctx, http.MethodPost, path, body)
+	return c.do(ctx, http.MethodPost, c.baseURL, path, body)
 }
 
 func (c *client) Patch(ctx context.Context, path string, body io.Reader) (*http.Response, error) {
-	return c.do(ctx, http.MethodPatch, path, body)
+	return c.do(ctx, http.MethodPatch, c.baseURL, path, body)
 }
 
 func (c *client) Delete(ctx context.Context, path string) (*http.Response, error) {
-	return c.do(ctx, http.MethodDelete, path, nil)
+	return c.do(ctx, http.MethodDelete, c.baseURL, path, nil)
 }
 
-func (c *client) do(ctx context.Context, method, path string, body io.Reader) (*http.Response, error) {
-	req, err := http.NewRequest(method, fmt.Sprintf("%s%s", c.baseURL, path), body)
+func (c *client) GetWithBaseURL(ctx context.Context, baseURL, path string) (*http.Response, error) {
+	return c.do(ctx, http.MethodGet, baseURL, path, nil)
+}
+
+func (c *client) PostWithBaseURL(ctx context.Context, baseURL, path string, body io.Reader) (*http.Response, error) {
+	return c.do(ctx, http.MethodPost, baseURL, path, body)
+}
+
+func (c *client) PatchWithBaseURL(ctx context.Context, baseURL, path string, body io.Reader) (*http.Response, error) {
+	return c.do(ctx, http.MethodPatch, baseURL, path, body)
+}
+
+func (c *client) DeleteWithBaseURL(ctx context.Context, baseURL, path string) (*http.Response, error) {
+	return c.do(ctx, http.MethodDelete, baseURL, path, nil)
+}
+
+func (c *client) TelemetryBaseURL() string {
+	return c.baseURL
+}
+
+func (c *client) ErrorsBaseURL() string {
+	return c.errorsBaseURL
+}
+
+func (c *client) WarehouseBaseURL() string {
+	return c.warehouseBaseURL
+}
+
+func (c *client) do(ctx context.Context, method, baseURL, path string, body io.Reader) (*http.Response, error) {
+	req, err := http.NewRequest(method, fmt.Sprintf("%s%s", baseURL, path), body)
 	if err != nil {
 		return nil, err
 	}

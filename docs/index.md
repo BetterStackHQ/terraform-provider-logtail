@@ -7,7 +7,7 @@ description: |-
 
 # Better Stack Telemetry Provider
 
-[Better Stack Telemetry](https://logs.betterstack.com) provider provides resources to interact with the [Telemetry API](https://betterstack.com/docs/logs/api/getting-started/).
+[Better Stack Telemetry](https://telemetry.betterstack.com) provider provides resources to interact with the [Telemetry API](https://betterstack.com/docs/logs/api/getting-started/).
 
 ## Installation
 
