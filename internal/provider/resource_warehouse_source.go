@@ -179,8 +179,9 @@ func newWarehouseSourceResource() *schema.Resource {
 		Importer: &schema.ResourceImporter{
 			StateContext: schema.ImportStatePassthroughContext,
 		},
-		Description: "This resource allows you to create, modify, and delete your Warehouse sources. For more information about the Warehouse API check https://betterstack.com/docs/warehouse/api/sources/create/",
-		Schema:      warehouseSourceSchema,
+		CustomizeDiff: validateWarehouseSource,
+		Description:   "This resource allows you to create, modify, and delete your Warehouse sources. For more information about the Warehouse API check https://betterstack.com/docs/warehouse/api/sources/create/",
+		Schema:        warehouseSourceSchema,
 	}
 }
 
@@ -337,6 +338,14 @@ func warehouseSourceUpdate(ctx context.Context, d *schema.ResourceData, meta int
 
 func warehouseSourceDelete(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	return resourceDeleteWithBaseURL(ctx, meta, meta.(*client).WarehouseBaseURL(), fmt.Sprintf("/api/v1/sources/%s", url.PathEscape(d.Id())))
+}
+
+func validateWarehouseSource(ctx context.Context, diff *schema.ResourceDiff, v interface{}) error {
+	if err := validateCustomBucketRemoval(ctx, diff, v); err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func newWarehouseSourceDataSource() *schema.Resource {
