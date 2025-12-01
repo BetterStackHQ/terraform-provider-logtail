@@ -15,15 +15,6 @@ import (
 )
 
 var metricSchema = map[string]*schema.Schema{
-	"team_name": {
-		Description: "Used to specify the team the resource should be created in when using global tokens.",
-		Type:        schema.TypeString,
-		Optional:    true,
-		Default:     nil,
-		DiffSuppressFunc: func(k, old, new string, d *schema.ResourceData) bool {
-			return d.Id() != ""
-		},
-	},
 	"id": {
 		Description: "The ID of this metric.",
 		Type:        schema.TypeString,
