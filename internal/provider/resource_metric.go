@@ -59,7 +59,6 @@ func newMetricResource() *schema.Resource {
 	return &schema.Resource{
 		CreateContext: metricCreate,
 		ReadContext:   metricLookup,
-		UpdateContext: metricUpdate,
 		DeleteContext: metricDelete,
 		Importer: &schema.ResourceImporter{
 			StateContext: schema.ImportStatePassthroughContext,
@@ -182,10 +181,6 @@ func metricCopyAttrs(d *schema.ResourceData, in *metric) diag.Diagnostics {
 		}
 	}
 	return derr
-}
-
-func metricUpdate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	return diag.Errorf("Metrics cannot be updated.")
 }
 
 func metricDelete(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
