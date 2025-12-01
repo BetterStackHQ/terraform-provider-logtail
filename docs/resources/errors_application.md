@@ -23,6 +23,7 @@ This resource allows you to create, modify, and delete your Errors applications.
 ### Optional
 
 - `application_group_id` (Number) ID of the application group this application belongs to.
+- `custom_bucket` (Block List, Max: 1) Optional custom bucket configuration for the application. When provided, all fields (name, endpoint, access_key_id, secret_access_key) are required. (see [below for nested schema](#nestedblock--custom_bucket))
 - `data_region` (String) Data region or cluster name where application data will be stored. If omitted, the default data region for your team will be used.
 - `errors_retention` (Number) Error data retention period in days. Default retention is 90 days.
 - `ingesting_paused` (Boolean) This property allows you to temporarily pause data ingesting for this application.
@@ -36,3 +37,17 @@ This resource allows you to create, modify, and delete your Errors applications.
 - `table_name` (String) The table name generated for this application.
 - `token` (String) The token of this application. This token is used to identify and route the data you will send to Better Stack.
 - `updated_at` (String) The time when this application was updated.
+
+<a id="nestedblock--custom_bucket"></a>
+### Nested Schema for `custom_bucket`
+
+Required:
+
+- `access_key_id` (String) Access key ID
+- `endpoint` (String) Bucket endpoint
+- `name` (String) Bucket name
+- `secret_access_key` (String, Sensitive) Secret access key
+
+Optional:
+
+- `keep_data_after_retention` (Boolean) Whether we should keep data in the bucket after the retention period.

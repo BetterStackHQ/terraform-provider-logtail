@@ -138,6 +138,43 @@ var errorsApplicationSchema = map[string]*schema.Schema{
 			return old == "0" && new == "0"
 		},
 	},
+	"custom_bucket": {
+		Description: "Optional custom bucket configuration for the application. When provided, all fields (name, endpoint, access_key_id, secret_access_key) are required.",
+		Type:        schema.TypeList,
+		Optional:    true,
+		MaxItems:    1,
+		Elem: &schema.Resource{
+			Schema: map[string]*schema.Schema{
+				"name": {
+					Description: "Bucket name",
+					Type:        schema.TypeString,
+					Required:    true,
+				},
+				"endpoint": {
+					Description: "Bucket endpoint",
+					Type:        schema.TypeString,
+					Required:    true,
+				},
+				"access_key_id": {
+					Description: "Access key ID",
+					Type:        schema.TypeString,
+					Required:    true,
+				},
+				"secret_access_key": {
+					Description: "Secret access key",
+					Type:        schema.TypeString,
+					Required:    true,
+					Sensitive:   true,
+				},
+				"keep_data_after_retention": {
+					Description: "Whether we should keep data in the bucket after the retention period.",
+					Type:        schema.TypeBool,
+					Optional:    true,
+					Default:     false,
+				},
+			},
+		},
+	},
 }
 
 func newErrorsApplicationResource() *schema.Resource {
@@ -149,24 +186,34 @@ func newErrorsApplicationResource() *schema.Resource {
 		Importer: &schema.ResourceImporter{
 			StateContext: schema.ImportStatePassthroughContext,
 		},
-		Description: "This resource allows you to create, modify, and delete your Errors applications. For more information about the Errors API check https://betterstack.com/docs/errors/api/applications/create/",
-		Schema:      errorsApplicationSchema,
+		CustomizeDiff: validateErrorsApplication,
+		Description:   "This resource allows you to create, modify, and delete your Errors applications. For more information about the Errors API check https://betterstack.com/docs/errors/api/applications/create/",
+		Schema:        errorsApplicationSchema,
 	}
 }
 
+type errorsApplicationCustomBucket struct {
+	Name                   *string `json:"name,omitempty"`
+	Endpoint               *string `json:"endpoint,omitempty"`
+	AccessKeyID            *string `json:"access_key_id,omitempty"`
+	SecretAccessKey        *string `json:"secret_access_key,omitempty"`
+	KeepDataAfterRetention *bool   `json:"keep_data_after_retention,omitempty"`
+}
+
 type errorsApplication struct {
-	Name               *string `json:"name,omitempty"`
-	Token              *string `json:"token,omitempty"`
-	TableName          *string `json:"table_name,omitempty"`
-	Platform           *string `json:"platform,omitempty"`
-	IngestingHost      *string `json:"ingesting_host,omitempty"`
-	IngestingPaused    *bool   `json:"ingesting_paused,omitempty"`
-	ErrorsRetention    *int    `json:"errors_retention,omitempty"`
-	CreatedAt          *string `json:"created_at,omitempty"`
-	UpdatedAt          *string `json:"updated_at,omitempty"`
-	TeamName           *string `json:"team_name,omitempty"`
-	DataRegion         *string `json:"data_region,omitempty"`
-	ApplicationGroupID *int    `json:"application_group_id,omitempty"`
+	Name               *string                        `json:"name,omitempty"`
+	Token              *string                        `json:"token,omitempty"`
+	TableName          *string                        `json:"table_name,omitempty"`
+	Platform           *string                        `json:"platform,omitempty"`
+	IngestingHost      *string                        `json:"ingesting_host,omitempty"`
+	IngestingPaused    *bool                          `json:"ingesting_paused,omitempty"`
+	ErrorsRetention    *int                           `json:"errors_retention,omitempty"`
+	CreatedAt          *string                        `json:"created_at,omitempty"`
+	UpdatedAt          *string                        `json:"updated_at,omitempty"`
+	TeamName           *string                        `json:"team_name,omitempty"`
+	DataRegion         *string                        `json:"data_region,omitempty"`
+	ApplicationGroupID *int                           `json:"application_group_id,omitempty"`
+	CustomBucket       *errorsApplicationCustomBucket `json:"custom_bucket,omitempty"`
 }
 
 type errorsApplicationHTTPResponse struct {
@@ -205,6 +252,20 @@ func errorsApplicationCreate(ctx context.Context, d *schema.ResourceData, meta i
 	}
 
 	load(d, "team_name", &in.TeamName)
+
+	if customBucketData, ok := d.GetOk("custom_bucket"); ok {
+		customBucketList := customBucketData.([]interface{})
+		if len(customBucketList) > 0 {
+			customBucketMap := customBucketList[0].(map[string]interface{})
+			in.CustomBucket = &errorsApplicationCustomBucket{
+				Name:                   stringPtr(customBucketMap["name"].(string)),
+				Endpoint:               stringPtr(customBucketMap["endpoint"].(string)),
+				AccessKeyID:            stringPtr(customBucketMap["access_key_id"].(string)),
+				SecretAccessKey:        stringPtr(customBucketMap["secret_access_key"].(string)),
+				KeepDataAfterRetention: boolPtr(customBucketMap["keep_data_after_retention"].(bool)),
+			}
+		}
+	}
 
 	var out errorsApplicationHTTPResponse
 	if err := resourceCreateWithBaseURL(ctx, meta, meta.(*client).ErrorsBaseURL(), "/api/v1/applications", &in, &out); err != nil {
@@ -245,6 +306,35 @@ func errorsApplicationCopyAttrs(d *schema.ResourceData, in *errorsApplication) d
 		}
 	}
 
+	if in.CustomBucket != nil {
+		customBucketData := make(map[string]interface{})
+		if in.CustomBucket.Name != nil {
+			customBucketData["name"] = *in.CustomBucket.Name
+		}
+		if in.CustomBucket.Endpoint != nil {
+			customBucketData["endpoint"] = *in.CustomBucket.Endpoint
+		}
+		if in.CustomBucket.AccessKeyID != nil {
+			customBucketData["access_key_id"] = *in.CustomBucket.AccessKeyID
+		}
+		// Note: secret_access_key is never returned from API, so we preserve the existing value
+		if existingCustomBucket, ok := d.GetOk("custom_bucket"); ok {
+			existingCustomBucketList := existingCustomBucket.([]interface{})
+			if len(existingCustomBucketList) > 0 {
+				existingCustomBucketMap := existingCustomBucketList[0].(map[string]interface{})
+				if secretKey, ok := existingCustomBucketMap["secret_access_key"]; ok {
+					customBucketData["secret_access_key"] = secretKey
+				}
+			}
+		}
+		if in.CustomBucket.KeepDataAfterRetention != nil {
+			customBucketData["keep_data_after_retention"] = *in.CustomBucket.KeepDataAfterRetention
+		}
+		if err := d.Set("custom_bucket", []interface{}{customBucketData}); err != nil {
+			derr = append(derr, diag.FromErr(err)[0])
+		}
+	}
+
 	return derr
 }
 
@@ -262,6 +352,14 @@ func errorsApplicationDelete(ctx context.Context, d *schema.ResourceData, meta i
 	return resourceDeleteWithBaseURL(ctx, meta, meta.(*client).ErrorsBaseURL(), fmt.Sprintf("/api/v1/applications/%s", url.PathEscape(d.Id())))
 }
 
+func validateErrorsApplication(ctx context.Context, diff *schema.ResourceDiff, v interface{}) error {
+	if err := validateCustomBucketRemoval(ctx, diff, v); err != nil {
+		return err
+	}
+
+	return nil
+}
+
 func newErrorsApplicationDataSource() *schema.Resource {
 	s := make(map[string]*schema.Schema)
 	for k, v := range errorsApplicationSchema {
@@ -271,6 +369,16 @@ func newErrorsApplicationDataSource() *schema.Resource {
 			cp.Computed = false
 			cp.Optional = false
 			cp.Required = true
+		case "custom_bucket":
+			cp.Computed = true
+			cp.Optional = false
+			cp.Required = false
+			cp.ValidateFunc = nil
+			cp.ValidateDiagFunc = nil
+			cp.Default = nil
+			cp.DefaultFunc = nil
+			cp.DiffSuppressFunc = nil
+			cp.MaxItems = 0
 		default:
 			cp.Computed = true
 			cp.Optional = false

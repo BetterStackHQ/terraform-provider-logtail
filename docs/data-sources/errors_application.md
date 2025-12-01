@@ -23,6 +23,7 @@ This Data Source allows you to look up existing Errors applications using their 
 
 - `application_group_id` (Number) ID of the application group this application belongs to.
 - `created_at` (String) The time when this application was created.
+- `custom_bucket` (List of Object) Optional custom bucket configuration for the application. When provided, all fields (name, endpoint, access_key_id, secret_access_key) are required. (see [below for nested schema](#nestedatt--custom_bucket))
 - `data_region` (String) Data region or cluster name where application data will be stored. If omitted, the default data region for your team will be used.
 - `errors_retention` (Number) Error data retention period in days. Default retention is 90 days.
 - `id` (String) The ID of this application.
@@ -33,3 +34,14 @@ This Data Source allows you to look up existing Errors applications using their 
 - `team_name` (String) Used to specify the team the resource should be created in when using global tokens.
 - `token` (String) The token of this application. This token is used to identify and route the data you will send to Better Stack.
 - `updated_at` (String) The time when this application was updated.
+
+<a id="nestedatt--custom_bucket"></a>
+### Nested Schema for `custom_bucket`
+
+Read-Only:
+
+- `access_key_id` (String)
+- `endpoint` (String)
+- `keep_data_after_retention` (Boolean)
+- `name` (String)
+- `secret_access_key` (String)
