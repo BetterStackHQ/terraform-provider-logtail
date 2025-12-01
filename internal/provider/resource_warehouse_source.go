@@ -179,35 +179,28 @@ func newWarehouseSourceResource() *schema.Resource {
 		Importer: &schema.ResourceImporter{
 			StateContext: schema.ImportStatePassthroughContext,
 		},
-		Description: "This resource allows you to create, modify, and delete your Warehouse sources. For more information about the Warehouse API check https://betterstack.com/docs/warehouse/api/sources/create/",
-		Schema:      warehouseSourceSchema,
+		CustomizeDiff: validateWarehouseSource,
+		Description:   "This resource allows you to create, modify, and delete your Warehouse sources. For more information about the Warehouse API check https://betterstack.com/docs/warehouse/api/sources/create/",
+		Schema:        warehouseSourceSchema,
 	}
 }
 
-type warehouseSourceCustomBucket struct {
-	Name                   *string `json:"name,omitempty"`
-	Endpoint               *string `json:"endpoint,omitempty"`
-	AccessKeyID            *string `json:"access_key_id,omitempty"`
-	SecretAccessKey        *string `json:"secret_access_key,omitempty"`
-	KeepDataAfterRetention *bool   `json:"keep_data_after_retention,omitempty"`
-}
-
 type warehouseSource struct {
-	Name                   *string                      `json:"name,omitempty"`
-	Token                  *string                      `json:"token,omitempty"`
-	TableName              *string                      `json:"table_name,omitempty"`
-	IngestingHost          *string                      `json:"ingesting_host,omitempty"`
-	IngestingPaused        *bool                        `json:"ingesting_paused,omitempty"`
-	EventsRetention        *int                         `json:"events_retention,omitempty"`
-	TimeSeriesRetention    *int                         `json:"time_series_retention,omitempty"`
-	LiveTailPattern        *string                      `json:"live_tail_pattern,omitempty"`
-	CreatedAt              *string                      `json:"created_at,omitempty"`
-	UpdatedAt              *string                      `json:"updated_at,omitempty"`
-	TeamName               *string                      `json:"team_name,omitempty"`
-	DataRegion             *string                      `json:"data_region,omitempty"`
-	WarehouseSourceGroupID *int                         `json:"warehouse_source_group_id,omitempty"`
-	CustomBucket           *warehouseSourceCustomBucket `json:"custom_bucket,omitempty"`
-	VrlTransformation      *string                      `json:"vrl_transformation,omitempty"`
+	Name                   *string             `json:"name,omitempty"`
+	Token                  *string             `json:"token,omitempty"`
+	TableName              *string             `json:"table_name,omitempty"`
+	IngestingHost          *string             `json:"ingesting_host,omitempty"`
+	IngestingPaused        *bool               `json:"ingesting_paused,omitempty"`
+	EventsRetention        *int                `json:"events_retention,omitempty"`
+	TimeSeriesRetention    *int                `json:"time_series_retention,omitempty"`
+	LiveTailPattern        *string             `json:"live_tail_pattern,omitempty"`
+	CreatedAt              *string             `json:"created_at,omitempty"`
+	UpdatedAt              *string             `json:"updated_at,omitempty"`
+	TeamName               *string             `json:"team_name,omitempty"`
+	DataRegion             *string             `json:"data_region,omitempty"`
+	WarehouseSourceGroupID *int                `json:"warehouse_source_group_id,omitempty"`
+	CustomBucket           *sourceCustomBucket `json:"custom_bucket,omitempty"`
+	VrlTransformation      *string             `json:"vrl_transformation,omitempty"`
 }
 
 type warehouseSourceHTTPResponse struct {
@@ -253,7 +246,7 @@ func warehouseSourceCreate(ctx context.Context, d *schema.ResourceData, meta int
 		customBucketList := customBucketData.([]interface{})
 		if len(customBucketList) > 0 {
 			customBucketMap := customBucketList[0].(map[string]interface{})
-			in.CustomBucket = &warehouseSourceCustomBucket{
+			in.CustomBucket = &sourceCustomBucket{
 				Name:                   stringPtr(customBucketMap["name"].(string)),
 				Endpoint:               stringPtr(customBucketMap["endpoint"].(string)),
 				AccessKeyID:            stringPtr(customBucketMap["access_key_id"].(string)),
@@ -337,6 +330,14 @@ func warehouseSourceUpdate(ctx context.Context, d *schema.ResourceData, meta int
 
 func warehouseSourceDelete(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	return resourceDeleteWithBaseURL(ctx, meta, meta.(*client).WarehouseBaseURL(), fmt.Sprintf("/api/v1/sources/%s", url.PathEscape(d.Id())))
+}
+
+func validateWarehouseSource(ctx context.Context, diff *schema.ResourceDiff, v interface{}) error {
+	if err := validateCustomBucketRemoval(ctx, diff, v); err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func newWarehouseSourceDataSource() *schema.Resource {
