@@ -192,28 +192,20 @@ func newErrorsApplicationResource() *schema.Resource {
 	}
 }
 
-type errorsApplicationCustomBucket struct {
-	Name                   *string `json:"name,omitempty"`
-	Endpoint               *string `json:"endpoint,omitempty"`
-	AccessKeyID            *string `json:"access_key_id,omitempty"`
-	SecretAccessKey        *string `json:"secret_access_key,omitempty"`
-	KeepDataAfterRetention *bool   `json:"keep_data_after_retention,omitempty"`
-}
-
 type errorsApplication struct {
-	Name               *string                        `json:"name,omitempty"`
-	Token              *string                        `json:"token,omitempty"`
-	TableName          *string                        `json:"table_name,omitempty"`
-	Platform           *string                        `json:"platform,omitempty"`
-	IngestingHost      *string                        `json:"ingesting_host,omitempty"`
-	IngestingPaused    *bool                          `json:"ingesting_paused,omitempty"`
-	ErrorsRetention    *int                           `json:"errors_retention,omitempty"`
-	CreatedAt          *string                        `json:"created_at,omitempty"`
-	UpdatedAt          *string                        `json:"updated_at,omitempty"`
-	TeamName           *string                        `json:"team_name,omitempty"`
-	DataRegion         *string                        `json:"data_region,omitempty"`
-	ApplicationGroupID *int                           `json:"application_group_id,omitempty"`
-	CustomBucket       *errorsApplicationCustomBucket `json:"custom_bucket,omitempty"`
+	Name               *string             `json:"name,omitempty"`
+	Token              *string             `json:"token,omitempty"`
+	TableName          *string             `json:"table_name,omitempty"`
+	Platform           *string             `json:"platform,omitempty"`
+	IngestingHost      *string             `json:"ingesting_host,omitempty"`
+	IngestingPaused    *bool               `json:"ingesting_paused,omitempty"`
+	ErrorsRetention    *int                `json:"errors_retention,omitempty"`
+	CreatedAt          *string             `json:"created_at,omitempty"`
+	UpdatedAt          *string             `json:"updated_at,omitempty"`
+	TeamName           *string             `json:"team_name,omitempty"`
+	DataRegion         *string             `json:"data_region,omitempty"`
+	ApplicationGroupID *int                `json:"application_group_id,omitempty"`
+	CustomBucket       *sourceCustomBucket `json:"custom_bucket,omitempty"`
 }
 
 type errorsApplicationHTTPResponse struct {
@@ -257,7 +249,7 @@ func errorsApplicationCreate(ctx context.Context, d *schema.ResourceData, meta i
 		customBucketList := customBucketData.([]interface{})
 		if len(customBucketList) > 0 {
 			customBucketMap := customBucketList[0].(map[string]interface{})
-			in.CustomBucket = &errorsApplicationCustomBucket{
+			in.CustomBucket = &sourceCustomBucket{
 				Name:                   stringPtr(customBucketMap["name"].(string)),
 				Endpoint:               stringPtr(customBucketMap["endpoint"].(string)),
 				AccessKeyID:            stringPtr(customBucketMap["access_key_id"].(string)),
