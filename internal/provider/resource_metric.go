@@ -15,15 +15,6 @@ import (
 )
 
 var metricSchema = map[string]*schema.Schema{
-	"team_name": {
-		Description: "Used to specify the team the resource should be created in when using global tokens.",
-		Type:        schema.TypeString,
-		Optional:    true,
-		Default:     nil,
-		DiffSuppressFunc: func(k, old, new string, d *schema.ResourceData) bool {
-			return d.Id() != ""
-		},
-	},
 	"id": {
 		Description: "The ID of this metric.",
 		Type:        schema.TypeString,
@@ -68,7 +59,6 @@ func newMetricResource() *schema.Resource {
 	return &schema.Resource{
 		CreateContext: metricCreate,
 		ReadContext:   metricLookup,
-		UpdateContext: metricUpdate,
 		DeleteContext: metricDelete,
 		Importer: &schema.ResourceImporter{
 			StateContext: schema.ImportStatePassthroughContext,
@@ -191,10 +181,6 @@ func metricCopyAttrs(d *schema.ResourceData, in *metric) diag.Diagnostics {
 		}
 	}
 	return derr
-}
-
-func metricUpdate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	return diag.Errorf("Metrics cannot be updated.")
 }
 
 func metricDelete(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {

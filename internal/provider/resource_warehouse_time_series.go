@@ -37,6 +37,7 @@ var warehouseTimeSeriesSchema = map[string]*schema.Schema{
 		Description: "The name of the time series. Must contain only letters, numbers, and underscores.",
 		Type:        schema.TypeString,
 		Required:    true,
+		ForceNew:    true,
 	},
 	"type": {
 		Description: `The data type of the time series. Valid types are: ` + "`string`, `string_low_cardinality`, `int64_delta`, `int64`, `uint64_delta`, `uint64`, `float64_delta`, `datetime64_delta`, `boolean`, `array_bfloat16`, `array_float32`",
@@ -64,11 +65,13 @@ var warehouseTimeSeriesSchema = map[string]*schema.Schema{
 		Description: "The SQL expression used to compute the time series. For example `JSONExtract(raw, 'response_time', 'Nullable(Float64)')`.",
 		Type:        schema.TypeString,
 		Required:    true,
+		ForceNew:    true,
 	},
 	"aggregations": {
 		Description: "An array of aggregation functions (e.g., `avg`, `min`, `max`). If omitted, no aggregations are applied.",
 		Type:        schema.TypeList,
 		Optional:    true,
+		ForceNew:    true,
 		Elem: &schema.Schema{
 			Type: schema.TypeString,
 		},
@@ -77,17 +80,20 @@ var warehouseTimeSeriesSchema = map[string]*schema.Schema{
 		Description: "The type of vector index to apply (e.g., `vector_similarity`). Only applicable for vector types (`array_bfloat16`, `array_float32`).",
 		Type:        schema.TypeString,
 		Optional:    true,
+		ForceNew:    true,
 	},
 	"vector_dimension": {
 		Description:  "The vector dimension if `expression_index` is `vector_similarity` (e.g., `512`). Supported values: 256, 384, 512, 768, 1024, 1536, 3072, 4096, 10752.",
 		Type:         schema.TypeInt,
 		Optional:     true,
+		ForceNew:     true,
 		ValidateFunc: validation.IntInSlice([]int{256, 384, 512, 768, 1024, 1536, 3072, 4096, 10752}),
 	},
 	"vector_distance_function": {
 		Description:  "The distance function to use for vector similarity (e.g., `cosine`, `l2`).",
 		Type:         schema.TypeString,
 		Optional:     true,
+		ForceNew:     true,
 		ValidateFunc: validation.StringInSlice([]string{"cosine", "l2"}, false),
 	},
 }
@@ -96,7 +102,6 @@ func newWarehouseTimeSeriesResource() *schema.Resource {
 	return &schema.Resource{
 		CreateContext: warehouseTimeSeriesCreate,
 		ReadContext:   warehouseTimeSeriesRead,
-		UpdateContext: warehouseTimeSeriesUpdate,
 		DeleteContext: warehouseTimeSeriesDelete,
 		Importer: &schema.ResourceImporter{
 			StateContext: schema.ImportStatePassthroughContext,
@@ -224,10 +229,6 @@ func warehouseTimeSeriesCopyAttrs(d *schema.ResourceData, in *warehouseTimeSerie
 	}
 
 	return derr
-}
-
-func warehouseTimeSeriesUpdate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	return diag.Errorf("Time series cannot be updated.")
 }
 
 func warehouseTimeSeriesDelete(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
