@@ -87,6 +87,7 @@ This Data Source allows you to look up existing Sources using their table name. 
 - `scrape_request_headers` (List of Map of String) An array of request headers, each containing `name` and `value` fields.
 - `scrape_urls` (List of String) For scrape platform types, the set of urls to scrape.
 - `source_group_id` (Number) The ID of the source group this source belongs to.
+- `team_id` (Number) The team ID for this resource. To be used in tablenames to query.
 - `team_name` (String) Used to specify the team the resource should be created in when using global tokens.
 - `token` (String) The token of this source. This token is used to identify and route the data you will send to Better Stack.
 - `updated_at` (String) The time when this monitor group was updated.

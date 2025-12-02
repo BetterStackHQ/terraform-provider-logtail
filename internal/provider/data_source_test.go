@@ -24,9 +24,9 @@ func TestDataMonitor(t *testing.T) {
 
 		switch {
 		case r.Method == http.MethodGet && r.RequestURI == prefix+"?page=1":
-			_, _ = w.Write([]byte(`{"data":[{"id":"1","attributes":{"name":"Test Source","token":"token123","table_name":"abc","platform":"ubuntu"}}],"pagination":{"next":"..."}}`))
+			_, _ = w.Write([]byte(`{"data":[{"id":"1","attributes":{"name":"Test Source","token":"token123","table_name":"abc", "team_id": 123456,"platform":"ubuntu"}}],"pagination":{"next":"..."}}`))
 		case r.Method == http.MethodGet && r.RequestURI == prefix+"?page=2":
-			_, _ = w.Write([]byte(`{"data":[{"id":"2","attributes":{"name":"Other Test Source","token":"token456","table_name":"def","platform":"ubuntu"}}],"pagination":{"next":null}}`))
+			_, _ = w.Write([]byte(`{"data":[{"id":"2","attributes":{"name":"Other Test Source","token":"token456","table_name":"def", "team_id": 123456,"platform":"ubuntu"}}],"pagination":{"next":null}}`))
 		default:
 			t.Fatal("Unexpected " + r.Method + " " + r.RequestURI)
 		}
@@ -57,6 +57,7 @@ func TestDataMonitor(t *testing.T) {
 					resource.TestCheckResourceAttrSet("data.logtail_source.this", "id"),
 					resource.TestCheckResourceAttr("data.logtail_source.this", "table_name", table_name),
 					resource.TestCheckResourceAttr("data.logtail_source.this", "platform", "ubuntu"),
+					resource.TestCheckResourceAttr("data.logtail_source.this", "team_id", "123456"),
 				),
 			},
 		},

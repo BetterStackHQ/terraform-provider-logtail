@@ -25,6 +25,12 @@ var sourceSchema = map[string]*schema.Schema{
 			return d.Id() != ""
 		},
 	},
+	"team_id": {
+		Description: "The team ID for this resource. To be used in tablenames to query.",
+		Type:        schema.TypeInt,
+		Optional:    false,
+		Computed:    true,
+	},
 	"id": {
 		Description: "The ID of this source.",
 		Type:        schema.TypeString,
@@ -303,6 +309,7 @@ type sourceCustomBucket struct {
 type source struct {
 	Name                           *string                   `json:"name,omitempty"`
 	Token                          *string                   `json:"token,omitempty"`
+	TeamId                         *int                      `json:"team_id,omitempty"`
 	TableName                      *string                   `json:"table_name,omitempty"`
 	Platform                       *string                   `json:"platform,omitempty"`
 	IngestingHost                  *string                   `json:"ingesting_host,omitempty"`
@@ -341,6 +348,7 @@ func sourceRef(in *source) []struct {
 	}{
 		{k: "name", v: &in.Name},
 		{k: "token", v: &in.Token},
+		{k: "team_id", v: &in.TeamId},
 		{k: "table_name", v: &in.TableName},
 		{k: "platform", v: &in.Platform},
 		{k: "ingesting_host", v: &in.IngestingHost},

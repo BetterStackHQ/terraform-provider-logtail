@@ -36,6 +36,7 @@ func TestResourceSource(t *testing.T) {
 			body = inject(t, body, "token", "generated_by_logtail")
 			body = inject(t, body, "ingesting_host", "in.logs.betterstack.com")
 			body = inject(t, body, "table_name", "test_source")
+			body = inject(t, body, "team_id", 123456)
 
 			// Handle custom_bucket - remove secret_access_key from response as API doesn't return it
 			body = removeCustomBucketSecret(t, body)
@@ -64,6 +65,7 @@ func TestResourceSource(t *testing.T) {
 			patched = inject(t, patched, "token", "generated_by_logtail")
 			patched = inject(t, patched, "ingesting_host", "in.logs.betterstack.com")
 			patched = inject(t, patched, "table_name", "test_source")
+			patched = inject(t, patched, "team_id", 123456)
 
 			// Handle custom_bucket - remove secret_access_key from response as API doesn't return it
 			patched = removeCustomBucketSecret(t, patched)
