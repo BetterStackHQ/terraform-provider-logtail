@@ -26,8 +26,8 @@ var sourceSchema = map[string]*schema.Schema{
 		},
 	},
 	"team_id": {
-		Description: "The team ID for this resource. To be used in tablenames to query.",
-		Type:        schema.TypeInt,
+		Description: "The team ID for this resource. Can be used with table_name in [Query API](https://betterstack.com/docs/logs/query-api/connect-remotely/).",
+		Type:        schema.TypeString,
 		Optional:    false,
 		Computed:    true,
 	},
@@ -309,7 +309,7 @@ type sourceCustomBucket struct {
 type source struct {
 	Name                           *string                   `json:"name,omitempty"`
 	Token                          *string                   `json:"token,omitempty"`
-	TeamId                         *int                      `json:"team_id,omitempty"`
+	TeamId                         *StringOrInt              `json:"team_id,omitempty"`
 	TableName                      *string                   `json:"table_name,omitempty"`
 	Platform                       *string                   `json:"platform,omitempty"`
 	IngestingHost                  *string                   `json:"ingesting_host,omitempty"`
@@ -372,7 +372,11 @@ func sourceRef(in *source) []struct {
 func sourceCreate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	var in source
 	for _, e := range sourceRef(&in) {
-		load(d, e.k, e.v)
+		if e.k == "team_id" {
+			in.TeamId = StringOrIntFromResourceData(d, e.k)
+		} else {
+			load(d, e.k, e.v)
+		}
 	}
 
 	load(d, "team_name", &in.TeamName)
@@ -417,6 +421,10 @@ func sourceCopyAttrs(d *schema.ResourceData, in *source) diag.Diagnostics {
 			// Don't update data region from API if it's already set - data_region can't change
 			// This prevents e.g. "germany" being overwritten by "eu-nbg-2"
 			continue
+		} else if e.k == "team_id" {
+			if err := SetStringOrIntResourceData(d, "team_id", in.TeamId); err != nil {
+				derr = append(derr, diag.FromErr(err)[0])
+			}
 		} else if err := d.Set(e.k, reflect.Indirect(reflect.ValueOf(e.v)).Interface()); err != nil {
 			derr = append(derr, diag.FromErr(err)[0])
 		}
@@ -458,7 +466,11 @@ func sourceUpdate(ctx context.Context, d *schema.ResourceData, meta interface{})
 	var in source
 	for _, e := range sourceRef(&in) {
 		if d.HasChange(e.k) {
-			load(d, e.k, e.v)
+			if e.k == "team_id" {
+				in.TeamId = StringOrIntFromResourceData(d, e.k)
+			} else {
+				load(d, e.k, e.v)
+			}
 		}
 	}
 	return resourceUpdate(ctx, meta, fmt.Sprintf("/api/v1/sources/%s", url.PathEscape(d.Id())), &in)

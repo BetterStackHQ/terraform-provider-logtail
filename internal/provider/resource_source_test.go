@@ -109,6 +109,7 @@ func TestResourceSource(t *testing.T) {
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttrSet("logtail_source.this", "id"),
 					resource.TestCheckResourceAttr("logtail_source.this", "name", name),
+					resource.TestCheckResourceAttr("logtail_source.this", "team_id", "123456"),
 					resource.TestCheckResourceAttr("logtail_source.this", "platform", platform),
 					resource.TestCheckResourceAttr("logtail_source.this", "token", "generated_by_logtail"),
 					resource.TestCheckResourceAttr("logtail_source.this", "ingesting_host", "in.logs.betterstack.com"),
@@ -136,6 +137,7 @@ func TestResourceSource(t *testing.T) {
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttrSet("logtail_source.this", "id"),
 					resource.TestCheckResourceAttr("logtail_source.this", "name", name),
+					resource.TestCheckResourceAttr("logtail_source.this", "team_id", "123456"),
 					resource.TestCheckResourceAttr("logtail_source.this", "platform", platform),
 					resource.TestCheckResourceAttr("logtail_source.this", "ingesting_paused", "true"),
 					resource.TestCheckResourceAttr("logtail_source.this", "token", "generated_by_logtail"),
@@ -195,6 +197,7 @@ func TestResourceSource(t *testing.T) {
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttrSet("logtail_source.this", "id"),
 					resource.TestCheckResourceAttr("logtail_source.this", "name", name),
+					resource.TestCheckResourceAttr("logtail_source.this", "team_id", "123456"),
 					resource.TestCheckResourceAttr("logtail_source.this", "platform", platform_scrape),
 					resource.TestCheckResourceAttr("logtail_source.this", "token", "generated_by_logtail"),
 					resource.TestCheckResourceAttr("logtail_source.this", "scrape_urls.#", "2"),
@@ -230,6 +233,7 @@ func TestResourceSource(t *testing.T) {
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttrSet("logtail_source.this", "id"),
 					resource.TestCheckResourceAttr("logtail_source.this", "name", name),
+					resource.TestCheckResourceAttr("logtail_source.this", "team_id", "123456"),
 					resource.TestCheckResourceAttr("logtail_source.this", "platform", platform_scrape),
 					resource.TestCheckResourceAttr("logtail_source.this", "ingesting_paused", "true"),
 					resource.TestCheckResourceAttr("logtail_source.this", "token", "generated_by_logtail"),
@@ -572,6 +576,7 @@ func TestResourceSource(t *testing.T) {
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttrSet("logtail_source.this", "id"),
 					resource.TestCheckResourceAttr("logtail_source.this", "name", name),
+					resource.TestCheckResourceAttr("logtail_source.this", "team_id", "123456"),
 					resource.TestCheckResourceAttr("logtail_source.this", "platform", platform),
 					resource.TestCheckResourceAttr("logtail_source.this", "custom_bucket.#", "1"),
 					resource.TestCheckResourceAttr("logtail_source.this", "custom_bucket.0.name", "my-test-bucket"),
