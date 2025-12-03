@@ -92,6 +92,7 @@ This resource allows you to create, modify, and delete your Sources. For more in
 - `id` (String) The ID of this source.
 - `ingesting_host` (String) The host where the logs or metrics should be sent. See [documentation](https://betterstack.com/docs/logs/start/) for your specific source platform for details.
 - `table_name` (String) The table name generated for this source.
+- `team_id` (String) The team ID for this resource. Can be used with table_name in [Query API](https://betterstack.com/docs/logs/query-api/connect-remotely/).
 - `token` (String) The token of this source. This token is used to identify and route the data you will send to Better Stack.
 - `updated_at` (String) The time when this monitor group was updated.
 
