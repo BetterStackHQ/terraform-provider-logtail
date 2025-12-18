@@ -3,12 +3,12 @@
 page_title: "logtail_connection Resource - terraform-provider-logtail"
 subcategory: ""
 description: |-
-  This resource allows you to create and manage ClickHouse connections for remote querying. For more information about the Connection API check https://betterstack.com/docs/logs/api/connections/
+  Create secure connections to Better Stack's ClickHouse database for direct SQL querying. Enable remote access to your logs and metrics data with configurable IP whitelisting and temporary credentials. Learn more https://betterstack.com/docs/logs/query-api/connect-remotely/.
 ---
 
 # logtail_connection (Resource)
 
-This resource allows you to create and manage ClickHouse connections for remote querying. For more information about the Connection API check https://betterstack.com/docs/logs/api/connections/
+Create secure connections to Better Stack's ClickHouse database for direct SQL querying. Enable remote access to your logs and metrics data with configurable IP whitelisting and temporary credentials. [Learn more](https://betterstack.com/docs/logs/query-api/connect-remotely/).
 
 
 

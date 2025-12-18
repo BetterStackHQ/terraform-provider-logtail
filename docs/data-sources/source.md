@@ -3,12 +3,12 @@
 page_title: "logtail_source Data Source - terraform-provider-logtail"
 subcategory: ""
 description: |-
-  This Data Source allows you to look up existing Sources using their table name. The table name is shown on the Source settings page on telemetry.betterstack.com or you can list all your existing sources via the Sources API https://betterstack.com/docs/logs/api/list-all-existing-sources/.
+  Retrieve details of an existing log source by table name. Useful for accessing source configurations and settings for programmatic management. Learn more https://betterstack.com/docs/logs/api/list-all-existing-sources/.
 ---
 
 # logtail_source (Data Source)
 
-This Data Source allows you to look up existing Sources using their table name. The table name is shown on the Source settings page on telemetry.betterstack.com or you can list all your existing sources via the [Sources API](https://betterstack.com/docs/logs/api/list-all-existing-sources/).
+Retrieve details of an existing log source by table name. Useful for accessing source configurations and settings for programmatic management. [Learn more](https://betterstack.com/docs/logs/api/list-all-existing-sources/).
 
 
 

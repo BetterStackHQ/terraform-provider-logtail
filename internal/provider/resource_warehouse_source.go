@@ -180,7 +180,7 @@ func newWarehouseSourceResource() *schema.Resource {
 			StateContext: schema.ImportStatePassthroughContext,
 		},
 		CustomizeDiff: validateWarehouseSource,
-		Description:   "This resource allows you to create, modify, and delete your Warehouse sources. For more information about the Warehouse API check https://betterstack.com/docs/warehouse/api/sources/create/",
+		Description:   "Create data sources in Better Stack Warehouse for ingesting time-series events. Define schemas for operational data, user behavior metrics, or business analytics to enable powerful querying and visualization. [Learn more](https://betterstack.com/docs/warehouse/start/).",
 		Schema:        warehouseSourceSchema,
 	}
 }

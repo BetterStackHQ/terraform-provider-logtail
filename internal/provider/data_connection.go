@@ -12,7 +12,7 @@ import (
 func newConnectionDataSource() *schema.Resource {
 	return &schema.Resource{
 		ReadContext: dataSourceConnectionRead,
-		Description: "This data source allows you to retrieve information about ClickHouse connections. For more information about the Connection API check https://betterstack.com/docs/logs/api/connections/",
+		Description: "Retrieve details of an existing ClickHouse connection by name. Useful for accessing connection credentials and settings for remote querying of logs and metrics data. [Learn more](https://betterstack.com/docs/logs/query-api/connect-remotely/).",
 		Schema: map[string]*schema.Schema{
 			"id": {
 				Description: "The ID of the connection to retrieve.",

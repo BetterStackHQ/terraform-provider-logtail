@@ -3,12 +3,12 @@
 page_title: "logtail_source_group Resource - terraform-provider-logtail"
 subcategory: ""
 description: |-
-  This resource allows you to create, modify, and delete your Source Groups. For more information about the Source Groups API check https://betterstack.com/docs/logs/api/
+  Organize log sources into logical groups for better management. Group related sources together to apply shared configurations, transformations, and access controls across multiple log streams. Learn more https://betterstack.com/docs/logs/api/listing-sources-in-source-group/.
 ---
 
 # logtail_source_group (Resource)
 
-This resource allows you to create, modify, and delete your Source Groups. For more information about the Source Groups API check https://betterstack.com/docs/logs/api/
+Organize log sources into logical groups for better management. Group related sources together to apply shared configurations, transformations, and access controls across multiple log streams. [Learn more](https://betterstack.com/docs/logs/api/listing-sources-in-source-group/).
 
 
 

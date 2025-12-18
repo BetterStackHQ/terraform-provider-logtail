@@ -14,7 +14,7 @@ import (
 func newWarehouseEmbeddingDataSource() *schema.Resource {
 	return &schema.Resource{
 		ReadContext: dataSourceWarehouseEmbeddingRead,
-		Description: "This data source allows you to retrieve information about a Warehouse embedding. For more information about the Warehouse Embeddings API check https://betterstack.com/docs/warehouse/api/embeddings/",
+		Description: "Retrieve details of an existing Warehouse embedding configuration. Useful for accessing vector search settings and configurations for semantic similarity queries. [Learn more](https://betterstack.com/docs/warehouse/vector-embeddings/).",
 		Schema: map[string]*schema.Schema{
 			"id": {
 				Description: "The ID of the embedding to retrieve.",

@@ -106,7 +106,7 @@ func newWarehouseTimeSeriesResource() *schema.Resource {
 		Importer: &schema.ResourceImporter{
 			StateContext: schema.ImportStatePassthroughContext,
 		},
-		Description: "This resource allows you to create and delete your Warehouse time series. For more information about the Warehouse API check https://betterstack.com/docs/warehouse/api/time-series/create/",
+		Description: "Create time series tables in Better Stack Warehouse for storing and analyzing time-based data. Define schema with various data types for operational data, user behavior metrics, or business analytics. [Learn more](https://betterstack.com/docs/warehouse/start/).",
 		Schema:      warehouseTimeSeriesSchema,
 	}
 }

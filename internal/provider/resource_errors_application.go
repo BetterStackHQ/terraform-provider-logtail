@@ -187,7 +187,7 @@ func newErrorsApplicationResource() *schema.Resource {
 			StateContext: schema.ImportStatePassthroughContext,
 		},
 		CustomizeDiff: validateErrorsApplication,
-		Description:   "This resource allows you to create, modify, and delete your Errors applications. For more information about the Errors API check https://betterstack.com/docs/errors/api/applications/create/",
+		Description:   "Create and manage error tracking applications. Configure applications to collect, group, and analyze errors from your software, with support for releases, environments, and custom error handling rules. [Learn more](https://betterstack.com/docs/errors/start/).",
 		Schema:        errorsApplicationSchema,
 	}
 }

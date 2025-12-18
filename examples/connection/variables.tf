@@ -7,3 +7,4 @@ EOF
   # The value can be omitted if the LOGTAIL_API_TOKEN env var is set.
   default = null
 }
+

@@ -28,7 +28,7 @@ func newMetricDataSource() *schema.Resource {
 	}
 	return &schema.Resource{
 		ReadContext: metricLookup,
-		Description: "This Data Source allows you to look up existing Metrics using their name. You can list all your existing metrics via the [Metrics API](https://betterstack.com/docs/logs/api/list-all-existing-metrics/).",
+		Description: "Retrieve details of an existing metric by name. Useful for accessing metric configurations and settings for programmatic management. [Learn more](https://betterstack.com/docs/logs/api/list-all-existing-metrics/).",
 		Schema:      s,
 	}
 }

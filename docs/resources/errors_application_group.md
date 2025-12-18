@@ -3,12 +3,12 @@
 page_title: "logtail_errors_application_group Resource - terraform-provider-logtail"
 subcategory: ""
 description: |-
-  This resource allows you to create, modify, and delete your Errors application groups. For more information about the Errors API check https://betterstack.com/docs/errors/api/applications-groups/create/
+  Organize error tracking applications into logical groups. Group related applications together for better management, shared settings, and unified error reporting across your software ecosystem. Learn more https://betterstack.com/docs/errors/api/applications-groups/list/.
 ---
 
 # logtail_errors_application_group (Resource)
 
-This resource allows you to create, modify, and delete your Errors application groups. For more information about the Errors API check https://betterstack.com/docs/errors/api/applications-groups/create/
+Organize error tracking applications into logical groups. Group related applications together for better management, shared settings, and unified error reporting across your software ecosystem. [Learn more](https://betterstack.com/docs/errors/api/applications-groups/list/).
 
 
 

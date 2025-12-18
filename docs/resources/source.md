@@ -3,12 +3,12 @@
 page_title: "logtail_source Resource - terraform-provider-logtail"
 subcategory: ""
 description: |-
-  This resource allows you to create, modify, and delete your Sources. For more information about the Sources API check https://betterstack.com/docs/logs/api/list-all-existing-sources/
+  Create and manage log sources that collect logs from various platforms and services. Sources define where your logs come from and how they're processed, supporting platforms like Docker, Kubernetes, cloud services, and custom applications. Learn more https://betterstack.com/docs/logs/sources/.
 ---
 
 # logtail_source (Resource)
 
-This resource allows you to create, modify, and delete your Sources. For more information about the Sources API check https://betterstack.com/docs/logs/api/list-all-existing-sources/
+Create and manage log sources that collect logs from various platforms and services. Sources define where your logs come from and how they're processed, supporting platforms like Docker, Kubernetes, cloud services, and custom applications. [Learn more](https://betterstack.com/docs/logs/sources/).
 
 
 

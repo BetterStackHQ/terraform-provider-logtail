@@ -193,7 +193,7 @@ func newConnectionResource() *schema.Resource {
 		CreateContext: connectionCreate,
 		ReadContext:   connectionRead,
 		DeleteContext: connectionDelete,
-		Description:   "This resource allows you to create and manage ClickHouse connections for remote querying. For more information about the Connection API check https://betterstack.com/docs/logs/api/connections/",
+		Description:   "Create secure connections to Better Stack's ClickHouse database for direct SQL querying. Enable remote access to your logs and metrics data with configurable IP whitelisting and temporary credentials. [Learn more](https://betterstack.com/docs/logs/query-api/connect-remotely/).",
 		Schema:        connectionSchema,
 	}
 }

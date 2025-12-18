@@ -3,12 +3,12 @@
 page_title: "logtail_warehouse_source_group Resource - terraform-provider-logtail"
 subcategory: ""
 description: |-
-  This resource allows you to create, modify, and delete your Warehouse source groups. For more information about the Warehouse API check https://betterstack.com/docs/warehouse/api/source-groups/create/
+  Organize Warehouse data sources into logical groups. Group related time-series sources together for better management, shared configurations, and unified access controls across your data streams. Learn more https://betterstack.com/docs/warehouse/start/.
 ---
 
 # logtail_warehouse_source_group (Resource)
 
-This resource allows you to create, modify, and delete your Warehouse source groups. For more information about the Warehouse API check https://betterstack.com/docs/warehouse/api/source-groups/create/
+Organize Warehouse data sources into logical groups. Group related time-series sources together for better management, shared configurations, and unified access controls across your data streams. [Learn more](https://betterstack.com/docs/warehouse/start/).
 
 
 

@@ -62,7 +62,7 @@ func newErrorsApplicationGroupResource() *schema.Resource {
 		Importer: &schema.ResourceImporter{
 			StateContext: schema.ImportStatePassthroughContext,
 		},
-		Description: "This resource allows you to create, modify, and delete your Errors application groups. For more information about the Errors API check https://betterstack.com/docs/errors/api/applications-groups/create/",
+		Description: "Organize error tracking applications into logical groups. Group related applications together for better management, shared settings, and unified error reporting across your software ecosystem. [Learn more](https://betterstack.com/docs/errors/api/applications-groups/list/).",
 		Schema:      errorsApplicationGroupSchema,
 	}
 }

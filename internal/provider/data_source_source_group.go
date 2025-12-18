@@ -37,7 +37,7 @@ func newSourceGroupDataSource() *schema.Resource {
 
 	return &schema.Resource{
 		ReadContext: sourceGroupLookup,
-		Description: "This data source allows you to get information about a Source Group. For more information about the Source Groups API check https://betterstack.com/docs/logs/api/",
+		Description: "Retrieve details of an existing log source group by name. Useful for accessing source group configurations and settings for programmatic management of log sources. [Learn more](https://betterstack.com/docs/logs/api/listing-sources-in-source-group/).",
 		Schema:      s,
 	}
 }

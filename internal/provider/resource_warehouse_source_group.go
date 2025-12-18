@@ -62,7 +62,7 @@ func newWarehouseSourceGroupResource() *schema.Resource {
 		Importer: &schema.ResourceImporter{
 			StateContext: schema.ImportStatePassthroughContext,
 		},
-		Description: "This resource allows you to create, modify, and delete your Warehouse source groups. For more information about the Warehouse API check https://betterstack.com/docs/warehouse/api/source-groups/create/",
+		Description: "Organize Warehouse data sources into logical groups. Group related time-series sources together for better management, shared configurations, and unified access controls across your data streams. [Learn more](https://betterstack.com/docs/warehouse/start/).",
 		Schema:      warehouseSourceGroupSchema,
 	}
 }

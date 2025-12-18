@@ -63,7 +63,7 @@ func newMetricResource() *schema.Resource {
 		Importer: &schema.ResourceImporter{
 			StateContext: schema.ImportStatePassthroughContext,
 		},
-		Description: "This resource allows you to create and delete Metrics.",
+		Description: "Create custom metrics from your log data using SQL expressions. Transform log events into quantifiable metrics for monitoring, alerting, and dashboard visualization across your infrastructure and applications. [Learn more](https://betterstack.com/docs/logs/dashboards/logs-to-metrics/).",
 		Schema:      metricSchema,
 	}
 }

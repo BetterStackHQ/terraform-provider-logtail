@@ -68,7 +68,7 @@ func newWarehouseEmbeddingResource() *schema.Resource {
 		CreateContext: warehouseEmbeddingCreate,
 		ReadContext:   warehouseEmbeddingRead,
 		DeleteContext: warehouseEmbeddingDelete,
-		Description:   "This resource allows you to create and manage embeddings for vector similarity search in Warehouse. For more information about the Warehouse Embeddings API check https://betterstack.com/docs/warehouse/api/embeddings/",
+		Description:   "Create vector embeddings for semantic search in Better Stack Warehouse. Enable AI-powered similarity search across your time-series data using embeddings for advanced analytics and anomaly detection. [Learn more](https://betterstack.com/docs/warehouse/vector-embeddings/).",
 		Schema:        warehouseEmbeddingSchema,
 	}
 }

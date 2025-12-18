@@ -3,12 +3,12 @@
 page_title: "logtail_warehouse_embedding Data Source - terraform-provider-logtail"
 subcategory: ""
 description: |-
-  This data source allows you to retrieve information about a Warehouse embedding. For more information about the Warehouse Embeddings API check https://betterstack.com/docs/warehouse/api/embeddings/
+  Retrieve details of an existing Warehouse embedding configuration. Useful for accessing vector search settings and configurations for semantic similarity queries. Learn more https://betterstack.com/docs/warehouse/vector-embeddings/.
 ---
 
 # logtail_warehouse_embedding (Data Source)
 
-This data source allows you to retrieve information about a Warehouse embedding. For more information about the Warehouse Embeddings API check https://betterstack.com/docs/warehouse/api/embeddings/
+Retrieve details of an existing Warehouse embedding configuration. Useful for accessing vector search settings and configurations for semantic similarity queries. [Learn more](https://betterstack.com/docs/warehouse/vector-embeddings/).
 
 
 

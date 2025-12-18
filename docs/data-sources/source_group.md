@@ -3,12 +3,12 @@
 page_title: "logtail_source_group Data Source - terraform-provider-logtail"
 subcategory: ""
 description: |-
-  This data source allows you to get information about a Source Group. For more information about the Source Groups API check https://betterstack.com/docs/logs/api/
+  Retrieve details of an existing log source group by name. Useful for accessing source group configurations and settings for programmatic management of log sources. Learn more https://betterstack.com/docs/logs/api/listing-sources-in-source-group/.
 ---
 
 # logtail_source_group (Data Source)
 
-This data source allows you to get information about a Source Group. For more information about the Source Groups API check https://betterstack.com/docs/logs/api/
+Retrieve details of an existing log source group by name. Useful for accessing source group configurations and settings for programmatic management of log sources. [Learn more](https://betterstack.com/docs/logs/api/listing-sources-in-source-group/).
 
 
 

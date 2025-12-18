@@ -44,7 +44,7 @@ func newSourceDataSource() *schema.Resource {
 	}
 	return &schema.Resource{
 		ReadContext: sourceLookup,
-		Description: "This Data Source allows you to look up existing Sources using their table name. The table name is shown on the Source settings page on telemetry.betterstack.com or you can list all your existing sources via the [Sources API](https://betterstack.com/docs/logs/api/list-all-existing-sources/).",
+		Description: "Retrieve details of an existing log source by table name. Useful for accessing source configurations and settings for programmatic management. [Learn more](https://betterstack.com/docs/logs/api/list-all-existing-sources/).",
 		Schema:      s,
 	}
 }

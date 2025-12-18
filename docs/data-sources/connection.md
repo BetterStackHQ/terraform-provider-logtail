@@ -3,12 +3,12 @@
 page_title: "logtail_connection Data Source - terraform-provider-logtail"
 subcategory: ""
 description: |-
-  This data source allows you to retrieve information about ClickHouse connections. For more information about the Connection API check https://betterstack.com/docs/logs/api/connections/
+  Retrieve details of an existing ClickHouse connection by name. Useful for accessing connection credentials and settings for remote querying of logs and metrics data. Learn more https://betterstack.com/docs/logs/query-api/connect-remotely/.
 ---
 
 # logtail_connection (Data Source)
 
-This data source allows you to retrieve information about ClickHouse connections. For more information about the Connection API check https://betterstack.com/docs/logs/api/connections/
+Retrieve details of an existing ClickHouse connection by name. Useful for accessing connection credentials and settings for remote querying of logs and metrics data. [Learn more](https://betterstack.com/docs/logs/query-api/connect-remotely/).
 
 
 
