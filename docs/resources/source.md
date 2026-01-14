@@ -20,6 +20,7 @@ This resource allows you to create, modify, and delete your Sources. For more in
 - `name` (String) The name of this source.
 - `platform` (String) The platform of this source. This value can be set only when you're creating a new source. You can't update this value later. Valid values are:
     - `apache2`
+    - `aws`
     - `aws_cloudwatch`
     - `aws_ecs`
     - `aws_elb`
