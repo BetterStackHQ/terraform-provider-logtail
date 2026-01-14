@@ -64,6 +64,7 @@ var platformTypes = []string{
 	"ubuntu",
 	"vector",
 	"vercel_integration",
+	"winlogbeat",
 }
 
 var sourceSchema = map[string]*schema.Schema{
