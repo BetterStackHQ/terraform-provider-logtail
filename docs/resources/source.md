@@ -69,6 +69,7 @@ This resource allows you to create, modify, and delete your Sources. For more in
     - `ubuntu`
     - `vector`
     - `vercel_integration`
+    - `winlogbeat`
 
 ### Optional
 
