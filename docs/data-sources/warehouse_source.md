@@ -24,7 +24,7 @@ This Data Source allows you to look up existing Warehouse sources using their na
 - `created_at` (String) The time when this warehouse source was created.
 - `custom_bucket` (List of Object) Optional custom bucket configuration for the source. When provided, all fields (name, endpoint, access_key_id, secret_access_key) are required. (see [below for nested schema](#nestedatt--custom_bucket))
 - `data_region` (String) The data region or cluster name where the source's data will be stored.
-Possible values include `us_east`, `us_west`, `germany`, `singapore`, or a specific cluster name like `us-east-9`.
+Possible values include `us_east`, `germany`, `singapore`, or a specific cluster name like `us-east-9`.
 The actual region created may differ slightly due to dynamic load balancing.
 - `events_retention` (Number) The retention period for event data in days. Default is 9999999 days (effectively infinite).
 - `id` (String) The ID of this warehouse source.

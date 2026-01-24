@@ -208,7 +208,7 @@ var sourceSchema = map[string]*schema.Schema{
 		Sensitive:   true,
 	},
 	"data_region": {
-		Description: "Data region or private cluster name to create the source in. Permitted values for most plans are: `us_east`, `us_west`, `germany`, `singapore`.",
+		Description: "Data region or private cluster name to create the source in. Permitted values for most plans are: `us_east`, `germany`, `singapore`.",
 		Type:        schema.TypeString,
 		Optional:    true,
 		Computed:    true,

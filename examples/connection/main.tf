@@ -5,7 +5,7 @@ provider "logtail" {
 resource "logtail_source" "my_source" {
   platform    = "http"
   team_name   = "Terraform E2E Tests"
-  data_region = "us_west"
+  data_region = "us_east"
   name        = "Terraform source for connection"
 }
 

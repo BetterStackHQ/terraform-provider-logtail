@@ -44,7 +44,7 @@ var connectionSchema = map[string]*schema.Schema{
 		},
 	},
 	"data_region": {
-		Description: "Data region or private cluster name. Permitted values: `us_east`, `us_west`, `germany`, `singapore`.",
+		Description: "Data region or private cluster name. Permitted values: `us_east`, `germany`, `singapore`.",
 		Type:        schema.TypeString,
 		Optional:    true,
 		ForceNew:    true,

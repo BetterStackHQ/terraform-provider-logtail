@@ -23,7 +23,7 @@ This Data Source allows you to look up existing Sources using their table name. 
 
 - `created_at` (String) The time when this monitor group was created.
 - `custom_bucket` (List of Object) Optional custom bucket configuration for the source. When provided, all fields (name, endpoint, access_key_id, secret_access_key) are required. (see [below for nested schema](#nestedatt--custom_bucket))
-- `data_region` (String) Data region or private cluster name to create the source in. Permitted values for most plans are: `us_east`, `us_west`, `germany`, `singapore`.
+- `data_region` (String) Data region or private cluster name to create the source in. Permitted values for most plans are: `us_east`, `germany`, `singapore`.
 - `id` (String) The ID of this source.
 - `ingesting_host` (String) The host where the logs or metrics should be sent. See [documentation](https://betterstack.com/docs/logs/start/) for your specific source platform for details.
 - `ingesting_paused` (Boolean) This property allows you to temporarily pause data ingesting for this source (e.g., when you are reaching your plan's usage quota and you want to prioritize some sources over others).

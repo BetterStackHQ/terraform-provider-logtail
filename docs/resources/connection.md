@@ -21,7 +21,7 @@ This resource allows you to create and manage ClickHouse connections for remote 
 
 ### Optional
 
-- `data_region` (String) Data region or private cluster name. Permitted values: `us_east`, `us_west`, `germany`, `singapore`.
+- `data_region` (String) Data region or private cluster name. Permitted values: `us_east`, `germany`, `singapore`.
 - `ip_allowlist` (List of String) Array of IP addresses or CIDR ranges that are allowed to use this connection.
 - `note` (String) A descriptive note for the connection.
 - `team_ids` (List of Number) Array of team IDs to associate with the connection. Only one of `team_names` or `team_ids` should be provided.
