@@ -24,7 +24,7 @@ This resource allows you to create, modify, and delete your Warehouse sources. F
 
 - `custom_bucket` (Block List, Max: 1) Optional custom bucket configuration for the source. When provided, all fields (name, endpoint, access_key_id, secret_access_key) are required. (see [below for nested schema](#nestedblock--custom_bucket))
 - `data_region` (String) The data region or cluster name where the source's data will be stored.
-Possible values include `us_east`, `us_west`, `germany`, `singapore`, or a specific cluster name like `us-east-9`.
+Possible values include `us_east`, `germany`, `singapore`, or a specific cluster name like `us-east-9`.
 The actual region created may differ slightly due to dynamic load balancing.
 - `events_retention` (Number) The retention period for event data in days. Default is 9999999 days (effectively infinite).
 - `ingesting_paused` (Boolean) This property allows you to temporarily pause data ingesting for this source.

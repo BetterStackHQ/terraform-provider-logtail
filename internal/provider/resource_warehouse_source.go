@@ -94,7 +94,7 @@ var warehouseSourceSchema = map[string]*schema.Schema{
 	},
 	"data_region": {
 		Description: strings.ReplaceAll(`The data region or cluster name where the source's data will be stored.
-Possible values include `+"`us_east`, `us_west`, `germany`, `singapore`, or a specific cluster name like `us-east-9`"+`.
+Possible values include `+"`us_east`, `germany`, `singapore`, or a specific cluster name like `us-east-9`"+`.
 The actual region created may differ slightly due to dynamic load balancing.`, "**", "`"),
 		Type:     schema.TypeString,
 		Optional: true,
