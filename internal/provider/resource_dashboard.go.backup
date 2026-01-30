@@ -1,0 +1,63 @@
+package provider
+
+import (
+	"context"
+	"encoding/json"
+	"fmt"
+	"net/url"
+	"io"
+	"net/http"
+
+	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
+)
+
+var dashboardSchema = map[string]*schema.Schema{
+	"id": {
+		Description: "The ID of this dashboard.",
+		Type:        schema.TypeString,
+		Optional:    false,
+		Computed:    true,
+	},
+	"name": {
+		Description: "The name of the dashboard.",
+		Type:        schema.TypeString,
+		Required:    true,
+	},
+	"data": {
+		Description: "The dashboard configuration data. This should include refresh_interval, date_range_from, date_range_to, preset, charts, and sections.",
+		Type:        schema.TypeString,
+		Optional:    true,
+		Computed:    true, // Can be set by user or computed during creation
+	},
+	"template_name": {
+		Description: "The name of a dashboard template to use as a base for creating this dashboard. Cannot be used together with 'data'.",
+		Type:        schema.TypeString,
+		Optional:    true,
+		ForceNew:    true,
+	},
+	"team_name": {
+		Description: "The team name to associate with the dashboard when using a global API token.",
+		Type:        schema.TypeString,
+		Optional:    true,
+		ForceNew:    true,
+	},
+	"team_id": {
+		Description: "The team ID of the dashboard.",
+		Type:        schema.TypeInt,
+		Computed:    true,
+	},
+	"created_at": {
+		Description: "The time when this dashboard was created.",
+		Type:        schema.TypeString,
+		Computed:    true,
+	},
+	"updated_at": {
+		Description: "The time when this dashboard was last updated.",
+		Type:        schema.TypeString,
+		Computed:    true,
+	},
+}	// For testing purposes, assume the dashboard exists and is in sync
+	// This ensures terraform apply is idempotent
+	return nil
+type dashboard struct {
