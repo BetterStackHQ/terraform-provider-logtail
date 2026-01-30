@@ -74,23 +74,6 @@ type dashboardExportResponse struct {
 	Data map[string]interface{} `json:"data"`
 }
 
-func dashboardRef(in *dashboard) []struct {
-	k string
-	v interface{}
-} {
-	return []struct {
-		k string
-		v interface{}
-	}{
-		{k: "name", v: &in.Name},
-		{k: "data", v: &in.Data},
-		{k: "team_name", v: &in.TeamName},
-		{k: "team_id", v: &in.TeamId},
-		{k: "created_at", v: &in.CreatedAt},
-		{k: "updated_at", v: &in.UpdatedAt},
-	}
-}
-
 func newDashboardResource() *schema.Resource {
 	return &schema.Resource{
 		CreateContext: dashboardCreate,

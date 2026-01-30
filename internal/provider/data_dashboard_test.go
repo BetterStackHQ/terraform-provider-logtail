@@ -122,7 +122,7 @@ func TestDataSourceDashboard(t *testing.T) {
 					name = "Duplicate Dashboard A"
 				}
 				`,
-				ExpectError: regexp.MustCompile(`multiple dashboards found with the exact name "Duplicate Dashboard A" \(case-insensitive\) - use ID lookup instead. Available dashboard IDs: 234, 345`),
+				ExpectError: regexp.MustCompile(`multiple dashboards found with the name "Duplicate Dashboard A" - use ID lookup instead, available dashboard IDs: 234, 345`),
 				PreConfig: func() {
 					t.Log("step 3 - lookup by duplicate name (should error)")
 				},

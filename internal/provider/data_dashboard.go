@@ -529,6 +529,4 @@ func dataSourceDashboardTemplateRead(ctx context.Context, d *schema.ResourceData
 
 	availableStr := formatAvailableNames(availableNames)
 	return diag.Errorf("no dashboard template found with name %q - available templates: %s", name, availableStr)
-
-	return nil
 }
