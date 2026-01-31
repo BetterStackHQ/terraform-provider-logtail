@@ -128,8 +128,6 @@ resource "logtail_dashboard" "custom" {
         w              = 9
         h              = 8
         transform_with = "// Transform chart data before rendering.\n// Following function is called when new data arrives, and again with `completed = true` after all data arrives.\n// You can transform the data here arbitrarily.\n// Most chart types expect columns 'time', 'value' and optionally 'series' by default.\nasync (existingDataByQuery, newDataByQuery, completed) => {\n  return Object.keys(newDataByQuery).reduce((result, queryIndex) => {\n    result[queryIndex] = result[queryIndex].concat(newDataByQuery[queryIndex]);\n    return result;\n  }, existingDataByQuery);\n}\n"
-        finalize_with  = null
-        fake_with      = null
         settings = {
           unit         = "shortened"
           label        = "shown_below"
@@ -182,8 +180,6 @@ resource "logtail_dashboard" "custom" {
         w              = 3
         h              = 8
         transform_with = "// Transform chart data before rendering.\n// Following function is called when new data arrives, and again with `completed = true` after all data arrives.\n// You can transform the data here arbitrarily.\n// Most chart types expect columns 'time', 'value' and optionally 'series' by default.\nasync (existingDataByQuery, newDataByQuery, completed) => {\n  return Object.keys(newDataByQuery).reduce((result, queryIndex) => {\n    result[queryIndex] = result[queryIndex].concat(newDataByQuery[queryIndex]);\n    return result;\n  }, existingDataByQuery);\n}\n"
-        finalize_with  = null
-        fake_with      = null
         settings = {
           unit         = "shortened"
           fresh        = true
