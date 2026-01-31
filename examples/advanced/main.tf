@@ -62,3 +62,170 @@ resource "logtail_errors_application" "this" {
 data "logtail_errors_application" "lookup" {
   name = logtail_errors_application.this.name
 }
+
+# Find existing dashboard by name
+data "logtail_dashboard" "host_prometheus" {
+  name = "Host (Prometheus)"
+  # Or by ID:
+  # id = 1234
+}
+
+# Create a dashboard from a dashboard template
+data "logtail_dashboard_template" "host_overview" {
+  name = "Host Overview"
+}
+resource "logtail_dashboard" "from_template" {
+  name = "My copy of Host overview"
+  data = data.logtail_dashboard_template.host_overview.data
+}
+
+resource "logtail_dashboard" "custom" {
+  name = "Terraform Custom Dashboard"
+  data = jsonencode({
+    refresh_interval = 0
+    date_range_from  = "now-3h"
+    date_range_to    = "now"
+    preset = {
+      preset_type = "implicit"
+      preset_variables = [
+        {
+          name           = "source"
+          variable_type  = "source"
+          values         = []
+          default_values = null
+          sql_definition = null
+        },
+        {
+          name           = "level"
+          variable_type  = "select_with_sql"
+          values         = []
+          default_values = null
+          sql_definition = "level"
+        },
+        {
+          name           = "start_time"
+          variable_type  = "datetime"
+          values         = ["now-3h"]
+          default_values = null
+          sql_definition = null
+        },
+        {
+          name           = "end_time"
+          variable_type  = "datetime"
+          values         = ["now"]
+          default_values = null
+          sql_definition = null
+        },
+      ]
+    }
+    charts = [
+      {
+        chart_type     = "line_chart"
+        name           = "Number of logs"
+        description    = null
+        x              = 0
+        y              = 0
+        w              = 9
+        h              = 8
+        transform_with = "// Transform chart data before rendering.\n// Following function is called when new data arrives, and again with `completed = true` after all data arrives.\n// You can transform the data here arbitrarily.\n// Most chart types expect columns 'time', 'value' and optionally 'series' by default.\nasync (existingDataByQuery, newDataByQuery, completed) => {\n  return Object.keys(newDataByQuery).reduce((result, queryIndex) => {\n    result[queryIndex] = result[queryIndex].concat(newDataByQuery[queryIndex]);\n    return result;\n  }, existingDataByQuery);\n}\n"
+        settings = {
+          unit         = "shortened"
+          label        = "shown_below"
+          legend       = "shown_below"
+          stacking     = "dont_stack"
+          lat_column   = "latitude"
+          lng_column   = "longitude"
+          time_column  = "time"
+          x_axis_type  = "time"
+          y_axis_scale = "linear"
+          series_colors = {
+            value = "#009fe3"
+          }
+          series_column        = "series"
+          value_columns        = ["value"]
+          decimal_places       = 2
+          point_size_column    = "size"
+          treat_missing_values = "connected"
+          guessed_series_colors = {
+            value = "#009fe3"
+          }
+        }
+        chart_queries = [
+          {
+            name            = null
+            query_type      = "sql_expression"
+            sql_query       = "SELECT {{time}} as time, countMerge(events_count) as value\nFROM {{source}}\nWHERE time BETWEEN {{start_time}} AND {{end_time}}\n [[ AND level = {{level}} ]]\nGROUP BY time\n"
+            where_condition = null
+            static_text     = null
+            y_axis = [
+              {
+                type    = "integer"
+                value   = "events"
+                measure = "count"
+              }
+            ]
+            filters         = []
+            group_by        = []
+            source_variable = "source"
+          }
+        ]
+        chart_alerts = []
+      },
+      {
+        chart_type     = "static_text_chart"
+        name           = "Static text"
+        description    = null
+        x              = 9
+        y              = 0
+        w              = 3
+        h              = 8
+        transform_with = "// Transform chart data before rendering.\n// Following function is called when new data arrives, and again with `completed = true` after all data arrives.\n// You can transform the data here arbitrarily.\n// Most chart types expect columns 'time', 'value' and optionally 'series' by default.\nasync (existingDataByQuery, newDataByQuery, completed) => {\n  return Object.keys(newDataByQuery).reduce((result, queryIndex) => {\n    result[queryIndex] = result[queryIndex].concat(newDataByQuery[queryIndex]);\n    return result;\n  }, existingDataByQuery);\n}\n"
+        settings = {
+          unit         = "shortened"
+          fresh        = true
+          label        = "shown_below"
+          legend       = "shown_below"
+          stacking     = "dont_stack"
+          lat_column   = "latitude"
+          lng_column   = "longitude"
+          time_column  = "time"
+          x_axis_type  = "time"
+          y_axis_scale = "linear"
+          series_colors = {
+            value = "#009fe3"
+          }
+          series_column        = "series"
+          value_columns        = ["value"]
+          decimal_places       = 2
+          point_size_column    = "size"
+          treat_missing_values = "connected"
+          guessed_series_colors = {
+            value = "#009fe3"
+          }
+        }
+        chart_queries = [
+          {
+            name            = null
+            query_type      = "static_text"
+            sql_query       = null
+            where_condition = null
+            static_text     = "## Imported from Terraform\n\nThis is an example custom dashboard."
+            y_axis = [
+              {
+                name    = "events"
+                type    = "integer"
+                value   = "events"
+                measure = "count"
+              }
+            ]
+            filters         = []
+            group_by        = []
+            source_variable = null
+          }
+        ]
+        chart_alerts = []
+      }
+    ]
+    sections = []
+  })
+}
