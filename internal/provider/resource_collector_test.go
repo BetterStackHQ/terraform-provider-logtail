@@ -15,8 +15,8 @@ import (
 )
 
 func TestResourceCollector(t *testing.T) {
-	var collectorData atomic.Value  // Main collector data (without databases)
-	var databasesData atomic.Value  // Databases stored separately
+	var collectorData atomic.Value       // Main collector data (without databases)
+	var databasesData atomic.Value       // Databases stored separately
 	databasesData.Store([]interface{}{}) // Initialize with empty slice
 
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

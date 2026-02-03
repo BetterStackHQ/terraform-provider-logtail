@@ -176,10 +176,10 @@ var collectorSchema = map[string]*schema.Schema{
 					MaxItems:    1,
 					Elem: &schema.Resource{
 						Schema: map[string]*schema.Schema{
-							"docker_json_file":      {Type: schema.TypeBool, Optional: true, Computed: true},
-							"collector_kubernetes":  {Type: schema.TypeBool, Optional: true, Computed: true},
-							"nginx_metrics":         {Type: schema.TypeBool, Optional: true, Computed: true},
-							"apache_metrics":        {Type: schema.TypeBool, Optional: true, Computed: true},
+							"docker_json_file":     {Type: schema.TypeBool, Optional: true, Computed: true},
+							"collector_kubernetes": {Type: schema.TypeBool, Optional: true, Computed: true},
+							"nginx_metrics":        {Type: schema.TypeBool, Optional: true, Computed: true},
+							"apache_metrics":       {Type: schema.TypeBool, Optional: true, Computed: true},
 						},
 					},
 				},
