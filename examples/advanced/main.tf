@@ -99,18 +99,18 @@ resource "logtail_dashboard" "custom" {
     }
     charts = [
       {
-        chart_type     = "line_chart"
-        name           = "Number of logs"
-        x              = 0
-        y              = 0
-        w              = 9
-        h              = 8
+        chart_type = "line_chart"
+        name       = "Number of logs"
+        x          = 0
+        y          = 0
+        w          = 9
+        h          = 8
         settings = {
-          unit         = "shortened"
-          label        = "shown_below"
-          legend       = "shown_below"
-          stacking     = "dont_stack"
-          time_column  = "time"
+          unit        = "shortened"
+          label       = "shown_below"
+          legend      = "shown_below"
+          stacking    = "dont_stack"
+          time_column = "time"
           series_colors = {
             value = "#009fe3"
           }
@@ -129,16 +129,16 @@ resource "logtail_dashboard" "custom" {
         chart_alerts = []
       },
       {
-        chart_type     = "static_text_chart"
-        name           = "Static text"
-        x              = 9
-        y              = 0
-        w              = 3
-        h              = 8
+        chart_type = "static_text_chart"
+        name       = "Static text"
+        x          = 9
+        y          = 0
+        w          = 3
+        h          = 8
         chart_queries = [
           {
-            query_type      = "static_text"
-            static_text     = "## Imported from Terraform\n\nThis is an example custom dashboard."
+            query_type  = "static_text"
+            static_text = "## Imported from Terraform\n\nThis is an example custom dashboard."
           }
         ]
         chart_alerts = []
