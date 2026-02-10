@@ -89,138 +89,56 @@ resource "logtail_dashboard" "custom" {
       preset_type = "implicit"
       preset_variables = [
         {
-          name           = "source"
-          variable_type  = "source"
-          values         = []
-          default_values = null
-          sql_definition = null
-        },
-        {
           name           = "level"
           variable_type  = "select_with_sql"
           values         = []
           default_values = null
           sql_definition = "level"
         },
-        {
-          name           = "start_time"
-          variable_type  = "datetime"
-          values         = ["now-3h"]
-          default_values = null
-          sql_definition = null
-        },
-        {
-          name           = "end_time"
-          variable_type  = "datetime"
-          values         = ["now"]
-          default_values = null
-          sql_definition = null
-        },
       ]
     }
     charts = [
       {
-        chart_type     = "line_chart"
-        name           = "Number of logs"
-        description    = null
-        x              = 0
-        y              = 0
-        w              = 9
-        h              = 8
-        transform_with = "// Transform chart data before rendering.\n// Following function is called when new data arrives, and again with `completed = true` after all data arrives.\n// You can transform the data here arbitrarily.\n// Most chart types expect columns 'time', 'value' and optionally 'series' by default.\nasync (existingDataByQuery, newDataByQuery, completed) => {\n  return Object.keys(newDataByQuery).reduce((result, queryIndex) => {\n    result[queryIndex] = result[queryIndex].concat(newDataByQuery[queryIndex]);\n    return result;\n  }, existingDataByQuery);\n}\n"
+        chart_type = "line_chart"
+        name       = "Number of logs"
+        x          = 0
+        y          = 0
+        w          = 9
+        h          = 8
         settings = {
-          unit         = "shortened"
-          label        = "shown_below"
-          legend       = "shown_below"
-          stacking     = "dont_stack"
-          lat_column   = "latitude"
-          lng_column   = "longitude"
-          time_column  = "time"
-          x_axis_type  = "time"
-          y_axis_scale = "linear"
+          unit        = "shortened"
+          label       = "shown_below"
+          legend      = "shown_below"
+          stacking    = "dont_stack"
+          time_column = "time"
           series_colors = {
             value = "#009fe3"
           }
           series_column        = "series"
           value_columns        = ["value"]
           decimal_places       = 2
-          point_size_column    = "size"
           treat_missing_values = "connected"
-          guessed_series_colors = {
-            value = "#009fe3"
-          }
         }
         chart_queries = [
           {
-            name            = null
             query_type      = "sql_expression"
             sql_query       = "SELECT {{time}} as time, countMerge(events_count) as value\nFROM {{source}}\nWHERE time BETWEEN {{start_time}} AND {{end_time}}\n [[ AND level = {{level}} ]]\nGROUP BY time\n"
-            where_condition = null
-            static_text     = null
-            y_axis = [
-              {
-                type    = "integer"
-                value   = "events"
-                measure = "count"
-              }
-            ]
-            filters         = []
-            group_by        = []
             source_variable = "source"
           }
         ]
         chart_alerts = []
       },
       {
-        chart_type     = "static_text_chart"
-        name           = "Static text"
-        description    = null
-        x              = 9
-        y              = 0
-        w              = 3
-        h              = 8
-        transform_with = "// Transform chart data before rendering.\n// Following function is called when new data arrives, and again with `completed = true` after all data arrives.\n// You can transform the data here arbitrarily.\n// Most chart types expect columns 'time', 'value' and optionally 'series' by default.\nasync (existingDataByQuery, newDataByQuery, completed) => {\n  return Object.keys(newDataByQuery).reduce((result, queryIndex) => {\n    result[queryIndex] = result[queryIndex].concat(newDataByQuery[queryIndex]);\n    return result;\n  }, existingDataByQuery);\n}\n"
-        settings = {
-          unit         = "shortened"
-          fresh        = true
-          label        = "shown_below"
-          legend       = "shown_below"
-          stacking     = "dont_stack"
-          lat_column   = "latitude"
-          lng_column   = "longitude"
-          time_column  = "time"
-          x_axis_type  = "time"
-          y_axis_scale = "linear"
-          series_colors = {
-            value = "#009fe3"
-          }
-          series_column        = "series"
-          value_columns        = ["value"]
-          decimal_places       = 2
-          point_size_column    = "size"
-          treat_missing_values = "connected"
-          guessed_series_colors = {
-            value = "#009fe3"
-          }
-        }
+        chart_type = "static_text_chart"
+        name       = "Static text"
+        x          = 9
+        y          = 0
+        w          = 3
+        h          = 8
         chart_queries = [
           {
-            name            = null
-            query_type      = "static_text"
-            sql_query       = null
-            where_condition = null
-            static_text     = "## Imported from Terraform\n\nThis is an example custom dashboard."
-            y_axis = [
-              {
-                name    = "events"
-                type    = "integer"
-                value   = "events"
-                measure = "count"
-              }
-            ]
-            filters         = []
-            group_by        = []
-            source_variable = null
+            query_type  = "static_text"
+            static_text = "## Imported from Terraform\n\nThis is an example custom dashboard."
           }
         ]
         chart_alerts = []
