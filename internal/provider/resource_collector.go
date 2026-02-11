@@ -4,15 +4,48 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"hash/fnv"
 	"io"
 	"net/http"
 	"net/url"
 	"reflect"
+	"sort"
+	"strings"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 )
+
+// normalizeVRL strips whitespace and trailing dots from VRL programs for diff comparison.
+// The API normalizes VRL by appending a newline + trailing dot, so plans would show
+// spurious diffs without this.
+func normalizeVRL(vrl string) string {
+	if vrl == "" {
+		return ""
+	}
+	lines := strings.Split(vrl, "\n")
+	var normalized []string
+	for _, line := range lines {
+		normalizedLine := strings.TrimSpace(line)
+		normalizedLine = strings.TrimSuffix(normalizedLine, ".")
+		normalizedLine = strings.TrimSpace(normalizedLine)
+		if normalizedLine != "" {
+			normalized = append(normalized, normalizedLine)
+		}
+	}
+	return strings.Join(normalized, "\n")
+}
+
+// hashOptionEntry hashes a service_option or namespace_option entry by all its fields,
+// used as the Set function for TypeSet schemas. All fields must be included in the hash
+// so that changes to any field (not just name) are detected by the SDK.
+func hashOptionEntry(v interface{}) int {
+	m := v.(map[string]interface{})
+	h := fnv.New32a()
+	h.Write([]byte(fmt.Sprintf("%s-%d-%t", m["name"], m["log_sampling"], m["ingest_traces"])))
+	return int(h.Sum32())
+}
 
 var collectorPlatformTypes = []string{
 	"docker",
@@ -73,25 +106,31 @@ var collectorSchema = map[string]*schema.Schema{
 		Computed:    true,
 		Sensitive:   true,
 	},
+	"source_id": {
+		Description: "The ID of the underlying source. Use this with `logtail_metric` to define metrics on this collector's data.",
+		Type:        schema.TypeInt,
+		Optional:    false,
+		Computed:    true,
+	},
 	"data_region": {
-		Description: "Data region or private cluster name to create the collector in.",
+		Description: "Data region (e.g. `eu`, `us`) or private cluster name to create the collector in. This can only be set at creation time. Note: the API may return a different identifier (the internal storage region name) than the value you provided.",
 		Type:        schema.TypeString,
 		Optional:    true,
 		Computed:    true,
 	},
 	"logs_retention": {
-		Description:  "Data retention for logs in days. There might be additional charges for longer retention.",
+		Description:  "Data retention for logs in days. Allowed values: 7, 30, 60, 90, 180, 365, 730, 1095, 1460, 1825. There might be additional charges for longer retention.",
 		Type:         schema.TypeInt,
 		Optional:     true,
 		Computed:     true,
-		ValidateFunc: validation.IntBetween(1, 3652),
+		ValidateFunc: validation.IntInSlice([]int{7, 30, 60, 90, 180, 365, 730, 1095, 1460, 1825}),
 	},
 	"metrics_retention": {
-		Description:  "Data retention for metrics in days. There might be additional charges for longer retention.",
+		Description:  "Data retention for metrics in days. Allowed values: 7, 30, 60, 90, 180, 365, 730, 1095, 1460, 1825. There might be additional charges for longer retention.",
 		Type:         schema.TypeInt,
 		Optional:     true,
 		Computed:     true,
-		ValidateFunc: validation.IntBetween(1, 3652),
+		ValidateFunc: validation.IntInSlice([]int{7, 30, 60, 90, 180, 365, 730, 1095, 1460, 1825}),
 	},
 	"hosts_count": {
 		Description: "The number of hosts connected to this collector.",
@@ -129,8 +168,29 @@ var collectorSchema = map[string]*schema.Schema{
 		Optional:    false,
 		Computed:    true,
 	},
+	"ingesting_paused": {
+		Description: "Whether ingestion is paused for this collector.",
+		Type:        schema.TypeBool,
+		Optional:    true,
+		Computed:    true,
+	},
+	"user_vector_config": {
+		Description: "Custom Vector YAML configuration for additional sources and transforms beyond the built-in component toggles. Must not contain `command:` directives.",
+		Type:        schema.TypeString,
+		Optional:    true,
+		Computed:    true,
+	},
+	"source_vrl_transformation": {
+		Description: "Server-side VRL transformation that runs during ingestion on Better Stack. Use this for enrichment, routing, or light normalization that doesn't involve sensitive data. For PII redaction and sensitive data filtering, prefer `configuration.vrl_transformation` which runs on the collector host and ensures raw data never leaves your network. Read more about [VRL transformations](https://betterstack.com/docs/logs/using-logtail/transforming-ingested-data/logs-vrl/).",
+		Type:        schema.TypeString,
+		Optional:    true,
+		Computed:    true,
+		DiffSuppressFunc: func(k, old, new string, d *schema.ResourceData) bool {
+			return normalizeVRL(old) == normalizeVRL(new)
+		},
+	},
 	"configuration": {
-		Description: "Configuration settings for the collector.",
+		Description: "Collector-level configuration including active components, sampling rates, batching, and VRL transformations. These settings run on the collector host inside your infrastructure.",
 		Type:        schema.TypeList,
 		Optional:    true,
 		Computed:    true,
@@ -151,75 +211,147 @@ var collectorSchema = map[string]*schema.Schema{
 					Computed:     true,
 					ValidateFunc: validation.IntBetween(0, 100),
 				},
-				"collector_components": {
-					Description: "Enable or disable specific collector components.",
+				"components": {
+					Description: "Enable or disable specific collector components. Maps to the Logs, Metrics, and eBPF tabs in the collector settings UI.",
 					Type:        schema.TypeList,
 					Optional:    true,
 					Computed:    true,
 					MaxItems:    1,
 					Elem: &schema.Resource{
 						Schema: map[string]*schema.Schema{
-							"beyla":              {Type: schema.TypeBool, Optional: true, Computed: true},
-							"beyla_basic":        {Type: schema.TypeBool, Optional: true, Computed: true},
-							"beyla_full":         {Type: schema.TypeBool, Optional: true, Computed: true},
-							"cluster_agent":      {Type: schema.TypeBool, Optional: true, Computed: true},
-							"host_logs":          {Type: schema.TypeBool, Optional: true, Computed: true},
-							"collector_internal": {Type: schema.TypeBool, Optional: true, Computed: true},
+							"logs_host":                {Description: "Collect host-level logs.", Type: schema.TypeBool, Optional: true, Computed: true},
+							"logs_docker":              {Description: "Collect Docker container logs.", Type: schema.TypeBool, Optional: true, Computed: true},
+							"logs_kubernetes":          {Description: "Collect Kubernetes logs.", Type: schema.TypeBool, Optional: true, Computed: true},
+							"logs_collector_internals": {Description: "Collect internal collector logs.", Type: schema.TypeBool, Optional: true, Computed: true},
+							"metrics_databases":        {Description: "Collect database metrics via the cluster agent.", Type: schema.TypeBool, Optional: true, Computed: true},
+							"metrics_nginx":            {Description: "Collect Nginx metrics.", Type: schema.TypeBool, Optional: true, Computed: true},
+							"metrics_apache":           {Description: "Collect Apache metrics.", Type: schema.TypeBool, Optional: true, Computed: true},
+							"ebpf_metrics":             {Description: "Enable eBPF-based metrics collection.", Type: schema.TypeBool, Optional: true, Computed: true},
+							"ebpf_tracing_basic":       {Description: "Enable basic eBPF tracing.", Type: schema.TypeBool, Optional: true, Computed: true},
+							"ebpf_tracing_full":        {Description: "Enable full eBPF tracing.", Type: schema.TypeBool, Optional: true, Computed: true},
 						},
 					},
 				},
-				"monitoring_options": {
-					Description: "Enable or disable specific monitoring options.",
-					Type:        schema.TypeList,
-					Optional:    true,
-					Computed:    true,
-					MaxItems:    1,
-					Elem: &schema.Resource{
-						Schema: map[string]*schema.Schema{
-							"docker_json_file":     {Type: schema.TypeBool, Optional: true, Computed: true},
-							"collector_kubernetes": {Type: schema.TypeBool, Optional: true, Computed: true},
-							"nginx_metrics":        {Type: schema.TypeBool, Optional: true, Computed: true},
-							"apache_metrics":       {Type: schema.TypeBool, Optional: true, Computed: true},
-						},
-					},
-				},
-				"transformation": {
-					Description: "VRL transformation code to modify logs before ingestion.",
+				"vrl_transformation": {
+					Description: "VRL transformation that runs on the collector host, inside your infrastructure, before data is transmitted to Better Stack. Use this for PII redaction and sensitive data filtering — raw data never leaves your network. For server-side transformations that run during ingestion on Better Stack, use the top-level `source_vrl_transformation` attribute instead. Read more about [VRL transformations](https://betterstack.com/docs/logs/using-logtail/transforming-ingested-data/logs-vrl/).",
 					Type:        schema.TypeString,
 					Optional:    true,
 					Computed:    true,
+					DiffSuppressFunc: func(k, old, new string, d *schema.ResourceData) bool {
+						return normalizeVRL(old) == normalizeVRL(new)
+					},
+				},
+				"disk_batch_size_mb": {
+					Description:  "Disk buffer size in MB for outgoing requests. Minimum 256 MB.",
+					Type:         schema.TypeInt,
+					Optional:     true,
+					Computed:     true,
+					ValidateFunc: validation.IntAtLeast(256),
+				},
+				"memory_batch_size_mb": {
+					Description:  "Memory batch size in MB for outgoing requests. Maximum 40 MB.",
+					Type:         schema.TypeInt,
+					Optional:     true,
+					Computed:     true,
+					ValidateFunc: validation.IntAtMost(40),
+				},
+				"when_full": {
+					Description:  "Buffer overflow strategy: `drop_newest` (default, drops data silently) or `block` (applies backpressure, no data loss).",
+					Type:         schema.TypeString,
+					Optional:     true,
+					Computed:     true,
+					ValidateFunc: validation.StringInSlice([]string{"drop_newest", "block"}, false),
+				},
+				"service_option": {
+					Description: "Per-service overrides for log sampling rate and trace ingestion. Only includes user-managed services; internal collector services (`better-stack-beyla`, `better-stack-collector`) are excluded. See `service_option_all` for the complete server state.",
+					Type:        schema.TypeSet,
+					Optional:    true,
+					Set:         hashOptionEntry,
+					Elem: &schema.Resource{
+						Schema: map[string]*schema.Schema{
+							"name":          {Type: schema.TypeString, Required: true, Description: "Service name."},
+							"log_sampling":  {Type: schema.TypeInt, Optional: true, Description: "Log sampling rate (0-100)."},
+							"ingest_traces": {Type: schema.TypeBool, Optional: true, Description: "Whether to ingest traces for this service."},
+						},
+					},
+				},
+				"service_option_all": {
+					Description: "All per-service overrides including server-managed internal defaults (`better-stack-beyla`, `better-stack-collector`). Read-only; to configure services, use `service_option`.",
+					Type:        schema.TypeSet,
+					Computed:    true,
+					Set:         hashOptionEntry,
+					Elem: &schema.Resource{
+						Schema: map[string]*schema.Schema{
+							"name":          {Type: schema.TypeString, Computed: true, Description: "Service name."},
+							"log_sampling":  {Type: schema.TypeInt, Computed: true, Description: "Log sampling rate (0-100)."},
+							"ingest_traces": {Type: schema.TypeBool, Computed: true, Description: "Whether to ingest traces for this service."},
+						},
+					},
+				},
+				"namespace_option": {
+					Description: "Per-namespace overrides for log sampling rate and trace ingestion (Kubernetes only). Order-independent; entries are identified by name.",
+					Type:        schema.TypeSet,
+					Optional:    true,
+					Set:         hashOptionEntry,
+					Elem: &schema.Resource{
+						Schema: map[string]*schema.Schema{
+							"name":          {Type: schema.TypeString, Required: true, Description: "Namespace name."},
+							"log_sampling":  {Type: schema.TypeInt, Optional: true, Description: "Log sampling rate (0-100)."},
+							"ingest_traces": {Type: schema.TypeBool, Optional: true, Description: "Whether to ingest traces for this namespace."},
+						},
+					},
+				},
+			},
+		},
+	},
+	"proxy_config": {
+		Description: "Proxy settings including buffering proxy, SSL/TLS, and HTTP Basic Authentication. Only applicable to `proxy` platform collectors.",
+		Type:        schema.TypeList,
+		Optional:    true,
+		MaxItems:    1,
+		Elem: &schema.Resource{
+			Schema: map[string]*schema.Schema{
+				"enable_buffering_proxy": {
+					Description: "Enable the HTTP buffering proxy for the collector.",
+					Type:        schema.TypeBool,
+					Optional:    true,
+					Default:     false,
+				},
+				"buffering_proxy_listen_on": {
+					Description: "Address and port for the buffering proxy to listen on.",
+					Type:        schema.TypeString,
+					Optional:    true,
 				},
 				"enable_ssl_certificate": {
 					Description: "Enable custom SSL/TLS certificate for the collector.",
 					Type:        schema.TypeBool,
 					Optional:    true,
-					Computed:    true,
+					Default:     false,
 				},
 				"ssl_certificate_host": {
 					Description: "Hostname for the SSL certificate.",
 					Type:        schema.TypeString,
 					Optional:    true,
-					Computed:    true,
+				},
+				"enable_http_basic_auth": {
+					Description: "Enable HTTP Basic Authentication for the collector proxy.",
+					Type:        schema.TypeBool,
+					Optional:    true,
+					Default:     false,
+				},
+				"http_basic_auth_username": {
+					Description: "Username for HTTP Basic Authentication.",
+					Type:        schema.TypeString,
+					Optional:    true,
+				},
+				"http_basic_auth_password": {
+					Description: "Password for HTTP Basic Authentication. This value is write-only and never returned by the API.",
+					Type:        schema.TypeString,
+					Optional:    true,
+					Sensitive:   true,
 				},
 			},
 		},
-	},
-	"enable_http_basic_auth": {
-		Description: "Enable HTTP Basic Authentication for the collector proxy.",
-		Type:        schema.TypeBool,
-		Optional:    true,
-		Computed:    true,
-	},
-	"http_basic_auth_username": {
-		Description: "Username for HTTP Basic Authentication.",
-		Type:        schema.TypeString,
-		Optional:    true,
-	},
-	"http_basic_auth_password": {
-		Description: "Password for HTTP Basic Authentication. This value is write-only and never returned by the API.",
-		Type:        schema.TypeString,
-		Optional:    true,
-		Sensitive:   true,
 	},
 	"custom_bucket": {
 		Description: "Optional custom bucket configuration for the collector. Once set, it cannot be removed.",
@@ -248,8 +380,8 @@ var collectorSchema = map[string]*schema.Schema{
 				"port":         {Description: "The database port.", Type: schema.TypeInt, Required: true},
 				"username":     {Description: "The database username.", Type: schema.TypeString, Optional: true},
 				"password":     {Description: "The database password.", Type: schema.TypeString, Optional: true, Sensitive: true},
-				"ssl_mode":     {Description: "SSL mode for PostgreSQL connections.", Type: schema.TypeString, Optional: true, ValidateFunc: validation.StringInSlice([]string{"disable", "require", "verify-ca", "verify-full"}, false)},
-				"tls":          {Description: "TLS mode for MySQL connections.", Type: schema.TypeString, Optional: true, ValidateFunc: validation.StringInSlice([]string{"disabled", "required", "verify_ca", "verify_identity"}, false)},
+				"ssl_mode":     {Description: "SSL mode for PostgreSQL connections. Valid values: `disable`, `require`, `verify-ca`.", Type: schema.TypeString, Optional: true, ValidateFunc: validation.StringInSlice([]string{"disable", "require", "verify-ca"}, false)},
+				"tls":          {Description: "TLS mode for MySQL connections. Valid values: `false`, `true`, `skip-verify`, `preferred`.", Type: schema.TypeString, Optional: true, ValidateFunc: validation.StringInSlice([]string{"false", "true", "skip-verify", "preferred"}, false)},
 			},
 		},
 	},
@@ -257,31 +389,45 @@ var collectorSchema = map[string]*schema.Schema{
 
 // Go structs for API serialization
 
-type collectorCollectorComponents struct {
-	Beyla             *bool `json:"beyla,omitempty"`
-	BeylaBasic        *bool `json:"beyla_basic,omitempty"`
-	BeylaFull         *bool `json:"beyla_full,omitempty"`
-	ClusterAgent      *bool `json:"cluster_agent,omitempty"`
-	HostLogs          *bool `json:"host_logs,omitempty"`
-	CollectorInternal *bool `json:"collector_internal,omitempty"`
+// collectorComponents maps the flat API component names to their JSON keys.
+type collectorComponents struct {
+	LogsHost              *bool `json:"logs_host,omitempty"`
+	LogsDocker            *bool `json:"logs_docker,omitempty"`
+	LogsKubernetes        *bool `json:"logs_kubernetes,omitempty"`
+	LogsCollectorInternal *bool `json:"logs_collector_internals,omitempty"`
+	MetricsDatabases      *bool `json:"metrics_databases,omitempty"`
+	MetricsNginx          *bool `json:"metrics_nginx,omitempty"`
+	MetricsApache         *bool `json:"metrics_apache,omitempty"`
+	EbpfMetrics           *bool `json:"ebpf_metrics,omitempty"`
+	EbpfTracingBasic      *bool `json:"ebpf_tracing_basic,omitempty"`
+	EbpfTracingFull       *bool `json:"ebpf_tracing_full,omitempty"`
 }
 
-type collectorMonitoringOptions struct {
-	DockerJSONFile      *bool `json:"docker_json_file,omitempty"`
-	CollectorKubernetes *bool `json:"collector_kubernetes,omitempty"`
-	NginxMetrics        *bool `json:"nginx_metrics,omitempty"`
-	ApacheMetrics       *bool `json:"apache_metrics,omitempty"`
+type collectorEntityOption struct {
+	LogSampling  *int  `json:"log_sampling,omitempty"`
+	IngestTraces *bool `json:"ingest_traces,omitempty"`
 }
 
 type collectorConfiguration struct {
-	LogsSampleRate       *int                          `json:"logs_sample_rate,omitempty"`
-	TracesSampleRate     *int                          `json:"traces_sample_rate,omitempty"`
-	CollectorComponents  *collectorCollectorComponents `json:"collector_components,omitempty"`
-	MonitoringOptions    *collectorMonitoringOptions   `json:"monitoring_options,omitempty"`
-	Transformation       *string                       `json:"transformation,omitempty"`
-	EnableSSLCertificate *bool                         `json:"enable_ssl_certificate,omitempty"`
-	SSLCertificateHost   *string                       `json:"ssl_certificate_host,omitempty"`
-	EnableHTTPBasicAuth  *bool                         `json:"enable_http_basic_auth,omitempty"`
+	LogsSampleRate    *int                             `json:"logs_sample_rate,omitempty"`
+	TracesSampleRate  *int                             `json:"traces_sample_rate,omitempty"`
+	Components        *collectorComponents             `json:"components,omitempty"`
+	VRLTransformation *string                          `json:"vrl_transformation,omitempty"`
+	DiskBatchSizeMB   *int                             `json:"disk_batch_size_mb,omitempty"`
+	MemoryBatchSizeMB *int                             `json:"memory_batch_size_mb,omitempty"`
+	WhenFull          *string                          `json:"when_full,omitempty"`
+	ServicesOptions   map[string]collectorEntityOption `json:"services_options,omitempty"`
+	NamespacesOptions map[string]collectorEntityOption `json:"namespaces_options,omitempty"`
+}
+
+type collectorProxyConfig struct {
+	EnableBufferingProxy   *bool   `json:"enable_buffering_proxy,omitempty"`
+	BufferingProxyListenOn *string `json:"buffering_proxy_listen_on,omitempty"`
+	EnableSSLCertificate   *bool   `json:"enable_ssl_certificate,omitempty"`
+	SSLCertificateHost     *string `json:"ssl_certificate_host,omitempty"`
+	EnableHTTPBasicAuth    *bool   `json:"enable_http_basic_auth,omitempty"`
+	HTTPBasicAuthUsername  *string `json:"http_basic_auth_username,omitempty"`
+	HTTPBasicAuthPassword  *string `json:"http_basic_auth_password,omitempty"`
 }
 
 type collectorCustomBucket struct {
@@ -305,28 +451,30 @@ type collectorDatabase struct {
 }
 
 type collector struct {
-	Name                  *string                 `json:"name,omitempty"`
-	Platform              *string                 `json:"platform,omitempty"`
-	Note                  *string                 `json:"note,omitempty"`
-	Status                *string                 `json:"status,omitempty"`
-	Secret                *string                 `json:"secret,omitempty"`
-	DataRegion            *string                 `json:"data_region,omitempty"`
-	TeamID                *StringOrInt            `json:"team_id,omitempty"`
-	TeamName              *string                 `json:"team_name,omitempty"`
-	LogsRetention         *int                    `json:"logs_retention,omitempty"`
-	MetricsRetention      *int                    `json:"metrics_retention,omitempty"`
-	HostsCount            *int                    `json:"hosts_count,omitempty"`
-	HostsUpCount          *int                    `json:"hosts_up_count,omitempty"`
-	DatabasesCount        *int                    `json:"databases_count,omitempty"`
-	PingedAt              *string                 `json:"pinged_at,omitempty"`
-	CreatedAt             *string                 `json:"created_at,omitempty"`
-	UpdatedAt             *string                 `json:"updated_at,omitempty"`
-	Configuration         *collectorConfiguration `json:"configuration,omitempty"`
-	CustomBucket          *collectorCustomBucket  `json:"custom_bucket,omitempty"`
-	Databases             *[]collectorDatabase    `json:"databases,omitempty"`
-	EnableHTTPBasicAuth   *bool                   `json:"enable_http_basic_auth,omitempty"`
-	HTTPBasicAuthUsername *string                 `json:"http_basic_auth_username,omitempty"`
-	HTTPBasicAuthPassword *string                 `json:"http_basic_auth_password,omitempty"`
+	Name                    *string                 `json:"name,omitempty"`
+	Platform                *string                 `json:"platform,omitempty"`
+	Note                    *string                 `json:"note,omitempty"`
+	Status                  *string                 `json:"status,omitempty"`
+	Secret                  *string                 `json:"secret,omitempty"`
+	SourceID                *int                    `json:"source_id,omitempty"`
+	DataRegion              *string                 `json:"data_region,omitempty"`
+	TeamID                  *StringOrInt            `json:"team_id,omitempty"`
+	TeamName                *string                 `json:"team_name,omitempty"`
+	LogsRetention           *int                    `json:"logs_retention,omitempty"`
+	MetricsRetention        *int                    `json:"metrics_retention,omitempty"`
+	IngestingPaused         *bool                   `json:"ingesting_paused,omitempty"`
+	HostsCount              *int                    `json:"hosts_count,omitempty"`
+	HostsUpCount            *int                    `json:"hosts_up_count,omitempty"`
+	DatabasesCount          *int                    `json:"databases_count,omitempty"`
+	PingedAt                *string                 `json:"pinged_at,omitempty"`
+	CreatedAt               *string                 `json:"created_at,omitempty"`
+	UpdatedAt               *string                 `json:"updated_at,omitempty"`
+	UserVectorConfig        *string                 `json:"user_vector_config,omitempty"`
+	SourceVrlTransformation *string                 `json:"source_vrl_transformation,omitempty"`
+	Configuration           *collectorConfiguration `json:"configuration,omitempty"`
+	ProxyConfig             *collectorProxyConfig   `json:"proxy_config,omitempty"`
+	CustomBucket            *collectorCustomBucket  `json:"custom_bucket,omitempty"`
+	Databases               *[]collectorDatabase    `json:"databases,omitempty"`
 }
 
 type collectorHTTPResponse struct {
@@ -348,7 +496,7 @@ type collectorPageHTTPResponse struct {
 
 type collectorDatabasesHTTPResponse struct {
 	Data []struct {
-		ID         int               `json:"id"`
+		ID         json.Number       `json:"id"`
 		Attributes collectorDatabase `json:"attributes"`
 	} `json:"data"`
 }
@@ -366,17 +514,20 @@ func collectorRef(in *collector) []struct {
 		{k: "note", v: &in.Note},
 		{k: "status", v: &in.Status},
 		{k: "secret", v: &in.Secret},
+		{k: "source_id", v: &in.SourceID},
 		{k: "data_region", v: &in.DataRegion},
 		{k: "team_id", v: &in.TeamID},
 		{k: "logs_retention", v: &in.LogsRetention},
 		{k: "metrics_retention", v: &in.MetricsRetention},
+		{k: "ingesting_paused", v: &in.IngestingPaused},
 		{k: "hosts_count", v: &in.HostsCount},
 		{k: "hosts_up_count", v: &in.HostsUpCount},
 		{k: "databases_count", v: &in.DatabasesCount},
 		{k: "pinged_at", v: &in.PingedAt},
 		{k: "created_at", v: &in.CreatedAt},
 		{k: "updated_at", v: &in.UpdatedAt},
-		{k: "http_basic_auth_username", v: &in.HTTPBasicAuthUsername},
+		{k: "user_vector_config", v: &in.UserVectorConfig},
+		{k: "source_vrl_transformation", v: &in.SourceVrlTransformation},
 	}
 }
 
@@ -410,7 +561,9 @@ func fetchCollectorDatabases(ctx context.Context, meta interface{}, collectorID 
 	databases := make([]collectorDatabase, 0, len(out.Data))
 	for _, dbData := range out.Data {
 		db := dbData.Attributes
-		db.ID = intPtr(dbData.ID)
+		if id, err := dbData.ID.Int64(); err == nil {
+			db.ID = intPtr(int(id))
+		}
 		databases = append(databases, db)
 	}
 
@@ -432,6 +585,134 @@ func newCollectorResource() *schema.Resource {
 	}
 }
 
+// loadCollectorConfiguration reads the configuration block from Terraform state into the API struct.
+func loadCollectorConfiguration(d *schema.ResourceData) *collectorConfiguration {
+	configData, ok := d.GetOk("configuration")
+	if !ok {
+		return nil
+	}
+	configList := configData.([]interface{})
+	if len(configList) == 0 {
+		return nil
+	}
+	configMap := configList[0].(map[string]interface{})
+	cfg := &collectorConfiguration{}
+
+	if v, ok := configMap["logs_sample_rate"].(int); ok {
+		cfg.LogsSampleRate = intPtr(v)
+	}
+	if v, ok := configMap["traces_sample_rate"].(int); ok {
+		cfg.TracesSampleRate = intPtr(v)
+	}
+
+	// Components (flat block with 10 boolean fields)
+	if componentsData, ok := configMap["components"].([]interface{}); ok && len(componentsData) > 0 {
+		cm := componentsData[0].(map[string]interface{})
+		cfg.Components = &collectorComponents{
+			LogsHost:              boolPtrIfSet(cm, "logs_host"),
+			LogsDocker:            boolPtrIfSet(cm, "logs_docker"),
+			LogsKubernetes:        boolPtrIfSet(cm, "logs_kubernetes"),
+			LogsCollectorInternal: boolPtrIfSet(cm, "logs_collector_internals"),
+			MetricsDatabases:      boolPtrIfSet(cm, "metrics_databases"),
+			MetricsNginx:          boolPtrIfSet(cm, "metrics_nginx"),
+			MetricsApache:         boolPtrIfSet(cm, "metrics_apache"),
+			EbpfMetrics:           boolPtrIfSet(cm, "ebpf_metrics"),
+			EbpfTracingBasic:      boolPtrIfSet(cm, "ebpf_tracing_basic"),
+			EbpfTracingFull:       boolPtrIfSet(cm, "ebpf_tracing_full"),
+		}
+	}
+
+	if v, ok := configMap["vrl_transformation"].(string); ok && v != "" {
+		cfg.VRLTransformation = stringPtr(v)
+	}
+	if v, ok := configMap["disk_batch_size_mb"].(int); ok && v != 0 {
+		cfg.DiskBatchSizeMB = intPtr(v)
+	}
+	if v, ok := configMap["memory_batch_size_mb"].(int); ok && v != 0 {
+		cfg.MemoryBatchSizeMB = intPtr(v)
+	}
+	if v, ok := configMap["when_full"].(string); ok && v != "" {
+		cfg.WhenFull = stringPtr(v)
+	}
+
+	// Load service_option set → services_options map
+	if serviceOptionsSet, ok := configMap["service_option"].(*schema.Set); ok && serviceOptionsSet.Len() > 0 {
+		serviceOptionsData := serviceOptionsSet.List()
+		servicesOptions := make(map[string]collectorEntityOption)
+		for _, soData := range serviceOptionsData {
+			so := soData.(map[string]interface{})
+			name := so["name"].(string)
+			opt := collectorEntityOption{}
+			if v, ok := so["log_sampling"].(int); ok {
+				opt.LogSampling = intPtr(v)
+			}
+			if v, ok := so["ingest_traces"].(bool); ok {
+				opt.IngestTraces = boolPtr(v)
+			}
+			servicesOptions[name] = opt
+		}
+		cfg.ServicesOptions = servicesOptions
+	}
+
+	// Load namespace_option set → namespaces_options map
+	if namespaceOptionsSet, ok := configMap["namespace_option"].(*schema.Set); ok && namespaceOptionsSet.Len() > 0 {
+		namespaceOptionsData := namespaceOptionsSet.List()
+		namespacesOptions := make(map[string]collectorEntityOption)
+		for _, noData := range namespaceOptionsData {
+			no := noData.(map[string]interface{})
+			name := no["name"].(string)
+			opt := collectorEntityOption{}
+			if v, ok := no["log_sampling"].(int); ok {
+				opt.LogSampling = intPtr(v)
+			}
+			if v, ok := no["ingest_traces"].(bool); ok {
+				opt.IngestTraces = boolPtr(v)
+			}
+			namespacesOptions[name] = opt
+		}
+		cfg.NamespacesOptions = namespacesOptions
+	}
+
+	return cfg
+}
+
+// loadCollectorProxyConfig reads the proxy_config block into the API struct.
+func loadCollectorProxyConfig(d *schema.ResourceData, in *collector) {
+	proxyData, ok := d.GetOk("proxy_config")
+	if !ok {
+		return
+	}
+	proxyList := proxyData.([]interface{})
+	if len(proxyList) == 0 {
+		return
+	}
+	pm := proxyList[0].(map[string]interface{})
+
+	pc := &collectorProxyConfig{}
+	if v, ok := pm["enable_buffering_proxy"].(bool); ok {
+		pc.EnableBufferingProxy = boolPtr(v)
+	}
+	if v, ok := pm["buffering_proxy_listen_on"].(string); ok && v != "" {
+		pc.BufferingProxyListenOn = stringPtr(v)
+	}
+	if v, ok := pm["enable_ssl_certificate"].(bool); ok {
+		pc.EnableSSLCertificate = boolPtr(v)
+	}
+	if v, ok := pm["ssl_certificate_host"].(string); ok && v != "" {
+		pc.SSLCertificateHost = stringPtr(v)
+	}
+	if v, ok := pm["enable_http_basic_auth"].(bool); ok {
+		pc.EnableHTTPBasicAuth = boolPtr(v)
+	}
+	if v, ok := pm["http_basic_auth_username"].(string); ok && v != "" {
+		pc.HTTPBasicAuthUsername = stringPtr(v)
+	}
+	if v, ok := pm["http_basic_auth_password"].(string); ok && v != "" {
+		pc.HTTPBasicAuthPassword = stringPtr(v)
+	}
+	in.ProxyConfig = pc
+}
+
 func collectorCreate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	var in collector
 	for _, e := range collectorRef(&in) {
@@ -443,62 +724,13 @@ func collectorCreate(ctx context.Context, d *schema.ResourceData, meta interface
 	}
 	load(d, "team_name", &in.TeamName)
 
-	// Load configuration (inline, following source.go pattern)
-	if configData, ok := d.GetOk("configuration"); ok {
-		configList := configData.([]interface{})
-		if len(configList) > 0 {
-			configMap := configList[0].(map[string]interface{})
-			in.Configuration = &collectorConfiguration{}
-			if v, ok := configMap["logs_sample_rate"].(int); ok {
-				in.Configuration.LogsSampleRate = intPtr(v)
-			}
-			if v, ok := configMap["traces_sample_rate"].(int); ok {
-				in.Configuration.TracesSampleRate = intPtr(v)
-			}
-			if componentsData, ok := configMap["collector_components"].([]interface{}); ok && len(componentsData) > 0 {
-				cm := componentsData[0].(map[string]interface{})
-				in.Configuration.CollectorComponents = &collectorCollectorComponents{
-					Beyla:             boolPtrIfSet(cm, "beyla"),
-					BeylaBasic:        boolPtrIfSet(cm, "beyla_basic"),
-					BeylaFull:         boolPtrIfSet(cm, "beyla_full"),
-					ClusterAgent:      boolPtrIfSet(cm, "cluster_agent"),
-					HostLogs:          boolPtrIfSet(cm, "host_logs"),
-					CollectorInternal: boolPtrIfSet(cm, "collector_internal"),
-				}
-			}
-			if monitoringData, ok := configMap["monitoring_options"].([]interface{}); ok && len(monitoringData) > 0 {
-				mm := monitoringData[0].(map[string]interface{})
-				in.Configuration.MonitoringOptions = &collectorMonitoringOptions{
-					DockerJSONFile:      boolPtrIfSet(mm, "docker_json_file"),
-					CollectorKubernetes: boolPtrIfSet(mm, "collector_kubernetes"),
-					NginxMetrics:        boolPtrIfSet(mm, "nginx_metrics"),
-					ApacheMetrics:       boolPtrIfSet(mm, "apache_metrics"),
-				}
-			}
-			if v, ok := configMap["transformation"].(string); ok && v != "" {
-				in.Configuration.Transformation = stringPtr(v)
-			}
-			if v, ok := configMap["enable_ssl_certificate"].(bool); ok {
-				in.Configuration.EnableSSLCertificate = boolPtr(v)
-			}
-			if v, ok := configMap["ssl_certificate_host"].(string); ok && v != "" {
-				in.Configuration.SSLCertificateHost = stringPtr(v)
-			}
-		}
-	}
+	// Load configuration
+	in.Configuration = loadCollectorConfiguration(d)
 
-	// Load HTTP Basic Auth (top-level fields sent as request params)
-	if v, ok := d.GetOk("enable_http_basic_auth"); ok {
-		in.EnableHTTPBasicAuth = boolPtr(v.(bool))
-	}
-	if v, ok := d.GetOk("http_basic_auth_username"); ok {
-		in.HTTPBasicAuthUsername = stringPtr(v.(string))
-	}
-	if v, ok := d.GetOk("http_basic_auth_password"); ok {
-		in.HTTPBasicAuthPassword = stringPtr(v.(string))
-	}
+	// Load proxy config (buffering proxy, SSL, HTTP Basic Auth)
+	loadCollectorProxyConfig(d, &in)
 
-	// Load custom_bucket (inline, following source.go pattern)
+	// Load custom_bucket
 	if customBucketData, ok := d.GetOk("custom_bucket"); ok {
 		customBucketList := customBucketData.([]interface{})
 		if len(customBucketList) > 0 {
@@ -583,67 +815,12 @@ func collectorUpdate(ctx context.Context, d *schema.ResourceData, meta interface
 
 	// Load configuration if changed
 	if d.HasChange("configuration") {
-		if configData, ok := d.GetOk("configuration"); ok {
-			configList := configData.([]interface{})
-			if len(configList) > 0 {
-				configMap := configList[0].(map[string]interface{})
-				in.Configuration = &collectorConfiguration{}
-				if v, ok := configMap["logs_sample_rate"].(int); ok {
-					in.Configuration.LogsSampleRate = intPtr(v)
-				}
-				if v, ok := configMap["traces_sample_rate"].(int); ok {
-					in.Configuration.TracesSampleRate = intPtr(v)
-				}
-				if componentsData, ok := configMap["collector_components"].([]interface{}); ok && len(componentsData) > 0 {
-					cm := componentsData[0].(map[string]interface{})
-					in.Configuration.CollectorComponents = &collectorCollectorComponents{
-						Beyla:             boolPtrIfSet(cm, "beyla"),
-						BeylaBasic:        boolPtrIfSet(cm, "beyla_basic"),
-						BeylaFull:         boolPtrIfSet(cm, "beyla_full"),
-						ClusterAgent:      boolPtrIfSet(cm, "cluster_agent"),
-						HostLogs:          boolPtrIfSet(cm, "host_logs"),
-						CollectorInternal: boolPtrIfSet(cm, "collector_internal"),
-					}
-				}
-				if monitoringData, ok := configMap["monitoring_options"].([]interface{}); ok && len(monitoringData) > 0 {
-					mm := monitoringData[0].(map[string]interface{})
-					in.Configuration.MonitoringOptions = &collectorMonitoringOptions{
-						DockerJSONFile:      boolPtrIfSet(mm, "docker_json_file"),
-						CollectorKubernetes: boolPtrIfSet(mm, "collector_kubernetes"),
-						NginxMetrics:        boolPtrIfSet(mm, "nginx_metrics"),
-						ApacheMetrics:       boolPtrIfSet(mm, "apache_metrics"),
-					}
-				}
-				if v, ok := configMap["transformation"].(string); ok && v != "" {
-					in.Configuration.Transformation = stringPtr(v)
-				}
-				if v, ok := configMap["enable_ssl_certificate"].(bool); ok {
-					in.Configuration.EnableSSLCertificate = boolPtr(v)
-				}
-				if v, ok := configMap["ssl_certificate_host"].(string); ok && v != "" {
-					in.Configuration.SSLCertificateHost = stringPtr(v)
-				}
-			}
-		}
+		in.Configuration = loadCollectorConfiguration(d)
 	}
 
-	// Load HTTP Basic Auth if changed (top-level fields sent as request params)
-	if d.HasChange("enable_http_basic_auth") {
-		if v, ok := d.GetOk("enable_http_basic_auth"); ok {
-			in.EnableHTTPBasicAuth = boolPtr(v.(bool))
-		} else {
-			in.EnableHTTPBasicAuth = boolPtr(false)
-		}
-	}
-	if d.HasChange("http_basic_auth_username") {
-		if v, ok := d.GetOk("http_basic_auth_username"); ok {
-			in.HTTPBasicAuthUsername = stringPtr(v.(string))
-		}
-	}
-	if d.HasChange("http_basic_auth_password") {
-		if v, ok := d.GetOk("http_basic_auth_password"); ok {
-			in.HTTPBasicAuthPassword = stringPtr(v.(string))
-		}
+	// Load proxy config if changed (buffering proxy, SSL, HTTP Basic Auth)
+	if d.HasChange("proxy_config") {
+		loadCollectorProxyConfig(d, &in)
 	}
 
 	// Load custom_bucket if changed
@@ -692,7 +869,7 @@ func collectorCopyAttrs(d *schema.ResourceData, in *collector) diag.Diagnostics 
 		}
 	}
 
-	// Copy configuration
+	// Copy configuration — only set the block if there are meaningful (non-default) fields.
 	if in.Configuration != nil {
 		configData := make(map[string]interface{})
 		if in.Configuration.LogsSampleRate != nil {
@@ -701,71 +878,160 @@ func collectorCopyAttrs(d *schema.ResourceData, in *collector) diag.Diagnostics 
 		if in.Configuration.TracesSampleRate != nil {
 			configData["traces_sample_rate"] = *in.Configuration.TracesSampleRate
 		}
-		if in.Configuration.CollectorComponents != nil {
-			cc := in.Configuration.CollectorComponents
+
+		// Copy components (flat struct)
+		if in.Configuration.Components != nil {
+			c := in.Configuration.Components
 			componentsData := make(map[string]interface{})
-			if cc.Beyla != nil {
-				componentsData["beyla"] = *cc.Beyla
+			if c.LogsHost != nil {
+				componentsData["logs_host"] = *c.LogsHost
 			}
-			if cc.BeylaBasic != nil {
-				componentsData["beyla_basic"] = *cc.BeylaBasic
+			if c.LogsDocker != nil {
+				componentsData["logs_docker"] = *c.LogsDocker
 			}
-			if cc.BeylaFull != nil {
-				componentsData["beyla_full"] = *cc.BeylaFull
+			if c.LogsKubernetes != nil {
+				componentsData["logs_kubernetes"] = *c.LogsKubernetes
 			}
-			if cc.ClusterAgent != nil {
-				componentsData["cluster_agent"] = *cc.ClusterAgent
+			if c.LogsCollectorInternal != nil {
+				componentsData["logs_collector_internals"] = *c.LogsCollectorInternal
 			}
-			if cc.HostLogs != nil {
-				componentsData["host_logs"] = *cc.HostLogs
+			if c.MetricsDatabases != nil {
+				componentsData["metrics_databases"] = *c.MetricsDatabases
 			}
-			if cc.CollectorInternal != nil {
-				componentsData["collector_internal"] = *cc.CollectorInternal
+			if c.MetricsNginx != nil {
+				componentsData["metrics_nginx"] = *c.MetricsNginx
 			}
-			configData["collector_components"] = []interface{}{componentsData}
-		}
-		if in.Configuration.MonitoringOptions != nil {
-			mo := in.Configuration.MonitoringOptions
-			monitoringData := make(map[string]interface{})
-			if mo.DockerJSONFile != nil {
-				monitoringData["docker_json_file"] = *mo.DockerJSONFile
+			if c.MetricsApache != nil {
+				componentsData["metrics_apache"] = *c.MetricsApache
 			}
-			if mo.CollectorKubernetes != nil {
-				monitoringData["collector_kubernetes"] = *mo.CollectorKubernetes
+			if c.EbpfMetrics != nil {
+				componentsData["ebpf_metrics"] = *c.EbpfMetrics
 			}
-			if mo.NginxMetrics != nil {
-				monitoringData["nginx_metrics"] = *mo.NginxMetrics
+			if c.EbpfTracingBasic != nil {
+				componentsData["ebpf_tracing_basic"] = *c.EbpfTracingBasic
 			}
-			if mo.ApacheMetrics != nil {
-				monitoringData["apache_metrics"] = *mo.ApacheMetrics
+			if c.EbpfTracingFull != nil {
+				componentsData["ebpf_tracing_full"] = *c.EbpfTracingFull
 			}
-			configData["monitoring_options"] = []interface{}{monitoringData}
-		}
-		if in.Configuration.Transformation != nil {
-			configData["transformation"] = *in.Configuration.Transformation
-		}
-		if in.Configuration.EnableSSLCertificate != nil {
-			configData["enable_ssl_certificate"] = *in.Configuration.EnableSSLCertificate
-		}
-		if in.Configuration.SSLCertificateHost != nil {
-			configData["ssl_certificate_host"] = *in.Configuration.SSLCertificateHost
-		}
-		if err := d.Set("configuration", []interface{}{configData}); err != nil {
-			derr = append(derr, diag.FromErr(err)[0])
+			configData["components"] = []interface{}{componentsData}
 		}
 
-		// Copy enable_http_basic_auth from configuration to top-level
-		// The API returns this in configuration.enable_http_basic_auth
-		if in.Configuration.EnableHTTPBasicAuth != nil {
-			if err := d.Set("enable_http_basic_auth", *in.Configuration.EnableHTTPBasicAuth); err != nil {
+		if in.Configuration.VRLTransformation != nil {
+			configData["vrl_transformation"] = *in.Configuration.VRLTransformation
+		}
+		if in.Configuration.DiskBatchSizeMB != nil {
+			configData["disk_batch_size_mb"] = *in.Configuration.DiskBatchSizeMB
+		}
+		if in.Configuration.MemoryBatchSizeMB != nil {
+			configData["memory_batch_size_mb"] = *in.Configuration.MemoryBatchSizeMB
+		}
+		if in.Configuration.WhenFull != nil {
+			configData["when_full"] = *in.Configuration.WhenFull
+		}
+
+		// Copy services_options map → service_option (user-managed, excludes better-stack-* internal
+		// defaults) and service_option_all (complete server state). Follows the tags/tags_all pattern.
+		if in.Configuration.ServicesOptions != nil {
+			serviceOptionAll := make([]interface{}, 0, len(in.Configuration.ServicesOptions))
+			serviceOptionData := make([]interface{}, 0, len(in.Configuration.ServicesOptions))
+			names := make([]string, 0, len(in.Configuration.ServicesOptions))
+			for name := range in.Configuration.ServicesOptions {
+				names = append(names, name)
+			}
+			sort.Strings(names)
+			for _, name := range names {
+				opt := in.Configuration.ServicesOptions[name]
+				entry := map[string]interface{}{"name": name}
+				if opt.LogSampling != nil {
+					entry["log_sampling"] = *opt.LogSampling
+				}
+				if opt.IngestTraces != nil {
+					entry["ingest_traces"] = *opt.IngestTraces
+				}
+				serviceOptionAll = append(serviceOptionAll, entry)
+				if !strings.HasPrefix(name, "better-stack-") && !strings.HasPrefix(name, "better-stack_") {
+					serviceOptionData = append(serviceOptionData, entry)
+				}
+			}
+			configData["service_option"] = serviceOptionData
+			configData["service_option_all"] = serviceOptionAll
+		}
+
+		// Copy namespaces_options map → namespace_option set
+		if in.Configuration.NamespacesOptions != nil {
+			namespaceOptionData := make([]interface{}, 0, len(in.Configuration.NamespacesOptions))
+			names := make([]string, 0, len(in.Configuration.NamespacesOptions))
+			for name := range in.Configuration.NamespacesOptions {
+				names = append(names, name)
+			}
+			sort.Strings(names)
+			for _, name := range names {
+				opt := in.Configuration.NamespacesOptions[name]
+				entry := map[string]interface{}{"name": name}
+				if opt.LogSampling != nil {
+					entry["log_sampling"] = *opt.LogSampling
+				}
+				if opt.IngestTraces != nil {
+					entry["ingest_traces"] = *opt.IngestTraces
+				}
+				namespaceOptionData = append(namespaceOptionData, entry)
+			}
+			configData["namespace_option"] = namespaceOptionData
+		}
+
+		// Only set the configuration block if it has user-facing fields.
+		// Setting an empty configuration block would cause Terraform to fill in
+		// zero-value defaults and produce a non-empty plan.
+		if len(configData) > 0 {
+			if err := d.Set("configuration", []interface{}{configData}); err != nil {
 				derr = append(derr, diag.FromErr(err)[0])
 			}
 		}
 	}
 
-	// Preserve http_basic_auth_password from state (API never returns it)
-	// We don't need to do anything here - Terraform preserves the value in state
-	// as long as we don't overwrite it with d.Set()
+	// Copy proxy_config from the API response (only returned for proxy-platform collectors).
+	if in.ProxyConfig != nil {
+		proxyData := make(map[string]interface{})
+		if in.ProxyConfig.EnableBufferingProxy != nil {
+			proxyData["enable_buffering_proxy"] = *in.ProxyConfig.EnableBufferingProxy
+		}
+		if in.ProxyConfig.BufferingProxyListenOn != nil {
+			proxyData["buffering_proxy_listen_on"] = *in.ProxyConfig.BufferingProxyListenOn
+		}
+		if in.ProxyConfig.EnableSSLCertificate != nil {
+			proxyData["enable_ssl_certificate"] = *in.ProxyConfig.EnableSSLCertificate
+		}
+		if in.ProxyConfig.SSLCertificateHost != nil {
+			proxyData["ssl_certificate_host"] = *in.ProxyConfig.SSLCertificateHost
+		}
+		if in.ProxyConfig.EnableHTTPBasicAuth != nil {
+			proxyData["enable_http_basic_auth"] = *in.ProxyConfig.EnableHTTPBasicAuth
+		}
+		if in.ProxyConfig.HTTPBasicAuthUsername != nil {
+			proxyData["http_basic_auth_username"] = *in.ProxyConfig.HTTPBasicAuthUsername
+		}
+
+		// Preserve http_basic_auth_password from existing state (API never returns it)
+		if existingProxy, ok := d.GetOk("proxy_config"); ok {
+			existingList := existingProxy.([]interface{})
+			if len(existingList) > 0 {
+				existingMap := existingList[0].(map[string]interface{})
+				if password, ok := existingMap["http_basic_auth_password"]; ok {
+					proxyData["http_basic_auth_password"] = password
+				}
+			}
+		}
+
+		if err := d.Set("proxy_config", []interface{}{proxyData}); err != nil {
+			derr = append(derr, diag.FromErr(err)[0])
+		}
+	} else if _, userDeclared := d.GetOk("proxy_config"); userDeclared {
+		// API returned nil proxy_config (non-proxy platform) but user declared it —
+		// clear it from state to avoid drift.
+		if err := d.Set("proxy_config", nil); err != nil {
+			derr = append(derr, diag.FromErr(err)[0])
+		}
+	}
 
 	// Copy custom_bucket (preserve secret_access_key from state)
 	if in.CustomBucket != nil {
@@ -860,6 +1126,17 @@ func collectorCopyAttrs(d *schema.ResourceData, in *collector) diag.Diagnostics 
 }
 
 func validateCollector(ctx context.Context, diff *schema.ResourceDiff, v interface{}) error {
+	// Reject proxy_config for non-proxy platforms at plan time
+	if proxyConfig, ok := diff.GetOk("proxy_config"); ok {
+		proxyList := proxyConfig.([]interface{})
+		if len(proxyList) > 0 {
+			platform := diff.Get("platform").(string)
+			if platform != "proxy" {
+				return fmt.Errorf("proxy_config is only applicable to proxy platform collectors, but platform is %q", platform)
+			}
+		}
+	}
+
 	if diff.Id() != "" && diff.HasChange("data_region") {
 		return fmt.Errorf("data_region cannot be changed after collector is created")
 	}
@@ -870,6 +1147,11 @@ func validateCollector(ctx context.Context, diff *schema.ResourceDiff, v interfa
 		newList := newVal.([]interface{})
 		if len(oldList) > 0 && len(newList) == 0 {
 			return fmt.Errorf("custom_bucket cannot be removed once set - it is a create-only field")
+		}
+		// The API also rejects modifications to existing custom_bucket fields,
+		// so block any changes when the bucket was already set.
+		if len(oldList) > 0 && len(newList) > 0 {
+			return fmt.Errorf("custom_bucket fields cannot be modified after creation - the bucket configuration is immutable once set")
 		}
 	}
 
