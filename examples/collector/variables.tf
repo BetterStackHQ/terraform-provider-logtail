@@ -11,7 +11,6 @@ EOF
 variable "db_password" {
   description = "Database password for collector monitoring"
   type        = string
-  sensitive   = true
   # Default for e2e testing — the database host is not real, so the password is not used.
   default = "e2e_test_password"
 }
@@ -19,7 +18,6 @@ variable "db_password" {
 variable "proxy_password" {
   description = "Password for HTTP Basic Auth on proxy collector"
   type        = string
-  sensitive   = true
   # Default for e2e testing — the proxy collector is destroyed after each run.
   default = "e2e_test_proxy_password"
 }
