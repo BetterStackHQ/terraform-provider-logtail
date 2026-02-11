@@ -936,7 +936,6 @@ func formatDatabasesResponse(t *testing.T, databases []interface{}) string {
 	return fmt.Sprintf(`{"data":[%s]}`, strings.Join(dataItems, ","))
 }
 
-
 // processDatabasesUpdate handles the PATCH request for databases.
 // It processes _destroy flags and assigns IDs to new databases.
 func processDatabasesUpdate(t *testing.T, body json.RawMessage) json.RawMessage {
