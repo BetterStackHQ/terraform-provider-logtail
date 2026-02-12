@@ -86,7 +86,7 @@ This resource allows you to create, modify, and delete your Sources. For more in
 - `scrape_urls` (List of String) For scrape platform types, the set of urls to scrape.
 - `source_group_id` (Number) The ID of the source group this source belongs to.
 - `team_name` (String) Used to specify the team the resource should be created in when using global tokens.
-- `vrl_transformation` (String) The VRL code that's used to transform events. Read more about [VRL transformations](https://betterstack.com/docs/logs/using-logtail/transforming-ingested-data/logs-vrl/).
+- `vrl_transformation` (String) VRL transformation that runs on Better Stack's servers during ingestion. Note: data has already left your infrastructure at this point. For transformations that must run before data leaves your network (e.g. PII redaction), use `logtail_collector` with `configuration.vrl_transformation` instead. Read more about [VRL transformations](https://betterstack.com/docs/logs/using-logtail/transforming-ingested-data/logs-vrl/).
 
 ### Read-Only
 

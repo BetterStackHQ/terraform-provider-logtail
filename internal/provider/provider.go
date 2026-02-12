@@ -57,6 +57,7 @@ func New(opts ...Option) *schema.Provider {
 			"logtail_connection":               newConnectionDataSource(),
 			"logtail_dashboard":                newDashboardDataSource(),
 			"logtail_dashboard_template":       newDashboardTemplateDataSource(),
+			"logtail_collector":                newCollectorDataSource(),
 		},
 		ResourcesMap: map[string]*schema.Resource{
 			"logtail_source":                   newSourceResource(),
@@ -70,6 +71,7 @@ func New(opts ...Option) *schema.Provider {
 			"logtail_warehouse_embedding":      newWarehouseEmbeddingResource(),
 			"logtail_connection":               newConnectionResource(),
 			"logtail_dashboard":                newDashboardResource(),
+			"logtail_collector":                newCollectorResource(),
 		},
 		ConfigureContextFunc: func(ctx context.Context, r *schema.ResourceData) (interface{}, diag.Diagnostics) {
 			var userAgent string
