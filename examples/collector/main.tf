@@ -18,7 +18,7 @@ resource "logtail_collector" "kubernetes_full" {
   platform = "kubernetes"
   note     = "Kubernetes cluster monitoring"
 
-  logs_retention    = 7
+  logs_retention    = 30
   metrics_retention = 60
 
   configuration {
