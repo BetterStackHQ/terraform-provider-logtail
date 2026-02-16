@@ -264,23 +264,6 @@ var sourceSchema = map[string]*schema.Schema{
 		Type:        schema.TypeString,
 		Optional:    true,
 		DiffSuppressFunc: func(k, old, new string, d *schema.ResourceData) bool {
-			normalizeVRL := func(vrl string) string {
-				if vrl == "" {
-					return ""
-				}
-				lines := strings.Split(vrl, "\n")
-				var normalized []string
-				for _, line := range lines {
-					normalizedLine := strings.TrimSpace(line)
-					normalizedLine = strings.TrimSuffix(normalizedLine, ".")
-					normalizedLine = strings.TrimSpace(normalizedLine)
-					if normalizedLine != "" {
-						normalized = append(normalized, normalizedLine)
-					}
-				}
-				return strings.Join(normalized, "\n")
-			}
-
 			return normalizeVRL(old) == normalizeVRL(new)
 		},
 	},
