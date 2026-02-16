@@ -255,13 +255,6 @@ var collectorSchema = map[string]*schema.Schema{
 					Computed:     true,
 					ValidateFunc: validation.IntAtMost(40),
 				},
-				"when_full": {
-					Description:  "Buffer overflow strategy: `drop_newest` (default, drops data silently) or `block` (applies backpressure, no data loss).",
-					Type:         schema.TypeString,
-					Optional:     true,
-					Computed:     true,
-					ValidateFunc: validation.StringInSlice([]string{"drop_newest", "block"}, false),
-				},
 				"service_option": {
 					Description: "Per-service overrides for log sampling rate and trace ingestion. Only includes user-managed services; internal collector services (`better-stack-beyla`, `better-stack-collector`) are excluded. See `service_option_all` for the complete server state.",
 					Type:        schema.TypeSet,
@@ -415,7 +408,6 @@ type collectorConfiguration struct {
 	VRLTransformation *string                          `json:"vrl_transformation,omitempty"`
 	DiskBatchSizeMB   *int                             `json:"disk_batch_size_mb,omitempty"`
 	MemoryBatchSizeMB *int                             `json:"memory_batch_size_mb,omitempty"`
-	WhenFull          *string                          `json:"when_full,omitempty"`
 	ServicesOptions   map[string]collectorEntityOption `json:"services_options,omitempty"`
 	NamespacesOptions map[string]collectorEntityOption `json:"namespaces_options,omitempty"`
 }
@@ -630,9 +622,6 @@ func loadCollectorConfiguration(d *schema.ResourceData) *collectorConfiguration 
 	}
 	if v, ok := configMap["memory_batch_size_mb"].(int); ok && v != 0 {
 		cfg.MemoryBatchSizeMB = intPtr(v)
-	}
-	if v, ok := configMap["when_full"].(string); ok && v != "" {
-		cfg.WhenFull = stringPtr(v)
 	}
 
 	// Load service_option set → services_options map
@@ -924,9 +913,6 @@ func collectorCopyAttrs(d *schema.ResourceData, in *collector) diag.Diagnostics 
 		}
 		if in.Configuration.MemoryBatchSizeMB != nil {
 			configData["memory_batch_size_mb"] = *in.Configuration.MemoryBatchSizeMB
-		}
-		if in.Configuration.WhenFull != nil {
-			configData["when_full"] = *in.Configuration.WhenFull
 		}
 
 		// Copy services_options map → service_option (user-managed, excludes better-stack-* internal

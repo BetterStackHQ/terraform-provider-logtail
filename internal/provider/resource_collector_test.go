@@ -1438,59 +1438,6 @@ func TestResourceCollectorNewFeatures(t *testing.T) {
 		},
 	})
 
-	// Test when_full
-	resource.Test(t, resource.TestCase{
-		IsUnitTest: true,
-		ProviderFactories: map[string]func() (*schema.Provider, error){
-			"logtail": func() (*schema.Provider, error) {
-				return New(WithURL(server.URL)), nil
-			},
-		},
-		Steps: []resource.TestStep{
-			// Step 1 - create with when_full = block
-			{
-				Config: fmt.Sprintf(`
-				provider "logtail" {
-					api_token = "foo"
-				}
-
-				resource "logtail_collector" "this" {
-					name     = "%s"
-					platform = "%s"
-
-					configuration {
-						when_full = "block"
-					}
-				}
-				`, name, platform),
-				Check: resource.ComposeTestCheckFunc(
-					resource.TestCheckResourceAttrSet("logtail_collector.this", "id"),
-					resource.TestCheckResourceAttr("logtail_collector.this", "configuration.0.when_full", "block"),
-				),
-			},
-			// Step 2 - update to drop_newest
-			{
-				Config: fmt.Sprintf(`
-				provider "logtail" {
-					api_token = "foo"
-				}
-
-				resource "logtail_collector" "this" {
-					name     = "%s"
-					platform = "%s"
-
-					configuration {
-						when_full = "drop_newest"
-					}
-				}
-				`, name, platform),
-				Check: resource.ComposeTestCheckFunc(
-					resource.TestCheckResourceAttr("logtail_collector.this", "configuration.0.when_full", "drop_newest"),
-				),
-			},
-		},
-	})
-
 	// Test service_option and namespace_option
 	resource.Test(t, resource.TestCase{
 		IsUnitTest: true,
