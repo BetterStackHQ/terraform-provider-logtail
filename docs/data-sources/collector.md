@@ -37,6 +37,7 @@ data "logtail_collector" "production" {
 - `hosts_up_count` (Number) The number of hosts currently online.
 - `id` (String) The ID of this collector.
 - `ingesting_paused` (Boolean) Whether ingestion is paused for this collector.
+- `live_tail_pattern` (String) Freeform text template for formatting Live tail output with columns wrapped in {column} brackets. Example: "PID: {message_json.pid} {level} {message}"
 - `logs_retention` (Number) Data retention for logs in days. Allowed values: 7, 30, 60, 90, 180, 365, 730, 1095, 1460, 1825. There might be additional charges for longer retention.
 - `metrics_retention` (Number) Data retention for metrics in days. Allowed values: 7, 30, 60, 90, 180, 365, 730, 1095, 1460, 1825. There might be additional charges for longer retention.
 - `note` (String) A description or note about this collector.
@@ -44,6 +45,7 @@ data "logtail_collector" "production" {
 - `platform` (String) The platform of this collector. This value can be set only when creating a new collector and cannot be changed later. Valid values are: `docker`, `swarm`, `kubernetes`, `proxy`.
 - `proxy_config` (List of Object) Proxy settings including buffering proxy, SSL/TLS, and HTTP Basic Authentication. Only applicable to `proxy` platform collectors. (see [below for nested schema](#nestedatt--proxy_config))
 - `secret` (String, Sensitive) The secret token used to authenticate collector hosts.
+- `source_group_id` (Number) The ID of the source group (folder) this collector belongs to. Set to `0` to remove from a group.
 - `source_id` (Number) The ID of the underlying source. Use this with `logtail_metric` to define metrics on this collector's data.
 - `source_vrl_transformation` (String) Server-side VRL transformation that runs during ingestion on Better Stack. Use this for enrichment, routing, or light normalization that doesn't involve sensitive data. For PII redaction and sensitive data filtering, prefer `configuration.vrl_transformation` which runs on the collector host and ensures raw data never leaves your network. Read more about [VRL transformations](https://betterstack.com/docs/logs/using-logtail/transforming-ingested-data/logs-vrl/).
 - `status` (String) The current status of this collector.
@@ -66,7 +68,6 @@ Read-Only:
 - `service_option_all` (Set of Object) (see [below for nested schema](#nestedobjatt--configuration--service_option_all))
 - `traces_sample_rate` (Number)
 - `vrl_transformation` (String)
-- `when_full` (String)
 
 <a id="nestedobjatt--configuration--components"></a>
 ### Nested Schema for `configuration.components`

@@ -64,10 +64,12 @@ resource "logtail_collector" "production" {
 - `data_region` (String) Data region (e.g. `eu`, `us`) or private cluster name to create the collector in. This can only be set at creation time. Note: the API may return a different identifier (the internal storage region name) than the value you provided.
 - `databases` (Block List) Database connections for the collector. (see [below for nested schema](#nestedblock--databases))
 - `ingesting_paused` (Boolean) Whether ingestion is paused for this collector.
+- `live_tail_pattern` (String) Freeform text template for formatting Live tail output with columns wrapped in {column} brackets. Example: "PID: {message_json.pid} {level} {message}"
 - `logs_retention` (Number) Data retention for logs in days. Allowed values: 7, 30, 60, 90, 180, 365, 730, 1095, 1460, 1825. There might be additional charges for longer retention.
 - `metrics_retention` (Number) Data retention for metrics in days. Allowed values: 7, 30, 60, 90, 180, 365, 730, 1095, 1460, 1825. There might be additional charges for longer retention.
 - `note` (String) A description or note about this collector.
 - `proxy_config` (Block List, Max: 1) Proxy settings including buffering proxy, SSL/TLS, and HTTP Basic Authentication. Only applicable to `proxy` platform collectors. (see [below for nested schema](#nestedblock--proxy_config))
+- `source_group_id` (Number) The ID of the source group (folder) this collector belongs to. Set to `0` to remove from a group.
 - `source_vrl_transformation` (String) Server-side VRL transformation that runs during ingestion on Better Stack. Use this for enrichment, routing, or light normalization that doesn't involve sensitive data. For PII redaction and sensitive data filtering, prefer `configuration.vrl_transformation` which runs on the collector host and ensures raw data never leaves your network. Read more about [VRL transformations](https://betterstack.com/docs/logs/using-logtail/transforming-ingested-data/logs-vrl/).
 - `team_name` (String) Used to specify the team the resource should be created in when using global tokens.
 - `user_vector_config` (String) Custom Vector YAML configuration for additional sources and transforms beyond the built-in component toggles. Must not contain `command:` directives.
@@ -99,7 +101,6 @@ Optional:
 - `service_option` (Block Set) Per-service overrides for log sampling rate and trace ingestion. Only includes user-managed services; internal collector services (`better-stack-beyla`, `better-stack-collector`) are excluded. See `service_option_all` for the complete server state. (see [below for nested schema](#nestedblock--configuration--service_option))
 - `traces_sample_rate` (Number) Sample rate for traces (0-100).
 - `vrl_transformation` (String) VRL transformation that runs on the collector host, inside your infrastructure, before data is transmitted to Better Stack. Use this for PII redaction and sensitive data filtering — raw data never leaves your network. For server-side transformations that run during ingestion on Better Stack, use the top-level `source_vrl_transformation` attribute instead. Read more about [VRL transformations](https://betterstack.com/docs/logs/using-logtail/transforming-ingested-data/logs-vrl/).
-- `when_full` (String) Buffer overflow strategy: `drop_newest` (default, drops data silently) or `block` (applies backpressure, no data loss).
 
 Read-Only:
 
