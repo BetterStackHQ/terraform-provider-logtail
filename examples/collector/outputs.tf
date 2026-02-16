@@ -24,8 +24,7 @@ output "existing_collector_id" {
   value       = data.logtail_collector.existing.id
 }
 
-# Use source_id with logtail_metric to define metrics on collector data
-output "compliance_collector_source_id" {
-  description = "Source ID for the compliance collector (use with logtail_metric)"
-  value       = logtail_collector.compliance.source_id
+output "transformation_collector_source_id" {
+  description = "Source ID for the transformation collector (use with logtail_metric)"
+  value       = logtail_collector.with_transformation.source_id
 }
