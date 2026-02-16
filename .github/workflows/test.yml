@@ -29,7 +29,7 @@ jobs:
     strategy:
       matrix:
         terraform-version: ["0.13", "1.0", "1.8", "latest"]
-        config: [examples/basic, examples/advanced, examples/connection, examples/scrape, examples/warehouse]
+        config: [examples/basic, examples/advanced, examples/connection, examples/scrape, examples/warehouse, examples/collector]
       fail-fast: false
     runs-on: ubuntu-latest
     steps:
@@ -65,47 +65,3 @@ jobs:
         run: make terraform CONFIGURATION="${{ matrix.config }}" ARGS="destroy --auto-approve --input=false"
         env:
           LOGTAIL_API_TOKEN: ${{ matrix.config == 'examples/connection' && secrets.GLOBAL_E2E_API_TOKEN || secrets.LOGS_E2E_TEAM_TOKEN }}
-
-  # Collector tests run sequentially (max-parallel: 1) because the collector
-  # data source looks up by name and errors on duplicates. Parallel runs against
-  # the same test account would create multiple collectors with the same name.
-  e2e_test_collector:
-    strategy:
-      matrix:
-        terraform-version: ["0.13", "1.0", "1.8", "latest"]
-      fail-fast: false
-      max-parallel: 1
-    runs-on: ubuntu-latest
-    steps:
-      - name: Install Go
-        uses: actions/setup-go@v2
-        with:
-          go-version: '1.23.x'
-      - name: Install Terraform
-        uses: hashicorp/setup-terraform@v3
-        with:
-          terraform_version: ${{ matrix.terraform-version }}
-      - name: Checkout code
-        uses: actions/checkout@v2
-      - name: Add resources via Terraform
-        run: make terraform CONFIGURATION="examples/collector" ARGS="apply --auto-approve --input=false"
-        env:
-          LOGTAIL_API_TOKEN: ${{ secrets.LOGS_E2E_TEAM_TOKEN }}
-      - name: Plan resources via Terraform - must be empty
-        run: |
-          make terraform CONFIGURATION="examples/collector" ARGS="plan --input=false --out=tfplan"
-          make terraform CONFIGURATION="examples/collector" ARGS="show --json tfplan > tfplan.json"
-          CHANGES="$(jq "[.resource_changes[]? | select(.change.actions != [\"no-op\"])] | length" "examples/collector/tfplan.json")"
-          if [ "$CHANGES" == "0" ]; then
-            echo "No planned changes detected after first apply. Success!"
-          else
-            echo "$CHANGES planned changes detected after first apply. Failure!"
-            exit 1
-          fi
-        env:
-          LOGTAIL_API_TOKEN: ${{ secrets.LOGS_E2E_TEAM_TOKEN }}
-      - name: Destroy resources via Terraform
-        if: always()
-        run: make terraform CONFIGURATION="examples/collector" ARGS="destroy --auto-approve --input=false"
-        env:
-          LOGTAIL_API_TOKEN: ${{ secrets.LOGS_E2E_TEAM_TOKEN }}
