@@ -112,6 +112,21 @@ var collectorSchema = map[string]*schema.Schema{
 		Optional:    false,
 		Computed:    true,
 	},
+	"source_group_id": {
+		Description: "The ID of the source group (folder) this collector belongs to. Set to `0` to remove from a group.",
+		Type:        schema.TypeInt,
+		Optional:    true,
+		DiffSuppressFunc: func(k, old, new string, d *schema.ResourceData) bool {
+			// Treat 0 as equivalent to unset/null
+			return (old == "0" || old == "") && (new == "0" || new == "")
+		},
+	},
+	"live_tail_pattern": {
+		Description: "Freeform text template for formatting Live tail output with columns wrapped in {column} brackets. Example: \"PID: {message_json.pid} {level} {message}\"",
+		Type:        schema.TypeString,
+		Optional:    true,
+		Computed:    true,
+	},
 	"data_region": {
 		Description: "Data region (e.g. `eu`, `us`) or private cluster name to create the collector in. This can only be set at creation time. Note: the API may return a different identifier (the internal storage region name) than the value you provided.",
 		Type:        schema.TypeString,
@@ -449,6 +464,8 @@ type collector struct {
 	Status                  *string                 `json:"status,omitempty"`
 	Secret                  *string                 `json:"secret,omitempty"`
 	SourceID                *int                    `json:"source_id,omitempty"`
+	SourceGroupID           *int                    `json:"source_group_id,omitempty"`
+	LiveTailPattern         *string                 `json:"live_tail_pattern,omitempty"`
 	DataRegion              *string                 `json:"data_region,omitempty"`
 	TeamID                  *StringOrInt            `json:"team_id,omitempty"`
 	TeamName                *string                 `json:"team_name,omitempty"`
@@ -507,6 +524,8 @@ func collectorRef(in *collector) []struct {
 		{k: "status", v: &in.Status},
 		{k: "secret", v: &in.Secret},
 		{k: "source_id", v: &in.SourceID},
+		{k: "source_group_id", v: &in.SourceGroupID},
+		{k: "live_tail_pattern", v: &in.LiveTailPattern},
 		{k: "data_region", v: &in.DataRegion},
 		{k: "team_id", v: &in.TeamID},
 		{k: "logs_retention", v: &in.LogsRetention},
