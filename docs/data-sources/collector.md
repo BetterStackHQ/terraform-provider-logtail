@@ -65,7 +65,6 @@ Read-Only:
 - `memory_batch_size_mb` (Number)
 - `namespace_option` (Set of Object) (see [below for nested schema](#nestedobjatt--configuration--namespace_option))
 - `service_option` (Set of Object) (see [below for nested schema](#nestedobjatt--configuration--service_option))
-- `service_option_all` (Set of Object) (see [below for nested schema](#nestedobjatt--configuration--service_option_all))
 - `traces_sample_rate` (Number)
 - `vrl_transformation` (String)
 
@@ -98,16 +97,6 @@ Read-Only:
 
 <a id="nestedobjatt--configuration--service_option"></a>
 ### Nested Schema for `configuration.service_option`
-
-Read-Only:
-
-- `ingest_traces` (Boolean)
-- `log_sampling` (Number)
-- `name` (String)
-
-
-<a id="nestedobjatt--configuration--service_option_all"></a>
-### Nested Schema for `configuration.service_option_all`
 
 Read-Only:
 

@@ -98,13 +98,9 @@ Optional:
 - `logs_sample_rate` (Number) Sample rate for logs (0-100).
 - `memory_batch_size_mb` (Number) Memory batch size in MB for outgoing requests. Maximum 40 MB.
 - `namespace_option` (Block Set) Per-namespace overrides for log sampling rate and trace ingestion (Kubernetes only). Order-independent; entries are identified by name. (see [below for nested schema](#nestedblock--configuration--namespace_option))
-- `service_option` (Block Set) Per-service overrides for log sampling rate and trace ingestion. Only includes user-managed services; internal collector services (`better-stack-beyla`, `better-stack-collector`) are excluded. See `service_option_all` for the complete server state. (see [below for nested schema](#nestedblock--configuration--service_option))
+- `service_option` (Block Set) Per-service overrides for log sampling rate and trace ingestion. Only includes user-managed services; internal collector services (`better-stack-beyla`, `better-stack-collector`) are excluded. Use the `logtail_collector` data source to see all discovered services. (see [below for nested schema](#nestedblock--configuration--service_option))
 - `traces_sample_rate` (Number) Sample rate for traces (0-100).
 - `vrl_transformation` (String) VRL transformation that runs on the collector host, inside your infrastructure, before data is transmitted to Better Stack. Use this for PII redaction and sensitive data filtering — raw data never leaves your network. For server-side transformations that run during ingestion on Better Stack, use the top-level `source_vrl_transformation` attribute instead. Read more about [VRL transformations](https://betterstack.com/docs/logs/using-logtail/transforming-ingested-data/logs-vrl/).
-
-Read-Only:
-
-- `service_option_all` (Set of Object) All per-service overrides including server-managed internal defaults (`better-stack-beyla`, `better-stack-collector`). Read-only; to configure services, use `service_option`. (see [below for nested schema](#nestedatt--configuration--service_option_all))
 
 <a id="nestedblock--configuration--components"></a>
 ### Nested Schema for `configuration.components`
@@ -147,16 +143,6 @@ Optional:
 
 - `ingest_traces` (Boolean) Whether to ingest traces for this service.
 - `log_sampling` (Number) Log sampling rate (0-100).
-
-
-<a id="nestedatt--configuration--service_option_all"></a>
-### Nested Schema for `configuration.service_option_all`
-
-Read-Only:
-
-- `ingest_traces` (Boolean)
-- `log_sampling` (Number)
-- `name` (String)
 
 
 

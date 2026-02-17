@@ -271,7 +271,7 @@ var collectorSchema = map[string]*schema.Schema{
 					ValidateFunc: validation.IntAtMost(40),
 				},
 				"service_option": {
-					Description: "Per-service overrides for log sampling rate and trace ingestion. Only includes user-managed services; internal collector services (`better-stack-beyla`, `better-stack-collector`) are excluded. See `service_option_all` for the complete server state.",
+					Description: "Per-service overrides for log sampling rate and trace ingestion. Only includes user-managed services; internal collector services (`better-stack-beyla`, `better-stack-collector`) are excluded. Use the `logtail_collector` data source to see all discovered services.",
 					Type:        schema.TypeSet,
 					Optional:    true,
 					Set:         hashOptionEntry,
@@ -280,19 +280,6 @@ var collectorSchema = map[string]*schema.Schema{
 							"name":          {Type: schema.TypeString, Required: true, Description: "Service name."},
 							"log_sampling":  {Type: schema.TypeInt, Optional: true, Description: "Log sampling rate (0-100)."},
 							"ingest_traces": {Type: schema.TypeBool, Optional: true, Description: "Whether to ingest traces for this service."},
-						},
-					},
-				},
-				"service_option_all": {
-					Description: "All per-service overrides including server-managed internal defaults (`better-stack-beyla`, `better-stack-collector`). Read-only; to configure services, use `service_option`.",
-					Type:        schema.TypeSet,
-					Computed:    true,
-					Set:         hashOptionEntry,
-					Elem: &schema.Resource{
-						Schema: map[string]*schema.Schema{
-							"name":          {Type: schema.TypeString, Computed: true, Description: "Service name."},
-							"log_sampling":  {Type: schema.TypeInt, Computed: true, Description: "Log sampling rate (0-100)."},
-							"ingest_traces": {Type: schema.TypeBool, Computed: true, Description: "Whether to ingest traces for this service."},
 						},
 					},
 				},
@@ -581,6 +568,101 @@ func fetchCollectorDatabases(ctx context.Context, meta interface{}, collectorID 
 	return databases, nil
 }
 
+// getUserManagedOptionNames reads the current state's service_option or namespace_option
+// names before d.Set overwrites them. Returns a map of names the user explicitly manages.
+// Returns an empty map for data sources or resources with no option blocks.
+func getUserManagedOptionNames(d *schema.ResourceData, key string) map[string]bool {
+	managed := make(map[string]bool)
+	configData, ok := d.GetOk("configuration")
+	if !ok {
+		return managed
+	}
+	configList, ok := configData.([]interface{})
+	if !ok || len(configList) == 0 {
+		return managed
+	}
+	configMap, ok := configList[0].(map[string]interface{})
+	if !ok {
+		return managed
+	}
+	optionsSet, ok := configMap[key].(*schema.Set)
+	if !ok || optionsSet.Len() == 0 {
+		return managed
+	}
+	for _, item := range optionsSet.List() {
+		entry, ok := item.(map[string]interface{})
+		if !ok {
+			continue
+		}
+		if name, ok := entry["name"].(string); ok {
+			managed[name] = true
+		}
+	}
+	return managed
+}
+
+// fetchCurrentCollectorConfig fetches the current collector from the API to get
+// server-side services_options and namespaces_options for merge during updates.
+func fetchCurrentCollectorConfig(ctx context.Context, meta interface{}, collectorID string) (*collectorConfiguration, diag.Diagnostics) {
+	c := meta.(*client)
+	res, err := c.Get(ctx, fmt.Sprintf("/api/v1/collectors/%s", url.PathEscape(collectorID)))
+	if err != nil {
+		return nil, diag.FromErr(err)
+	}
+	defer func() {
+		_, _ = io.Copy(io.Discard, res.Body)
+		_ = res.Body.Close()
+	}()
+
+	body, err := io.ReadAll(res.Body)
+	if res.StatusCode != http.StatusOK {
+		return nil, diag.Errorf("GET /api/v1/collectors/%s returned %d: %s", collectorID, res.StatusCode, string(body))
+	}
+	if err != nil {
+		return nil, diag.FromErr(err)
+	}
+
+	var out collectorHTTPResponse
+	if err := json.Unmarshal(body, &out); err != nil {
+		return nil, diag.FromErr(err)
+	}
+
+	return out.Data.Attributes.Configuration, nil
+}
+
+// mergeEntityOptions merges user-managed service/namespace options with server state.
+// User entries always win; server entries not in the user's config are preserved
+// (i.e. auto-discovered services/namespaces the user doesn't manage).
+func mergeEntityOptions(userCfg, serverCfg *collectorConfiguration) {
+	if serverCfg == nil {
+		return
+	}
+
+	// Merge services: server entries not in user config are preserved
+	if serverCfg.ServicesOptions != nil {
+		if userCfg.ServicesOptions == nil {
+			userCfg.ServicesOptions = make(map[string]collectorEntityOption)
+		}
+		for name, opt := range serverCfg.ServicesOptions {
+			if _, exists := userCfg.ServicesOptions[name]; !exists {
+				userCfg.ServicesOptions[name] = opt
+			}
+		}
+	}
+
+	// Merge namespaces: server entries not in user config are preserved
+	if serverCfg.NamespacesOptions != nil {
+		if userCfg.NamespacesOptions == nil {
+			userCfg.NamespacesOptions = make(map[string]collectorEntityOption)
+		}
+		for name, opt := range serverCfg.NamespacesOptions {
+			if _, exists := userCfg.NamespacesOptions[name]; !exists {
+				userCfg.NamespacesOptions[name] = opt
+			}
+		}
+	}
+}
+
 func newCollectorResource() *schema.Resource {
 	return &schema.Resource{
 		CreateContext: collectorCreate,
@@ -821,9 +903,18 @@ func collectorUpdate(ctx context.Context, d *schema.ResourceData, meta interface
 		}
 	}
 
-	// Load configuration if changed
+	// Load configuration if changed — merge with server state to preserve
+	// unmanaged services/namespaces that were auto-discovered by the collector.
 	if d.HasChange("configuration") {
 		in.Configuration = loadCollectorConfiguration(d)
+
+		if in.Configuration != nil {
+			serverCfg, derr := fetchCurrentCollectorConfig(ctx, meta, d.Id())
+			if derr != nil {
+				return derr
+			}
+			mergeEntityOptions(in.Configuration, serverCfg)
+		}
 	}
 
 	// Load proxy config if changed (buffering proxy, SSL, HTTP Basic Auth)
@@ -878,6 +969,10 @@ func collectorCopyAttrs(d *schema.ResourceData, in *collector) diag.Diagnostics 
 	}
 
 	// Copy configuration — only set the block if there are meaningful (non-default) fields.
+	// Capture user-managed option names BEFORE d.Set overwrites the state.
+	managedServices := getUserManagedOptionNames(d, "service_option")
+	managedNamespaces := getUserManagedOptionNames(d, "namespace_option")
+
 	if in.Configuration != nil {
 		configData := make(map[string]interface{})
 		if in.Configuration.LogsSampleRate != nil {
@@ -934,10 +1029,11 @@ func collectorCopyAttrs(d *schema.ResourceData, in *collector) diag.Diagnostics 
 			configData["memory_batch_size_mb"] = *in.Configuration.MemoryBatchSizeMB
 		}
 
-		// Copy services_options map → service_option (user-managed, excludes better-stack-* internal
-		// defaults) and service_option_all (complete server state). Follows the tags/tags_all pattern.
+		// Copy services_options map → service_option, filtered to user-managed entries.
+		// If the user manages specific services, only those are stored in state (prevents
+		// perpetual plan drift from auto-discovered services). If no user management (data
+		// source or import), include all non-internal services.
 		if in.Configuration.ServicesOptions != nil {
-			serviceOptionAll := make([]interface{}, 0, len(in.Configuration.ServicesOptions))
 			serviceOptionData := make([]interface{}, 0, len(in.Configuration.ServicesOptions))
 			names := make([]string, 0, len(in.Configuration.ServicesOptions))
 			for name := range in.Configuration.ServicesOptions {
@@ -945,6 +1041,15 @@ func collectorCopyAttrs(d *schema.ResourceData, in *collector) diag.Diagnostics 
 			}
 			sort.Strings(names)
 			for _, name := range names {
+				// If user manages specific services, only include those.
+				// Otherwise (data source / import / no service_option blocks), include all non-internal.
+				if len(managedServices) > 0 {
+					if !managedServices[name] {
+						continue
+					}
+				} else if strings.HasPrefix(name, "better-stack-") || strings.HasPrefix(name, "better-stack_") {
+					continue
+				}
 				opt := in.Configuration.ServicesOptions[name]
 				entry := map[string]interface{}{"name": name}
 				if opt.LogSampling != nil {
@@ -953,16 +1058,13 @@ func collectorCopyAttrs(d *schema.ResourceData, in *collector) diag.Diagnostics 
 				if opt.IngestTraces != nil {
 					entry["ingest_traces"] = *opt.IngestTraces
 				}
-				serviceOptionAll = append(serviceOptionAll, entry)
-				if !strings.HasPrefix(name, "better-stack-") && !strings.HasPrefix(name, "better-stack_") {
-					serviceOptionData = append(serviceOptionData, entry)
-				}
+				serviceOptionData = append(serviceOptionData, entry)
 			}
 			configData["service_option"] = serviceOptionData
-			configData["service_option_all"] = serviceOptionAll
 		}
 
-		// Copy namespaces_options map → namespace_option set
+		// Copy namespaces_options map → namespace_option, filtered to user-managed entries.
+		// Same partial-management logic as service_option above.
 		if in.Configuration.NamespacesOptions != nil {
 			namespaceOptionData := make([]interface{}, 0, len(in.Configuration.NamespacesOptions))
 			names := make([]string, 0, len(in.Configuration.NamespacesOptions))
@@ -971,6 +1073,11 @@ func collectorCopyAttrs(d *schema.ResourceData, in *collector) diag.Diagnostics 
 			}
 			sort.Strings(names)
 			for _, name := range names {
+				// If user manages specific namespaces, only include those.
+				// Otherwise (data source / import), include all.
+				if len(managedNamespaces) > 0 && !managedNamespaces[name] {
+					continue
+				}
 				opt := in.Configuration.NamespacesOptions[name]
 				entry := map[string]interface{}{"name": name}
 				if opt.LogSampling != nil {
