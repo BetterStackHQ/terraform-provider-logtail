@@ -93,7 +93,7 @@ This Data Source allows you to look up existing Sources using their table name. 
 - `team_name` (String) Used to specify the team the resource should be created in when using global tokens.
 - `token` (String) The token of this source. This token is used to identify and route the data you will send to Better Stack.
 - `updated_at` (String) The time when this monitor group was updated.
-- `vrl_transformation` (String) The VRL code that's used to transform events. Read more about [VRL transformations](https://betterstack.com/docs/logs/using-logtail/transforming-ingested-data/logs-vrl/).
+- `vrl_transformation` (String) VRL transformation that runs on Better Stack's servers during ingestion. Note: data has already left your infrastructure at this point. For transformations that must run before data leaves your network (e.g. PII redaction), use `logtail_collector` with `configuration.vrl_transformation` instead. Read more about [VRL transformations](https://betterstack.com/docs/logs/using-logtail/transforming-ingested-data/logs-vrl/).
 
 <a id="nestedatt--custom_bucket"></a>
 ### Nested Schema for `custom_bucket`

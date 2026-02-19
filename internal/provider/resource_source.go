@@ -260,27 +260,10 @@ var sourceSchema = map[string]*schema.Schema{
 		},
 	},
 	"vrl_transformation": {
-		Description: "The VRL code that's used to transform events. Read more about [VRL transformations](https://betterstack.com/docs/logs/using-logtail/transforming-ingested-data/logs-vrl/).",
+		Description: "VRL transformation that runs on Better Stack's servers during ingestion. Note: data has already left your infrastructure at this point. For transformations that must run before data leaves your network (e.g. PII redaction), use `logtail_collector` with `configuration.vrl_transformation` instead. Read more about [VRL transformations](https://betterstack.com/docs/logs/using-logtail/transforming-ingested-data/logs-vrl/).",
 		Type:        schema.TypeString,
 		Optional:    true,
 		DiffSuppressFunc: func(k, old, new string, d *schema.ResourceData) bool {
-			normalizeVRL := func(vrl string) string {
-				if vrl == "" {
-					return ""
-				}
-				lines := strings.Split(vrl, "\n")
-				var normalized []string
-				for _, line := range lines {
-					normalizedLine := strings.TrimSpace(line)
-					normalizedLine = strings.TrimSuffix(normalizedLine, ".")
-					normalizedLine = strings.TrimSpace(normalizedLine)
-					if normalizedLine != "" {
-						normalized = append(normalized, normalizedLine)
-					}
-				}
-				return strings.Join(normalized, "\n")
-			}
-
 			return normalizeVRL(old) == normalizeVRL(new)
 		},
 	},
