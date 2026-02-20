@@ -108,6 +108,7 @@ Optional:
 Optional:
 
 - `ebpf_metrics` (Boolean) Enable eBPF-based metrics collection.
+- `ebpf_red_metrics` (Boolean) Enable service map and RED (Requests, Error rate, Duration) metrics via eBPF.
 - `ebpf_tracing_basic` (Boolean) Enable basic eBPF tracing.
 - `ebpf_tracing_full` (Boolean) Enable full eBPF tracing.
 - `logs_collector_internals` (Boolean) Collect internal collector logs.
@@ -118,7 +119,6 @@ Optional:
 - `metrics_databases` (Boolean) Collect database metrics via the cluster agent.
 - `metrics_nginx` (Boolean) Collect Nginx metrics.
 - `traces_opentelemetry` (Boolean) Accept OpenTelemetry SDK traces on ports 4317 (gRPC) and 4318 (HTTP).
-- `ebpf_red_metrics` (Boolean) Enable service map and RED (Requests, Error rate, Duration) metrics via eBPF.
 
 
 <a id="nestedblock--configuration--namespace_option"></a>
