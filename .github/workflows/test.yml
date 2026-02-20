@@ -30,6 +30,7 @@ jobs:
       matrix:
         terraform-version: ["0.13", "1.0", "1.8", "latest"]
         config: [examples/basic, examples/advanced, examples/connection, examples/scrape, examples/warehouse, examples/collector]
+      max-parallel: 6
       fail-fast: false
     runs-on: ubuntu-latest
     steps:
