@@ -204,10 +204,12 @@ func TestResourceCollector(t *testing.T) {
 						traces_sample_rate = 50
 
 						components {
-							ebpf_metrics = true
-							logs_host    = true
-							logs_docker  = true
-							metrics_nginx = true
+							ebpf_metrics          = true
+							logs_host             = true
+							logs_docker           = true
+							metrics_nginx         = true
+							traces_opentelemetry  = true
+							ebpf_red_metrics      = false
 						}
 					}
 				}
@@ -222,6 +224,8 @@ func TestResourceCollector(t *testing.T) {
 					resource.TestCheckResourceAttr("logtail_collector.this", "configuration.0.components.0.logs_host", "true"),
 					resource.TestCheckResourceAttr("logtail_collector.this", "configuration.0.components.0.logs_docker", "true"),
 					resource.TestCheckResourceAttr("logtail_collector.this", "configuration.0.components.0.metrics_nginx", "true"),
+					resource.TestCheckResourceAttr("logtail_collector.this", "configuration.0.components.0.traces_opentelemetry", "true"),
+					resource.TestCheckResourceAttr("logtail_collector.this", "configuration.0.components.0.ebpf_red_metrics", "false"),
 				),
 			},
 			// Step 2 - update configuration
@@ -240,9 +244,11 @@ func TestResourceCollector(t *testing.T) {
 						traces_sample_rate = 25
 
 						components {
-							ebpf_metrics      = false
-							logs_host         = true
-							ebpf_tracing_full = true
+							ebpf_metrics         = false
+							logs_host            = true
+							ebpf_tracing_full    = true
+							traces_opentelemetry = false
+							ebpf_red_metrics     = true
 						}
 					}
 				}
@@ -252,6 +258,8 @@ func TestResourceCollector(t *testing.T) {
 					resource.TestCheckResourceAttr("logtail_collector.this", "configuration.0.traces_sample_rate", "25"),
 					resource.TestCheckResourceAttr("logtail_collector.this", "configuration.0.components.0.ebpf_metrics", "false"),
 					resource.TestCheckResourceAttr("logtail_collector.this", "configuration.0.components.0.ebpf_tracing_full", "true"),
+					resource.TestCheckResourceAttr("logtail_collector.this", "configuration.0.components.0.traces_opentelemetry", "false"),
+					resource.TestCheckResourceAttr("logtail_collector.this", "configuration.0.components.0.ebpf_red_metrics", "true"),
 				),
 			},
 		},

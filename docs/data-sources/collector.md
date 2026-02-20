@@ -74,6 +74,7 @@ Read-Only:
 Read-Only:
 
 - `ebpf_metrics` (Boolean)
+- `ebpf_red_metrics` (Boolean)
 - `ebpf_tracing_basic` (Boolean)
 - `ebpf_tracing_full` (Boolean)
 - `logs_collector_internals` (Boolean)
@@ -83,6 +84,7 @@ Read-Only:
 - `metrics_apache` (Boolean)
 - `metrics_databases` (Boolean)
 - `metrics_nginx` (Boolean)
+- `traces_opentelemetry` (Boolean)
 
 
 <a id="nestedobjatt--configuration--namespace_option"></a>

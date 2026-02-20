@@ -244,6 +244,8 @@ var collectorSchema = map[string]*schema.Schema{
 							"ebpf_metrics":             {Description: "Enable eBPF-based metrics collection.", Type: schema.TypeBool, Optional: true, Computed: true},
 							"ebpf_tracing_basic":       {Description: "Enable basic eBPF tracing.", Type: schema.TypeBool, Optional: true, Computed: true},
 							"ebpf_tracing_full":        {Description: "Enable full eBPF tracing.", Type: schema.TypeBool, Optional: true, Computed: true},
+							"traces_opentelemetry":     {Description: "Accept OpenTelemetry SDK traces on ports 4317 (gRPC) and 4318 (HTTP).", Type: schema.TypeBool, Optional: true, Computed: true},
+							"ebpf_red_metrics":         {Description: "Enable service map and RED (Requests, Error rate, Duration) metrics via eBPF.", Type: schema.TypeBool, Optional: true, Computed: true},
 						},
 					},
 				},
@@ -396,6 +398,8 @@ type collectorComponents struct {
 	EbpfMetrics           *bool `json:"ebpf_metrics,omitempty"`
 	EbpfTracingBasic      *bool `json:"ebpf_tracing_basic,omitempty"`
 	EbpfTracingFull       *bool `json:"ebpf_tracing_full,omitempty"`
+	TracesOpentelemetry   *bool `json:"traces_opentelemetry,omitempty"`
+	EbpfRedMetrics        *bool `json:"ebpf_red_metrics,omitempty"`
 }
 
 type collectorEntityOption struct {
@@ -712,6 +716,8 @@ func loadCollectorConfiguration(d *schema.ResourceData) *collectorConfiguration 
 			EbpfMetrics:           boolPtrIfSet(cm, "ebpf_metrics"),
 			EbpfTracingBasic:      boolPtrIfSet(cm, "ebpf_tracing_basic"),
 			EbpfTracingFull:       boolPtrIfSet(cm, "ebpf_tracing_full"),
+			TracesOpentelemetry:   boolPtrIfSet(cm, "traces_opentelemetry"),
+			EbpfRedMetrics:        boolPtrIfSet(cm, "ebpf_red_metrics"),
 		}
 	}
 
@@ -1015,6 +1021,12 @@ func collectorCopyAttrs(d *schema.ResourceData, in *collector) diag.Diagnostics 
 			}
 			if c.EbpfTracingFull != nil {
 				componentsData["ebpf_tracing_full"] = *c.EbpfTracingFull
+			}
+			if c.TracesOpentelemetry != nil {
+				componentsData["traces_opentelemetry"] = *c.TracesOpentelemetry
+			}
+			if c.EbpfRedMetrics != nil {
+				componentsData["ebpf_red_metrics"] = *c.EbpfRedMetrics
 			}
 			configData["components"] = []interface{}{componentsData}
 		}
