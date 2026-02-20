@@ -83,6 +83,8 @@ Read-Only:
 - `metrics_apache` (Boolean)
 - `metrics_databases` (Boolean)
 - `metrics_nginx` (Boolean)
+- `traces_opentelemetry` (Boolean)
+- `ebpf_red_metrics` (Boolean)
 
 
 <a id="nestedobjatt--configuration--namespace_option"></a>

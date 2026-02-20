@@ -117,6 +117,8 @@ Optional:
 - `metrics_apache` (Boolean) Collect Apache metrics.
 - `metrics_databases` (Boolean) Collect database metrics via the cluster agent.
 - `metrics_nginx` (Boolean) Collect Nginx metrics.
+- `traces_opentelemetry` (Boolean) Accept OpenTelemetry SDK traces on ports 4317 (gRPC) and 4318 (HTTP).
+- `ebpf_red_metrics` (Boolean) Enable service map and RED (Requests, Error rate, Duration) metrics via eBPF.
 
 
 <a id="nestedblock--configuration--namespace_option"></a>
