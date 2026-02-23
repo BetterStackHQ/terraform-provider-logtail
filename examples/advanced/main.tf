@@ -1,5 +1,13 @@
 provider "logtail" {
   api_token = var.logtail_api_token
+  # Defaults are already set to work nicely with Telemetry API
+  # If needed, you can customize the configuration to better suit your use case
+  api_retry_max      = 4
+  api_retry_wait_min = 10
+  api_retry_wait_max = 300
+  api_timeout        = 60
+  api_rate_limit     = 5
+  api_rate_burst     = 10
 }
 
 resource "logtail_source_group" "group" {
