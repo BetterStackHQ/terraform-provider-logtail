@@ -5,8 +5,10 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"os"
 	"time"
 
+	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/go-retryablehttp"
 	"golang.org/x/time/rate"
 )
@@ -71,11 +73,15 @@ func newClient(config ClientConfig) (*client, error) {
 		retryClient.HTTPClient = config.HTTPClient
 	}
 
-	// Disable default logging
-	retryClient.Logger = nil
-	retryClient.RequestLogHook = nil
-	retryClient.ResponseLogHook = nil
-	retryClient.ErrorHandler = nil
+	// Use hclog for Terraform-compatible logging (visible with TF_LOG=DEBUG)
+	logLevel := hclog.LevelFromString(os.Getenv("TF_LOG"))
+	if logLevel == hclog.NoLevel {
+		logLevel = hclog.Off
+	}
+	retryClient.Logger = hclog.New(&hclog.LoggerOptions{
+		Name:  "logtail-api",
+		Level: logLevel,
+	})
 
 	// Create rate limiter if specified
 	var rateLimiter *rate.Limiter
