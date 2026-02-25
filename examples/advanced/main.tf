@@ -155,3 +155,74 @@ resource "logtail_dashboard" "custom" {
     sections = []
   })
 }
+
+# Exploration Groups
+resource "logtail_exploration_group" "monitoring" {
+  name = "Terraform Advanced Monitoring"
+}
+
+# Exploration with full configuration
+resource "logtail_exploration" "api_errors" {
+  name                 = "API Error Rate"
+  date_range_from      = "now-24h"
+  date_range_to        = "now"
+  exploration_group_id = logtail_exploration_group.monitoring.id
+
+  chart {
+    chart_type  = "line_chart"
+    description = "Tracks error rates across services"
+    settings = jsonencode({
+      unit     = "number"
+      stacking = "dont_stack"
+      legend   = "bottom"
+    })
+  }
+
+  query {
+    name            = "Error Count"
+    query_type      = "sql_expression"
+    sql_query       = <<-EOT
+      SELECT {{time}} AS time, count(*) AS value
+      FROM {{source}}
+      WHERE time BETWEEN {{start_time}} AND {{end_time}}
+        AND level = 'error'
+      GROUP BY time
+    EOT
+    source_variable = "source"
+  }
+
+  variable {
+    name           = "service"
+    variable_type  = "select_with_sql"
+    sql_definition = "service_name"
+  }
+}
+
+# Alert on the exploration
+resource "logtail_exploration_alert" "high_errors" {
+  exploration_id      = logtail_exploration.api_errors.id
+  name                = "High Error Rate Alert"
+  alert_type          = "threshold"
+  operator            = "higher_than"
+  value               = 100
+  query_period        = 300
+  confirmation_period = 60
+  recovery_period     = 300
+
+  email = true
+  push  = true
+
+  metadata = {
+    severity    = "high"
+    runbook_url = "https://wiki.example.com/runbooks/high-errors"
+  }
+}
+
+# Data source examples for explorations
+data "logtail_exploration_group" "lookup" {
+  name = logtail_exploration_group.monitoring.name
+}
+
+data "logtail_exploration" "lookup" {
+  name = logtail_exploration.api_errors.name
+}
