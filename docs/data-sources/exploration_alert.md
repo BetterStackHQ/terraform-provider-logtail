@@ -37,20 +37,20 @@ This data source allows you to get information about an Alert on an Exploration 
 - `incident_cause` (String) Incident description template (supports {{variable}} interpolation).
 - `incident_per_series` (Boolean) Create separate incidents per series.
 - `metadata` (Map of String) Custom metadata key-value pairs included in incident notifications.
-- `operator` (String) The comparison operator. For threshold: 'equal', 'not_equal', 'higher_than', 'higher_than_or_equal', 'lower_than', 'lower_than_or_equal'. For relative: 'increases_by', 'decreases_by', 'changes_by'.
+- `operator` (String) The comparison operator. For threshold: 'equal', 'not_equal', 'higher_than', 'higher_than_or_equal', 'lower_than', 'lower_than_or_equal'. For relative: 'increases_by', 'decreases_by', 'changes_by'. Not required for anomaly alerts.
 - `paused` (Boolean) Whether the alert is paused.
+- `paused_reason` (String) Read-only field explaining why the alert is paused (e.g., 'Manually paused', complexity issues, too many failures).
 - `push` (Boolean) Enable push notifications.
 - `query_period` (Number) The query evaluation window in seconds (default: 60).
 - `recovery_period` (Number) The recovery delay in seconds.
 - `series_names` (List of String) Specific series to monitor.
-- `shown_interval` (Number) Time range to display in seconds (only for 'anomaly_rrcf' type).
 - `sms` (Boolean) Enable SMS notifications.
 - `source_mode` (String) Source selection mode: 'source_variable', 'platforms_single_source', or 'platforms_all_sources'.
 - `source_platforms` (List of String) Platform filters (used when source_mode is 'platforms_*').
 - `source_variable` (String) Source reference (format: 'source:table_name'). If omitted, derived from exploration's source variable.
-- `string_value` (String) The string threshold value (only with 'equal' or 'not_equal' operators).
+- `string_value` (String) The string threshold value (only for threshold alerts with 'equal' or 'not_equal' operators).
 - `updated_at` (String) The time when this alert was updated.
-- `value` (Number) The numeric threshold value.
+- `value` (Number) The numeric threshold value. Required for threshold and relative alerts.
 
 <a id="nestedatt--escalation_target"></a>
 ### Nested Schema for `escalation_target`
