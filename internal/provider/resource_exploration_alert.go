@@ -61,7 +61,8 @@ var explorationAlertSchema = map[string]*schema.Schema{
 	"confirmation_period": {
 		Description: "The confirmation delay in seconds before triggering (required, >= 0).",
 		Type:        schema.TypeInt,
-		Required:    true,
+		Optional:    true,
+		Computed:    true,
 	},
 	"recovery_period": {
 		Description: "The recovery delay in seconds.",
@@ -434,88 +435,25 @@ func loadExplorationAlert(d *schema.ResourceData) explorationAlert {
 		in.AnomalyTrigger = &s
 	}
 
-	// Load float fields
-	if v, ok := d.GetOk("value"); ok {
-		f := v.(float64)
-		in.Value = &f
-	}
-	if v, ok := d.GetOk("anomaly_sensitivity"); ok {
-		f := v.(float64)
-		in.AnomalySensitivity = &f
-	}
+	// Load float fields - use helper to allow 0 values
+	in.Value = floatFromResourceData(d, "value")
+	in.AnomalySensitivity = floatFromResourceData(d, "anomaly_sensitivity")
 
-	// Load int fields
-	if v, ok := d.GetOk("query_period"); ok {
-		i := v.(int)
-		in.QueryPeriod = &i
-	}
-	// confirmation_period is Required, so always has a value
-	i := d.Get("confirmation_period").(int)
-	in.ConfirmationPeriod = &i
-	if v, ok := d.GetOk("recovery_period"); ok {
-		i := v.(int)
-		in.RecoveryPeriod = &i
-	}
-	if v, ok := d.GetOk("aggregation_interval"); ok {
-		i := v.(int)
-		in.AggregationInterval = &i
-	}
-	if v, ok := d.GetOk("check_period"); ok {
-		i := v.(int)
-		in.CheckPeriod = &i
-	}
+	// Load int fields - use helper to allow 0 values
+	in.QueryPeriod = intFromResourceData(d, "query_period")
+	in.ConfirmationPeriod = intFromResourceData(d, "confirmation_period")
+	in.RecoveryPeriod = intFromResourceData(d, "recovery_period")
+	in.AggregationInterval = intFromResourceData(d, "aggregation_interval")
+	in.CheckPeriod = intFromResourceData(d, "check_period")
 
-	// Load bool fields - use GetOk which works for true values,
-	// and check raw config for explicit false values
-	if v, ok := d.GetOk("paused"); ok {
-		b := v.(bool)
-		in.Paused = &b
-	} else if !d.GetRawConfig().GetAttr("paused").IsNull() {
-		b := false
-		in.Paused = &b
-	}
-	if v, ok := d.GetOk("incident_per_series"); ok {
-		b := v.(bool)
-		in.IncidentPerSeries = &b
-	} else if !d.GetRawConfig().GetAttr("incident_per_series").IsNull() {
-		b := false
-		in.IncidentPerSeries = &b
-	}
-	if v, ok := d.GetOk("call"); ok {
-		b := v.(bool)
-		in.Call = &b
-	} else if !d.GetRawConfig().GetAttr("call").IsNull() {
-		b := false
-		in.Call = &b
-	}
-	if v, ok := d.GetOk("sms"); ok {
-		b := v.(bool)
-		in.SMS = &b
-	} else if !d.GetRawConfig().GetAttr("sms").IsNull() {
-		b := false
-		in.SMS = &b
-	}
-	if v, ok := d.GetOk("email"); ok {
-		b := v.(bool)
-		in.Email = &b
-	} else if !d.GetRawConfig().GetAttr("email").IsNull() {
-		b := false
-		in.Email = &b
-	}
-	if v, ok := d.GetOk("push"); ok {
-		b := v.(bool)
-		in.Push = &b
-	} else if !d.GetRawConfig().GetAttr("push").IsNull() {
-		b := false
-		in.Push = &b
-	}
-	if v, ok := d.GetOk("critical_alert"); ok {
-		b := v.(bool)
-		in.CriticalAlert = &b
-	} else if !d.GetRawConfig().GetAttr("critical_alert").IsNull() {
-		b := false
-		in.CriticalAlert = &b
-	}
+	// Load bool fields - use helper to allow false values
+	in.Paused = boolFromResourceData(d, "paused")
+	in.IncidentPerSeries = boolFromResourceData(d, "incident_per_series")
+	in.Call = boolFromResourceData(d, "call")
+	in.SMS = boolFromResourceData(d, "sms")
+	in.Email = boolFromResourceData(d, "email")
+	in.Push = boolFromResourceData(d, "push")
+	in.CriticalAlert = boolFromResourceData(d, "critical_alert")
 
 	// Load string arrays
 	if v, ok := d.GetOk("series_names"); ok {
