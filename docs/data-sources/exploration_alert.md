@@ -32,7 +32,7 @@ This data source allows you to get information about an Alert on an Exploration 
 - `created_at` (String) The time when this alert was created.
 - `critical_alert` (Boolean) Mark as critical alert (bypasses quiet hours).
 - `email` (Boolean) Enable email notifications.
-- `escalation_target` (List of Object) The escalation target for this alert. Specify either team_id/team_name OR policy_id. (see [below for nested schema](#nestedatt--escalation_target))
+- `escalation_target` (List of Object) The escalation target for this alert. Specify either team_id/team_name OR policy_id/policy_name. (see [below for nested schema](#nestedatt--escalation_target))
 - `id` (String) The ID of this alert.
 - `incident_cause` (String) Incident description template (supports {{variable}} interpolation).
 - `incident_per_series` (Boolean) Create separate incidents per series.
@@ -58,5 +58,6 @@ This data source allows you to get information about an Alert on an Exploration 
 Read-Only:
 
 - `policy_id` (Number)
+- `policy_name` (String)
 - `team_id` (Number)
 - `team_name` (String)

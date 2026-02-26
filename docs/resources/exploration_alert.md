@@ -18,7 +18,6 @@ This resource allows you to create, modify, and delete Alerts on Explorations in
 ### Required
 
 - `alert_type` (String) The type of alert: 'threshold', 'relative', or 'anomaly_rrcf'.
-- `confirmation_period` (Number) The confirmation delay in seconds before triggering (required, >= 0).
 - `exploration_id` (String) The ID of the exploration this alert belongs to.
 - `name` (String) The name of this alert.
 
@@ -29,9 +28,10 @@ This resource allows you to create, modify, and delete Alerts on Explorations in
 - `anomaly_trigger` (String) Anomaly trigger mode: 'any', 'higher', or 'lower' (only for 'anomaly_rrcf' type).
 - `call` (Boolean) Enable phone call notifications.
 - `check_period` (Number) How often to check the alert condition in seconds.
+- `confirmation_period` (Number) The confirmation delay in seconds before triggering (required, >= 0).
 - `critical_alert` (Boolean) Mark as critical alert (bypasses quiet hours).
 - `email` (Boolean) Enable email notifications.
-- `escalation_target` (Block List, Max: 1) The escalation target for this alert. Specify either team_id/team_name OR policy_id. (see [below for nested schema](#nestedblock--escalation_target))
+- `escalation_target` (Block List, Max: 1) The escalation target for this alert. Specify either team_id/team_name OR policy_id/policy_name. (see [below for nested schema](#nestedblock--escalation_target))
 - `incident_cause` (String) Incident description template (supports {{variable}} interpolation).
 - `incident_per_series` (Boolean) Create separate incidents per series.
 - `metadata` (Map of String) Custom metadata key-value pairs included in incident notifications.
@@ -61,5 +61,6 @@ This resource allows you to create, modify, and delete Alerts on Explorations in
 Optional:
 
 - `policy_id` (Number) The Better Stack escalation policy ID.
+- `policy_name` (String) The Better Stack escalation policy name.
 - `team_id` (Number) The Better Stack team ID to escalate to.
 - `team_name` (String) The Better Stack team name to escalate to.

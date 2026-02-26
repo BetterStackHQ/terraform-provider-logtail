@@ -50,9 +50,9 @@ resource "logtail_exploration" "error_logs" {
   }
 
   variable {
-    name = "source"
+    name          = "source"
     variable_type = "source"
-    values = [logtail_source.this.id]
+    values        = [logtail_source.this.id]
   }
 }
 

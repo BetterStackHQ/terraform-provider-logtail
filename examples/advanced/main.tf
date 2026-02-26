@@ -59,10 +59,10 @@ data "logtail_metric" "level" {
 }
 
 resource "logtail_source" "other" {
-  name               = "Terraform Advanced Source 2"
-  platform           = "http"
-  data_region        = "germany"
-  source_group_id    = logtail_source_group.group.id
+  name            = "Terraform Advanced Source 2"
+  platform        = "http"
+  data_region     = "germany"
+  source_group_id = logtail_source_group.group.id
 }
 
 # =============================================================================
@@ -181,7 +181,7 @@ resource "logtail_dashboard" "custom" {
 
 # Bar chart with all options filled in, log filtering, no alert, all system variables, selected source
 resource "logtail_exploration" "bar_chart_full" {
-  name           = "Terraform Bar Chart Full Options"
+  name            = "Terraform Bar Chart Full Options"
   date_range_from = "now-24h"
   date_range_to   = "now"
 
@@ -227,13 +227,13 @@ resource "logtail_exploration" "multi_query_alerts" {
     chart_type  = "line_chart"
     description = "Compare event counts from two sources"
     settings = jsonencode({
-      unit              = "shortened"
-      decimal_places    = 0
-      legend            = "shown_below"
-      stacking          = "dont_stack"
-      time_column       = "time"
-      series_column     = "series"
-      value_columns     = ["value"]
+      unit           = "shortened"
+      decimal_places = 0
+      legend         = "shown_below"
+      stacking       = "dont_stack"
+      time_column    = "time"
+      series_column  = "series"
+      value_columns  = ["value"]
     })
   }
 
