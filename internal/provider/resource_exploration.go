@@ -521,37 +521,60 @@ func explorationCopyAttrs(d *schema.ResourceData, in *exploration) diag.Diagnost
 		}
 	}
 
-	// Copy variables - filter out default variables (time, start_time, end_time, source)
+	// Copy variables - preserve user's order and only include user-configured variables
 	if in.Variables != nil {
-		defaultVars := map[string]bool{
+		// System variables that are always auto-created and cannot be customized
+		systemVars := map[string]bool{
 			"time":       true,
 			"start_time": true,
 			"end_time":   true,
-			"source":     true,
 		}
 
-		varData := make([]interface{}, 0, len(in.Variables))
-		for _, v := range in.Variables {
-			// Skip default variables
-			if v.Name != nil && defaultVars[*v.Name] {
+		// Build a map of API-returned variables by name for quick lookup
+		apiVarsByName := make(map[string]*explorationVariable)
+		for i := range in.Variables {
+			if in.Variables[i].Name != nil {
+				apiVarsByName[*in.Variables[i].Name] = &in.Variables[i]
+			}
+		}
+
+		// Get user-configured variables in their original order
+		var userVarNames []string
+		if varConfig, ok := d.GetOk("variable"); ok {
+			for _, v := range varConfig.([]interface{}) {
+				vMap := v.(map[string]interface{})
+				if name, ok := vMap["name"].(string); ok {
+					userVarNames = append(userVarNames, name)
+				}
+			}
+		}
+
+		// Build result in user's order, using API values
+		varData := make([]interface{}, 0, len(userVarNames))
+		for _, name := range userVarNames {
+			// Skip system variables
+			if systemVars[name] {
+				continue
+			}
+
+			apiVar, exists := apiVarsByName[name]
+			if !exists {
 				continue
 			}
 
 			vMap := make(map[string]interface{})
-			if v.Name != nil {
-				vMap["name"] = *v.Name
+			vMap["name"] = name
+			if apiVar.VariableType != nil {
+				vMap["variable_type"] = *apiVar.VariableType
 			}
-			if v.VariableType != nil {
-				vMap["variable_type"] = *v.VariableType
+			if apiVar.SQLDefinition != nil {
+				vMap["sql_definition"] = *apiVar.SQLDefinition
 			}
-			if v.SQLDefinition != nil {
-				vMap["sql_definition"] = *v.SQLDefinition
+			if apiVar.Values != nil {
+				vMap["values"] = apiVar.Values
 			}
-			if v.Values != nil {
-				vMap["values"] = v.Values
-			}
-			if v.DefaultValues != nil {
-				vMap["default_values"] = v.DefaultValues
+			if apiVar.DefaultValues != nil {
+				vMap["default_values"] = apiVar.DefaultValues
 			}
 			varData = append(varData, vMap)
 		}

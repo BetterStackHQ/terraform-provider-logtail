@@ -174,7 +174,7 @@ var explorationAlertSchema = map[string]*schema.Schema{
 		Computed:    true,
 	},
 	"escalation_target": {
-		Description: "The escalation target for this alert. Specify either team_id/team_name OR policy_id.",
+		Description: "The escalation target for this alert. Specify either team_id/team_name OR policy_id/policy_name.",
 		Type:        schema.TypeList,
 		Optional:    true,
 		MaxItems:    1,
@@ -193,6 +193,11 @@ var explorationAlertSchema = map[string]*schema.Schema{
 				"policy_id": {
 					Description: "The Better Stack escalation policy ID.",
 					Type:        schema.TypeInt,
+					Optional:    true,
+				},
+				"policy_name": {
+					Description: "The Better Stack escalation policy name.",
+					Type:        schema.TypeString,
 					Optional:    true,
 				},
 			},
@@ -236,9 +241,10 @@ func newExplorationAlertResource() *schema.Resource {
 
 // alertEscalationTarget handles polymorphic response - can be null, string "current_team", or object
 type alertEscalationTarget struct {
-	TeamID   *int    `json:"team_id,omitempty"`
-	TeamName *string `json:"team_name,omitempty"`
-	PolicyID *int    `json:"policy_id,omitempty"`
+	TeamID     *int    `json:"team_id,omitempty"`
+	TeamName   *string `json:"team_name,omitempty"`
+	PolicyID   *int    `json:"policy_id,omitempty"`
+	PolicyName *string `json:"policy_name,omitempty"`
 }
 
 // alertEscalationTargetWrapper handles the polymorphic escalation_target field
@@ -493,6 +499,9 @@ func loadExplorationAlert(d *schema.ResourceData) explorationAlert {
 			if policyID, ok := targetMap["policy_id"].(int); ok && policyID != 0 {
 				target.PolicyID = &policyID
 			}
+			if policyName, ok := targetMap["policy_name"].(string); ok && policyName != "" {
+				target.PolicyName = &policyName
+			}
 
 			in.EscalationTarget = alertEscalationTargetWrapper{Value: target}
 		}
@@ -661,20 +670,47 @@ func explorationAlertCopyAttrs(d *schema.ResourceData, in *explorationAlert) dia
 		}
 	}
 
-	// Copy escalation_target
+	// Copy escalation_target - only store the exact fields user configured to avoid drift
 	if in.EscalationTarget.Value != nil {
+		// Check what fields the user configured
+		var userConfiguredTeamID, userConfiguredTeamName, userConfiguredPolicyID, userConfiguredPolicyName bool
+		if escConfig, ok := d.GetOk("escalation_target"); ok {
+			list := escConfig.([]interface{})
+			if len(list) > 0 {
+				targetMap := list[0].(map[string]interface{})
+				if v, ok := targetMap["team_id"].(int); ok && v != 0 {
+					userConfiguredTeamID = true
+				}
+				if v, ok := targetMap["team_name"].(string); ok && v != "" {
+					userConfiguredTeamName = true
+				}
+				if v, ok := targetMap["policy_id"].(int); ok && v != 0 {
+					userConfiguredPolicyID = true
+				}
+				if v, ok := targetMap["policy_name"].(string); ok && v != "" {
+					userConfiguredPolicyName = true
+				}
+			}
+		}
+
 		targetData := make(map[string]interface{})
-		if in.EscalationTarget.Value.TeamID != nil {
+		// Only store the exact fields user configured
+		if in.EscalationTarget.Value.TeamID != nil && userConfiguredTeamID {
 			targetData["team_id"] = *in.EscalationTarget.Value.TeamID
 		}
-		if in.EscalationTarget.Value.TeamName != nil {
+		if in.EscalationTarget.Value.TeamName != nil && userConfiguredTeamName {
 			targetData["team_name"] = *in.EscalationTarget.Value.TeamName
 		}
-		if in.EscalationTarget.Value.PolicyID != nil {
+		if in.EscalationTarget.Value.PolicyID != nil && userConfiguredPolicyID {
 			targetData["policy_id"] = *in.EscalationTarget.Value.PolicyID
 		}
-		if err := d.Set("escalation_target", []interface{}{targetData}); err != nil {
-			derr = append(derr, diag.FromErr(err)[0])
+		if in.EscalationTarget.Value.PolicyName != nil && userConfiguredPolicyName {
+			targetData["policy_name"] = *in.EscalationTarget.Value.PolicyName
+		}
+		if len(targetData) > 0 {
+			if err := d.Set("escalation_target", []interface{}{targetData}); err != nil {
+				derr = append(derr, diag.FromErr(err)[0])
+			}
 		}
 	}
 
