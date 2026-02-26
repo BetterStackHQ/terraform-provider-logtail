@@ -449,10 +449,9 @@ func loadExplorationAlert(d *schema.ResourceData) explorationAlert {
 		i := v.(int)
 		in.QueryPeriod = &i
 	}
-	if v, ok := d.GetOkExists("confirmation_period"); ok {
-		i := v.(int)
-		in.ConfirmationPeriod = &i
-	}
+	// confirmation_period is Required, so always has a value
+	i := d.Get("confirmation_period").(int)
+	in.ConfirmationPeriod = &i
 	if v, ok := d.GetOk("recovery_period"); ok {
 		i := v.(int)
 		in.RecoveryPeriod = &i
@@ -466,33 +465,55 @@ func loadExplorationAlert(d *schema.ResourceData) explorationAlert {
 		in.CheckPeriod = &i
 	}
 
-	// Load bool fields
-	if v, ok := d.GetOkExists("paused"); ok {
+	// Load bool fields - use GetOk which works for true values,
+	// and check raw config for explicit false values
+	if v, ok := d.GetOk("paused"); ok {
 		b := v.(bool)
 		in.Paused = &b
+	} else if !d.GetRawConfig().GetAttr("paused").IsNull() {
+		b := false
+		in.Paused = &b
 	}
-	if v, ok := d.GetOkExists("incident_per_series"); ok {
+	if v, ok := d.GetOk("incident_per_series"); ok {
 		b := v.(bool)
 		in.IncidentPerSeries = &b
+	} else if !d.GetRawConfig().GetAttr("incident_per_series").IsNull() {
+		b := false
+		in.IncidentPerSeries = &b
 	}
-	if v, ok := d.GetOkExists("call"); ok {
+	if v, ok := d.GetOk("call"); ok {
 		b := v.(bool)
 		in.Call = &b
+	} else if !d.GetRawConfig().GetAttr("call").IsNull() {
+		b := false
+		in.Call = &b
 	}
-	if v, ok := d.GetOkExists("sms"); ok {
+	if v, ok := d.GetOk("sms"); ok {
 		b := v.(bool)
 		in.SMS = &b
+	} else if !d.GetRawConfig().GetAttr("sms").IsNull() {
+		b := false
+		in.SMS = &b
 	}
-	if v, ok := d.GetOkExists("email"); ok {
+	if v, ok := d.GetOk("email"); ok {
 		b := v.(bool)
 		in.Email = &b
+	} else if !d.GetRawConfig().GetAttr("email").IsNull() {
+		b := false
+		in.Email = &b
 	}
-	if v, ok := d.GetOkExists("push"); ok {
+	if v, ok := d.GetOk("push"); ok {
 		b := v.(bool)
 		in.Push = &b
+	} else if !d.GetRawConfig().GetAttr("push").IsNull() {
+		b := false
+		in.Push = &b
 	}
-	if v, ok := d.GetOkExists("critical_alert"); ok {
+	if v, ok := d.GetOk("critical_alert"); ok {
 		b := v.(bool)
+		in.CriticalAlert = &b
+	} else if !d.GetRawConfig().GetAttr("critical_alert").IsNull() {
+		b := false
 		in.CriticalAlert = &b
 	}
 

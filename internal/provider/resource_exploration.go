@@ -473,7 +473,7 @@ func explorationCopyAttrs(d *schema.ResourceData, in *exploration) diag.Diagnost
 			chartData["description"] = ""
 		}
 		// Always set settings (Computed field) - use "{}" if nil or empty
-		if in.Chart.Settings != nil && len(in.Chart.Settings) > 0 {
+		if len(in.Chart.Settings) > 0 {
 			settingsJSON, err := json.Marshal(in.Chart.Settings)
 			if err == nil {
 				chartData["settings"] = string(settingsJSON)
