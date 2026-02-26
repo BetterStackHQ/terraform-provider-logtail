@@ -108,7 +108,7 @@ func TestResourceExplorationAlert(t *testing.T) {
 			if err := json.Unmarshal(body, &reqData); err != nil {
 				t.Fatal(err)
 			}
-			// Add API-computed fields
+			// Add API-computed fields (always present)
 			reqData["created_at"] = "2023-01-01T00:00:00Z"
 			reqData["updated_at"] = "2023-01-01T00:00:00Z"
 			reqData["series_names"] = []string{}
@@ -119,26 +119,42 @@ func TestResourceExplorationAlert(t *testing.T) {
 			if _, ok := reqData["paused"]; !ok {
 				reqData["paused"] = false
 			}
-			if _, ok := reqData["call"]; !ok {
-				reqData["call"] = false
-			}
-			if _, ok := reqData["sms"]; !ok {
-				reqData["sms"] = false
-			}
-			if _, ok := reqData["email"]; !ok {
-				reqData["email"] = false
-			}
-			if _, ok := reqData["push"]; !ok {
-				reqData["push"] = false
-			}
-			if _, ok := reqData["critical_alert"]; !ok {
-				reqData["critical_alert"] = false
-			}
+			// paused_reason is null when not paused
+			reqData["paused_reason"] = nil
 			if _, ok := reqData["incident_per_series"]; !ok {
 				reqData["incident_per_series"] = false
 			}
-			if _, ok := reqData["anomaly_trigger"]; !ok {
-				reqData["anomaly_trigger"] = "any"
+
+			// Conditional fields based on alert_type
+			alertType, _ := reqData["alert_type"].(string)
+			if alertType != "anomaly_rrcf" {
+				// Threshold/relative: include check_period, notification channels
+				if _, ok := reqData["check_period"]; !ok {
+					reqData["check_period"] = 300
+				}
+				if _, ok := reqData["call"]; !ok {
+					reqData["call"] = false
+				}
+				if _, ok := reqData["sms"]; !ok {
+					reqData["sms"] = false
+				}
+				if _, ok := reqData["email"]; !ok {
+					reqData["email"] = false
+				}
+				if _, ok := reqData["push"]; !ok {
+					reqData["push"] = false
+				}
+				if _, ok := reqData["critical_alert"]; !ok {
+					reqData["critical_alert"] = false
+				}
+			} else {
+				// Anomaly: include anomaly-specific fields
+				if _, ok := reqData["anomaly_sensitivity"]; !ok {
+					reqData["anomaly_sensitivity"] = 5.0
+				}
+				if _, ok := reqData["anomaly_trigger"]; !ok {
+					reqData["anomaly_trigger"] = "any"
+				}
 			}
 			respData, err := json.Marshal(reqData)
 			if err != nil {
@@ -391,7 +407,7 @@ func TestResourceExplorationAlertWithEscalationTarget(t *testing.T) {
 			if err := json.Unmarshal(body, &reqData); err != nil {
 				t.Fatal(err)
 			}
-			// Add API-computed fields
+			// Add API-computed fields (always present)
 			reqData["created_at"] = "2023-01-01T00:00:00Z"
 			reqData["updated_at"] = "2023-01-01T00:00:00Z"
 			reqData["series_names"] = []string{}
@@ -402,29 +418,55 @@ func TestResourceExplorationAlertWithEscalationTarget(t *testing.T) {
 			if _, ok := reqData["paused"]; !ok {
 				reqData["paused"] = false
 			}
-			if _, ok := reqData["call"]; !ok {
-				reqData["call"] = false
-			}
-			if _, ok := reqData["sms"]; !ok {
-				reqData["sms"] = false
-			}
-			if _, ok := reqData["email"]; !ok {
-				reqData["email"] = false
-			}
-			if _, ok := reqData["push"]; !ok {
-				reqData["push"] = false
-			}
-			if _, ok := reqData["critical_alert"]; !ok {
-				reqData["critical_alert"] = false
-			}
+			reqData["paused_reason"] = nil
 			if _, ok := reqData["incident_per_series"]; !ok {
 				reqData["incident_per_series"] = false
 			}
-			if _, ok := reqData["anomaly_trigger"]; !ok {
-				reqData["anomaly_trigger"] = "any"
-			}
 			if _, ok := reqData["query_period"]; !ok {
 				reqData["query_period"] = 60
+			}
+
+			// Check if escalation_target is a policy - if so, don't include notification channels
+			hasPolicy := false
+			if et, ok := reqData["escalation_target"].(map[string]interface{}); ok {
+				if _, ok := et["policy_id"]; ok {
+					hasPolicy = true
+				}
+			}
+
+			// Conditional fields based on alert_type
+			alertType, _ := reqData["alert_type"].(string)
+			if alertType != "anomaly_rrcf" {
+				// Threshold/relative: include check_period
+				if _, ok := reqData["check_period"]; !ok {
+					reqData["check_period"] = 300
+				}
+				// Notification channels only when NOT using policy
+				if !hasPolicy {
+					if _, ok := reqData["call"]; !ok {
+						reqData["call"] = false
+					}
+					if _, ok := reqData["sms"]; !ok {
+						reqData["sms"] = false
+					}
+					if _, ok := reqData["email"]; !ok {
+						reqData["email"] = false
+					}
+					if _, ok := reqData["push"]; !ok {
+						reqData["push"] = false
+					}
+					if _, ok := reqData["critical_alert"]; !ok {
+						reqData["critical_alert"] = false
+					}
+				}
+			} else {
+				// Anomaly: include anomaly-specific fields
+				if _, ok := reqData["anomaly_sensitivity"]; !ok {
+					reqData["anomaly_sensitivity"] = 5.0
+				}
+				if _, ok := reqData["anomaly_trigger"]; !ok {
+					reqData["anomaly_trigger"] = "any"
+				}
 			}
 			respData, err := json.Marshal(reqData)
 			if err != nil {

@@ -35,19 +35,22 @@ var explorationAlertSchema = map[string]*schema.Schema{
 		Required:    true,
 	},
 	"operator": {
-		Description: "The comparison operator. For threshold: 'equal', 'not_equal', 'higher_than', 'higher_than_or_equal', 'lower_than', 'lower_than_or_equal'. For relative: 'increases_by', 'decreases_by', 'changes_by'.",
+		Description: "The comparison operator. For threshold: 'equal', 'not_equal', 'higher_than', 'higher_than_or_equal', 'lower_than', 'lower_than_or_equal'. For relative: 'increases_by', 'decreases_by', 'changes_by'. Not required for anomaly alerts.",
 		Type:        schema.TypeString,
-		Required:    true,
+		Optional:    true,
+		Computed:    true,
 	},
 	"value": {
-		Description: "The numeric threshold value.",
+		Description: "The numeric threshold value. Required for threshold and relative alerts.",
 		Type:        schema.TypeFloat,
 		Optional:    true,
+		Computed:    true,
 	},
 	"string_value": {
-		Description: "The string threshold value (only with 'equal' or 'not_equal' operators).",
+		Description: "The string threshold value (only for threshold alerts with 'equal' or 'not_equal' operators).",
 		Type:        schema.TypeString,
 		Optional:    true,
+		Computed:    true,
 	},
 	"query_period": {
 		Description: "The query evaluation window in seconds (default: 60).",
@@ -164,10 +167,9 @@ var explorationAlertSchema = map[string]*schema.Schema{
 		Optional:    true,
 		Computed:    true,
 	},
-	"shown_interval": {
-		Description: "Time range to display in seconds (only for 'anomaly_rrcf' type).",
-		Type:        schema.TypeInt,
-		Optional:    true,
+	"paused_reason": {
+		Description: "Read-only field explaining why the alert is paused (e.g., 'Manually paused', complexity issues, too many failures).",
+		Type:        schema.TypeString,
 		Computed:    true,
 	},
 	"escalation_target": {
@@ -286,6 +288,7 @@ type explorationAlert struct {
 	IncidentCause       *string                      `json:"incident_cause,omitempty"`
 	IncidentPerSeries   *bool                        `json:"incident_per_series,omitempty"`
 	Paused              *bool                        `json:"paused,omitempty"`
+	PausedReason        *string                      `json:"paused_reason,omitempty"`
 	Call                *bool                        `json:"call,omitempty"`
 	SMS                 *bool                        `json:"sms,omitempty"`
 	Email               *bool                        `json:"email,omitempty"`
@@ -293,7 +296,6 @@ type explorationAlert struct {
 	CriticalAlert       *bool                        `json:"critical_alert,omitempty"`
 	AnomalySensitivity  *float64                     `json:"anomaly_sensitivity,omitempty"`
 	AnomalyTrigger      *string                      `json:"anomaly_trigger,omitempty"`
-	ShownInterval       *int                         `json:"shown_interval,omitempty"`
 	EscalationTarget    alertEscalationTargetWrapper `json:"escalation_target,omitempty"`
 	Metadata            map[string]string            `json:"metadata,omitempty"`
 	CreatedAt           *string                      `json:"created_at,omitempty"`
@@ -462,10 +464,6 @@ func loadExplorationAlert(d *schema.ResourceData) explorationAlert {
 	if v, ok := d.GetOk("check_period"); ok {
 		i := v.(int)
 		in.CheckPeriod = &i
-	}
-	if v, ok := d.GetOk("shown_interval"); ok {
-		i := v.(int)
-		in.ShownInterval = &i
 	}
 
 	// Load bool fields
@@ -649,15 +647,15 @@ func explorationAlertCopyAttrs(d *schema.ResourceData, in *explorationAlert) dia
 			derr = append(derr, diag.FromErr(err)[0])
 		}
 	}
-	if in.ShownInterval != nil {
-		if err := d.Set("shown_interval", *in.ShownInterval); err != nil {
-			derr = append(derr, diag.FromErr(err)[0])
-		}
-	}
 
 	// Copy bool fields
 	if in.Paused != nil {
 		if err := d.Set("paused", *in.Paused); err != nil {
+			derr = append(derr, diag.FromErr(err)[0])
+		}
+	}
+	if in.PausedReason != nil {
+		if err := d.Set("paused_reason", *in.PausedReason); err != nil {
 			derr = append(derr, diag.FromErr(err)[0])
 		}
 	}
