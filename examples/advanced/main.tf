@@ -179,11 +179,16 @@ resource "logtail_dashboard" "custom" {
 # Explorations and alerts
 # =============================================================================
 
+resource "logtail_exploration_group" "group" {
+  name = "Terraform Advanced Exploration Group"
+}
+
 # Bar chart with all options filled in, log filtering, no alert, all system variables, selected source
 resource "logtail_exploration" "bar_chart_full" {
-  name            = "Terraform Bar Chart Full Options"
-  date_range_from = "now-24h"
-  date_range_to   = "now"
+  name                 = "Terraform Bar Chart Full Options"
+  date_range_from      = "now-24h"
+  date_range_to        = "now"
+  exploration_group_id = logtail_exploration_group.group.id
 
   chart {
     chart_type  = "bar_chart"
@@ -221,7 +226,8 @@ resource "logtail_exploration" "bar_chart_full" {
 
 # Line chart with two queries selecting different sources, with 3 different alert types
 resource "logtail_exploration" "multi_query_alerts" {
-  name = "Terraform Multi-Query with Alerts"
+  name                 = "Terraform Multi-Query with Alerts"
+  exploration_group_id = logtail_exploration_group.group.id
 
   chart {
     chart_type  = "line_chart"
@@ -313,7 +319,8 @@ resource "logtail_exploration_alert" "anomaly_alert" {
 
 # Pie chart with variable filtering
 resource "logtail_exploration" "pie_chart_filtered" {
-  name = "Terraform Pie Chart with Filtering"
+  name                 = "Terraform Pie Chart with Filtering"
+  exploration_group_id = logtail_exploration_group.group.id
 
   chart {
     chart_type  = "pie_chart"
