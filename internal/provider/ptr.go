@@ -6,6 +6,51 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
+// intFromResourceData returns a pointer to an int if the field was explicitly set in the config.
+// This allows sending 0 values to the API while omitting unset fields.
+func intFromResourceData(d *schema.ResourceData, key string) *int {
+	rawConfig := d.GetRawConfig()
+	if rawConfig.IsNull() || !rawConfig.IsKnown() {
+		return nil
+	}
+	val := rawConfig.GetAttr(key)
+	if val.IsNull() || !val.IsKnown() {
+		return nil
+	}
+	v := d.Get(key).(int)
+	return &v
+}
+
+// floatFromResourceData returns a pointer to a float64 if the field was explicitly set in the config.
+// This allows sending 0 values to the API while omitting unset fields.
+func floatFromResourceData(d *schema.ResourceData, key string) *float64 {
+	rawConfig := d.GetRawConfig()
+	if rawConfig.IsNull() || !rawConfig.IsKnown() {
+		return nil
+	}
+	val := rawConfig.GetAttr(key)
+	if val.IsNull() || !val.IsKnown() {
+		return nil
+	}
+	v := d.Get(key).(float64)
+	return &v
+}
+
+// boolFromResourceData returns a pointer to a bool if the field was explicitly set in the config.
+// This allows sending false values to the API while omitting unset fields.
+func boolFromResourceData(d *schema.ResourceData, key string) *bool {
+	rawConfig := d.GetRawConfig()
+	if rawConfig.IsNull() || !rawConfig.IsKnown() {
+		return nil
+	}
+	val := rawConfig.GetAttr(key)
+	if val.IsNull() || !val.IsKnown() {
+		return nil
+	}
+	v := d.Get(key).(bool)
+	return &v
+}
+
 // nolint
 func load(d *schema.ResourceData, key string, receiver interface{}) {
 	switch x := receiver.(type) {

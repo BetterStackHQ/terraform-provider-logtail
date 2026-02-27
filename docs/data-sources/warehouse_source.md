@@ -37,7 +37,7 @@ The actual region created may differ slightly due to dynamic load balancing.
 - `token` (String) The token of this warehouse source. This token is used to identify and route the data you will send to Better Stack.
 - `updated_at` (String) The time when this warehouse source was updated.
 - `vrl_transformation` (String) A VRL program for real-time data transformation. Read more about [VRL transformations](https://betterstack.com/docs/logs/using-logtail/transforming-ingested-data/logs-vrl/).
-- `warehouse_source_group_id` (Number) The ID of the warehouse source group this source belongs to.
+- `warehouse_source_group_id` (Number) The ID of the warehouse source group this source belongs to. Set to `0` to remove from a group.
 
 <a id="nestedatt--custom_bucket"></a>
 ### Nested Schema for `custom_bucket`

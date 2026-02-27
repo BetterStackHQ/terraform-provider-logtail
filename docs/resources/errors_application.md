@@ -117,7 +117,7 @@ This resource allows you to create, modify, and delete your Errors applications.
 
 ### Optional
 
-- `application_group_id` (Number) ID of the application group this application belongs to.
+- `application_group_id` (Number) ID of the application group this application belongs to. Set to `0` to remove from a group.
 - `custom_bucket` (Block List, Max: 1) Optional custom bucket configuration for the application. When provided, all fields (name, endpoint, access_key_id, secret_access_key) are required. (see [below for nested schema](#nestedblock--custom_bucket))
 - `data_region` (String) Data region or cluster name where application data will be stored. If omitted, the default data region for your team will be used.
 - `errors_retention` (Number) Error data retention period in days. Default retention is 90 days.

@@ -218,8 +218,20 @@ var sourceSchema = map[string]*schema.Schema{
 		Type:        schema.TypeInt,
 		Optional:    true,
 		DiffSuppressFunc: func(k, old, new string, d *schema.ResourceData) bool {
-			// Treat 0 as equivalent to unset/null
-			return (old == "0" || old == "") && (new == "0" || new == "")
+			// Check if the attribute is actually set in config using raw config
+			rawConfig := d.GetRawConfig()
+			if !rawConfig.IsNull() && rawConfig.IsKnown() {
+				val := rawConfig.GetAttr("source_group_id")
+				if val.IsNull() || !val.IsKnown() {
+					// null/unset in config means "don't manage" - suppress diff
+					return true
+				}
+			}
+			// 0 in config means "explicitly no group" - suppress only if state is also 0 or empty
+			if new == "0" {
+				return old == "0" || old == ""
+			}
+			return false
 		},
 	},
 	"custom_bucket": {
@@ -360,6 +372,12 @@ func sourceCreate(ctx context.Context, d *schema.ResourceData, meta interface{})
 	for _, e := range sourceRef(&in) {
 		if e.k == "team_id" {
 			in.TeamId = StringOrIntFromResourceData(d, e.k)
+		} else if e.k == "source_group_id" {
+			// Use intFromResourceData to properly distinguish:
+			// - null/unset -> don't send to API (don't care about group)
+			// - 0 -> send 0 to API (explicitly remove from group)
+			// - N -> send N to API (assign to group N)
+			in.SourceGroupID = intFromResourceData(d, e.k)
 		} else {
 			load(d, e.k, e.v)
 		}
@@ -454,6 +472,12 @@ func sourceUpdate(ctx context.Context, d *schema.ResourceData, meta interface{})
 		if d.HasChange(e.k) {
 			if e.k == "team_id" {
 				in.TeamId = StringOrIntFromResourceData(d, e.k)
+			} else if e.k == "source_group_id" {
+				// Use intFromResourceData to properly distinguish:
+				// - null/unset -> don't send to API (don't care about group)
+				// - 0 -> send 0 to API (explicitly remove from group)
+				// - N -> send N to API (assign to group N)
+				in.SourceGroupID = intFromResourceData(d, e.k)
 			} else {
 				load(d, e.k, e.v)
 			}

@@ -207,12 +207,24 @@ var errorsApplicationSchema = map[string]*schema.Schema{
 		Computed:    true,
 	},
 	"application_group_id": {
-		Description: "ID of the application group this application belongs to.",
+		Description: "ID of the application group this application belongs to. Set to `0` to remove from a group.",
 		Type:        schema.TypeInt,
 		Optional:    true,
 		DiffSuppressFunc: func(k, old, new string, d *schema.ResourceData) bool {
-			// Treat 0 as equivalent to unset/null
-			return old == "0" && new == "0"
+			// Check if the attribute is actually set in config using raw config
+			rawConfig := d.GetRawConfig()
+			if !rawConfig.IsNull() && rawConfig.IsKnown() {
+				val := rawConfig.GetAttr("application_group_id")
+				if val.IsNull() || !val.IsKnown() {
+					// null/unset in config means "don't manage" - suppress diff
+					return true
+				}
+			}
+			// 0 in config means "explicitly no group" - suppress only if state is also 0 or empty
+			if new == "0" {
+				return old == "0" || old == ""
+			}
+			return false
 		},
 	},
 	"custom_bucket": {
@@ -317,7 +329,12 @@ func errorsApplicationRef(in *errorsApplication) []struct {
 func errorsApplicationCreate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	var in errorsApplication
 	for _, e := range errorsApplicationRef(&in) {
-		load(d, e.k, e.v)
+		if e.k == "application_group_id" {
+			// Use intFromResourceData to properly distinguish null vs 0
+			in.ApplicationGroupID = intFromResourceData(d, e.k)
+		} else {
+			load(d, e.k, e.v)
+		}
 	}
 
 	load(d, "team_name", &in.TeamName)
@@ -411,7 +428,12 @@ func errorsApplicationUpdate(ctx context.Context, d *schema.ResourceData, meta i
 	var in errorsApplication
 	for _, e := range errorsApplicationRef(&in) {
 		if d.HasChange(e.k) {
-			load(d, e.k, e.v)
+			if e.k == "application_group_id" {
+				// Use intFromResourceData to properly distinguish null vs 0
+				in.ApplicationGroupID = intFromResourceData(d, e.k)
+			} else {
+				load(d, e.k, e.v)
+			}
 		}
 	}
 	return resourceUpdateWithBaseURL(ctx, meta, meta.(*client).ErrorsBaseURL(), fmt.Sprintf("/api/v1/applications/%s", url.PathEscape(d.Id())), &in)

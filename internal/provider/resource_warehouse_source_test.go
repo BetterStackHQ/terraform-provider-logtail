@@ -7,15 +7,18 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"regexp"
+	"strings"
 	"sync/atomic"
 	"testing"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
 )
 
 func TestResourceWarehouseSource(t *testing.T) {
 	var data atomic.Value
+	var lastRequestBody atomic.Value
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		t.Log("Received " + r.Method + " " + r.RequestURI)
 
@@ -32,6 +35,7 @@ func TestResourceWarehouseSource(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
+			lastRequestBody.Store(append([]byte{}, body...))
 			body = inject(t, body, "token", "generated_by_logtail")
 			body = inject(t, body, "ingesting_host", "s1234.us-east-9.betterstackdata.com")
 			body = inject(t, body, "table_name", "test_warehouse_source")
@@ -49,6 +53,7 @@ func TestResourceWarehouseSource(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
+			lastRequestBody.Store(append([]byte{}, body...))
 			patch := make(map[string]interface{})
 			if err = json.Unmarshal(data.Load().([]byte), &patch); err != nil {
 				t.Fatal(err)
@@ -153,7 +158,44 @@ func TestResourceWarehouseSource(t *testing.T) {
 				`, name),
 				PlanOnly: true,
 			},
-			// Step 4 - destroy.
+			// Step 4 - remove warehouse_source_group_id from config (null), verify no plan change
+			{
+				Config: fmt.Sprintf(`
+				provider "logtail" {
+					api_token = "foo"
+				}
+
+				resource "logtail_warehouse_source" "this" {
+					name = "%s"
+				}
+				`, name),
+				PlanOnly: true,
+			},
+			// Step 5 - set warehouse_source_group_id = 0 (remove from group), verify 0 is sent to API
+			{
+				Config: fmt.Sprintf(`
+				provider "logtail" {
+					api_token = "foo"
+				}
+
+				resource "logtail_warehouse_source" "this" {
+					name                      = "%s"
+					warehouse_source_group_id = 0
+				}
+				`, name),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr("logtail_warehouse_source.this", "warehouse_source_group_id", "0"),
+					// Verify warehouse_source_group_id=0 was sent to API (to remove from group)
+					func(s *terraform.State) error {
+						body := string(lastRequestBody.Load().([]byte))
+						if !strings.Contains(body, `"warehouse_source_group_id":0`) {
+							return fmt.Errorf("request body should contain warehouse_source_group_id=0, got: %s", body)
+						}
+						return nil
+					},
+				),
+			},
+			// Step 6 - import
 			{
 				ResourceName:      "logtail_warehouse_source.this",
 				ImportState:       true,
