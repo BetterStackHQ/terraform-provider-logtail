@@ -6,15 +6,19 @@ import (
 	"io"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"sync/atomic"
 	"testing"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
 )
 
 func TestResourceExploration(t *testing.T) {
 	var data atomic.Value
+	// Track the last request body for assertions
+	var lastRequestBody atomic.Value
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		t.Log("Received " + r.Method + " " + r.RequestURI)
 
@@ -31,6 +35,9 @@ func TestResourceExploration(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
+
+			// Store raw request body for assertions
+			lastRequestBody.Store(body)
 
 			// Parse and augment the response
 			var reqData map[string]interface{}
@@ -99,6 +106,10 @@ func TestResourceExploration(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
+
+			// Store raw request body for assertions
+			lastRequestBody.Store(body)
+
 			// Parse the request body
 			var reqData map[string]interface{}
 			if err = json.Unmarshal(body, &reqData); err != nil {
@@ -254,6 +265,107 @@ func TestResourceExploration(t *testing.T) {
 				ResourceName:      "logtail_exploration.this",
 				ImportState:       true,
 				ImportStateVerify: true,
+			},
+			// Step 4 - set exploration_group_id = 123, verify it's sent to API
+			{
+				Config: `
+				provider "logtail" {
+					api_token = "foo"
+				}
+
+				resource "logtail_exploration" "this" {
+					name                 = "Test Exploration Updated"
+					date_range_from      = "now-24h"
+					date_range_to        = "now"
+					exploration_group_id = 123
+
+					chart {
+						chart_type  = "line_chart"
+						description = "Counts errors over time"
+					}
+
+					query {
+						name       = "Main Query"
+						query_type = "sql_expression"
+						sql_query  = "SELECT {{time}} AS time, count(*) AS value FROM {{source}} WHERE time BETWEEN {{start_time}} AND {{end_time}} AND level = 'error' GROUP BY time"
+					}
+				}
+				`,
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr("logtail_exploration.this", "exploration_group_id", "123"),
+					// Verify exploration_group_id=123 was sent to API
+					func(s *terraform.State) error {
+						body := string(lastRequestBody.Load().([]byte))
+						if !strings.Contains(body, `"exploration_group_id":123`) {
+							return fmt.Errorf("request body should contain exploration_group_id=123, got: %s", body)
+						}
+						return nil
+					},
+				),
+			},
+			// Step 5 - remove exploration_group_id from config (null), verify no plan change
+			// This tests that null means "don't care" and doesn't cause drift
+			{
+				Config: `
+				provider "logtail" {
+					api_token = "foo"
+				}
+
+				resource "logtail_exploration" "this" {
+					name            = "Test Exploration Updated"
+					date_range_from = "now-24h"
+					date_range_to   = "now"
+
+					chart {
+						chart_type  = "line_chart"
+						description = "Counts errors over time"
+					}
+
+					query {
+						name       = "Main Query"
+						query_type = "sql_expression"
+						sql_query  = "SELECT {{time}} AS time, count(*) AS value FROM {{source}} WHERE time BETWEEN {{start_time}} AND {{end_time}} AND level = 'error' GROUP BY time"
+					}
+				}
+				`,
+				PlanOnly: true,
+			},
+			// Step 6 - set exploration_group_id = 0 (remove from group), verify 0 is sent to API
+			{
+				Config: `
+				provider "logtail" {
+					api_token = "foo"
+				}
+
+				resource "logtail_exploration" "this" {
+					name                 = "Test Exploration Updated"
+					date_range_from      = "now-24h"
+					date_range_to        = "now"
+					exploration_group_id = 0
+
+					chart {
+						chart_type  = "line_chart"
+						description = "Counts errors over time"
+					}
+
+					query {
+						name       = "Main Query"
+						query_type = "sql_expression"
+						sql_query  = "SELECT {{time}} AS time, count(*) AS value FROM {{source}} WHERE time BETWEEN {{start_time}} AND {{end_time}} AND level = 'error' GROUP BY time"
+					}
+				}
+				`,
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr("logtail_exploration.this", "exploration_group_id", "0"),
+					// Verify exploration_group_id=0 was sent to API (to remove from group)
+					func(s *terraform.State) error {
+						body := string(lastRequestBody.Load().([]byte))
+						if !strings.Contains(body, `"exploration_group_id":0`) {
+							return fmt.Errorf("request body should contain exploration_group_id=0, got: %s", body)
+						}
+						return nil
+					},
+				),
 			},
 		},
 	})

@@ -7,16 +7,20 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"regexp"
+	"strings"
 	"sync/atomic"
 	"testing"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 )
 
 func TestResourceSource(t *testing.T) {
 	var data atomic.Value
+	// Track the last request body for assertions
+	var lastRequestBody atomic.Value
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		t.Log("Received " + r.Method + " " + r.RequestURI)
 
@@ -33,6 +37,8 @@ func TestResourceSource(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
+			// Store raw request body for assertions
+			lastRequestBody.Store(append([]byte{}, body...))
 			body = inject(t, body, "token", "generated_by_logtail")
 			body = inject(t, body, "ingesting_host", "in.logs.betterstack.com")
 			body = inject(t, body, "table_name", "test_source")
@@ -51,6 +57,8 @@ func TestResourceSource(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
+			// Store raw request body for assertions
+			lastRequestBody.Store(append([]byte{}, body...))
 			patch := make(map[string]interface{})
 			if err = json.Unmarshal(data.Load().([]byte), &patch); err != nil {
 				t.Fatal(err)
@@ -161,7 +169,47 @@ func TestResourceSource(t *testing.T) {
 				`, name, platform),
 				PlanOnly: true,
 			},
-			// Step 4 - destroy.
+			// Step 4 - remove source_group_id from config (null), verify no plan change
+			// This tests that null means "don't care" and doesn't cause drift
+			{
+				Config: fmt.Sprintf(`
+				provider "logtail" {
+					api_token = "foo"
+				}
+
+				resource "logtail_source" "this" {
+					name     = "%s"
+					platform = "%s"
+				}
+				`, name, platform),
+				PlanOnly: true,
+			},
+			// Step 5 - set source_group_id = 0 (remove from group), verify 0 is sent to API
+			{
+				Config: fmt.Sprintf(`
+				provider "logtail" {
+					api_token = "foo"
+				}
+
+				resource "logtail_source" "this" {
+					name            = "%s"
+					platform        = "%s"
+					source_group_id = 0
+				}
+				`, name, platform),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr("logtail_source.this", "source_group_id", "0"),
+					// Verify source_group_id=0 was sent to API (to remove from group)
+					func(s *terraform.State) error {
+						body := string(lastRequestBody.Load().([]byte))
+						if !strings.Contains(body, `"source_group_id":0`) {
+							return fmt.Errorf("request body should contain source_group_id=0, got: %s", body)
+						}
+						return nil
+					},
+				),
+			},
+			// Step 6 - import
 			{
 				ResourceName:      "logtail_source.this",
 				ImportState:       true,
