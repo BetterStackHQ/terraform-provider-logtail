@@ -18,7 +18,6 @@ This resource allows you to create, modify, and delete your Warehouse sources. F
 ### Required
 
 - `name` (String) The name of the new Warehouse source. Can contain letters, numbers, spaces, and special characters. Source names do not need to be unique.
-- `warehouse_source_group_id` (Number) The ID of the warehouse source group this source belongs to.
 
 ### Optional
 
@@ -32,6 +31,7 @@ The actual region created may differ slightly due to dynamic load balancing.
 - `team_name` (String) Used to specify the team the resource should be created in when using global tokens.
 - `time_series_retention` (Number) The retention period for time series data in days. Default is 9999999 days (effectively infinite).
 - `vrl_transformation` (String) A VRL program for real-time data transformation. Read more about [VRL transformations](https://betterstack.com/docs/logs/using-logtail/transforming-ingested-data/logs-vrl/).
+- `warehouse_source_group_id` (Number) The ID of the warehouse source group this source belongs to. Set to `0` to remove from a group.
 
 ### Read-Only
 

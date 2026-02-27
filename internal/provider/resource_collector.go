@@ -117,8 +117,20 @@ var collectorSchema = map[string]*schema.Schema{
 		Type:        schema.TypeInt,
 		Optional:    true,
 		DiffSuppressFunc: func(k, old, new string, d *schema.ResourceData) bool {
-			// Treat 0 as equivalent to unset/null
-			return (old == "0" || old == "") && (new == "0" || new == "")
+			// Check if the attribute is actually set in config using raw config
+			rawConfig := d.GetRawConfig()
+			if !rawConfig.IsNull() && rawConfig.IsKnown() {
+				val := rawConfig.GetAttr("source_group_id")
+				if val.IsNull() || !val.IsKnown() {
+					// null/unset in config means "don't manage" - suppress diff
+					return true
+				}
+			}
+			// 0 in config means "explicitly no group" - suppress only if state is also 0 or empty
+			if new == "0" {
+				return old == "0" || old == ""
+			}
+			return false
 		},
 	},
 	"live_tail_pattern": {
@@ -814,6 +826,9 @@ func collectorCreate(ctx context.Context, d *schema.ResourceData, meta interface
 	for _, e := range collectorRef(&in) {
 		if e.k == "team_id" {
 			in.TeamID = StringOrIntFromResourceData(d, e.k)
+		} else if e.k == "source_group_id" {
+			// Use intFromResourceData to properly distinguish null vs 0
+			in.SourceGroupID = intFromResourceData(d, e.k)
 		} else {
 			load(d, e.k, e.v)
 		}
@@ -903,6 +918,9 @@ func collectorUpdate(ctx context.Context, d *schema.ResourceData, meta interface
 		if d.HasChange(e.k) {
 			if e.k == "team_id" {
 				in.TeamID = StringOrIntFromResourceData(d, e.k)
+			} else if e.k == "source_group_id" {
+				// Use intFromResourceData to properly distinguish null vs 0
+				in.SourceGroupID = intFromResourceData(d, e.k)
 			} else {
 				load(d, e.k, e.v)
 			}

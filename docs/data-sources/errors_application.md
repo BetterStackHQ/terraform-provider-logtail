@@ -21,7 +21,7 @@ This Data Source allows you to look up existing Errors applications using their 
 
 ### Read-Only
 
-- `application_group_id` (Number) ID of the application group this application belongs to.
+- `application_group_id` (Number) ID of the application group this application belongs to. Set to `0` to remove from a group.
 - `created_at` (String) The time when this application was created.
 - `custom_bucket` (List of Object) Optional custom bucket configuration for the application. When provided, all fields (name, endpoint, access_key_id, secret_access_key) are required. (see [below for nested schema](#nestedatt--custom_bucket))
 - `data_region` (String) Data region or cluster name where application data will be stored. If omitted, the default data region for your team will be used.

@@ -101,10 +101,25 @@ The actual region created may differ slightly due to dynamic load balancing.`, "
 		Computed: true,
 	},
 	"warehouse_source_group_id": {
-		Description: "The ID of the warehouse source group this source belongs to.",
+		Description: "The ID of the warehouse source group this source belongs to. Set to `0` to remove from a group.",
 		Type:        schema.TypeInt,
-		Required:    true,
-		ForceNew:    true,
+		Optional:    true,
+		DiffSuppressFunc: func(k, old, new string, d *schema.ResourceData) bool {
+			// Check if the attribute is actually set in config using raw config
+			rawConfig := d.GetRawConfig()
+			if !rawConfig.IsNull() && rawConfig.IsKnown() {
+				val := rawConfig.GetAttr("warehouse_source_group_id")
+				if val.IsNull() || !val.IsKnown() {
+					// null/unset in config means "don't manage" - suppress diff
+					return true
+				}
+			}
+			// 0 in config means "explicitly no group" - suppress only if state is also 0 or empty
+			if new == "0" {
+				return old == "0" || old == ""
+			}
+			return false
+		},
 	},
 	"custom_bucket": {
 		Description: "Optional custom bucket configuration for the source. When provided, all fields (name, endpoint, access_key_id, secret_access_key) are required.",
@@ -237,7 +252,12 @@ func warehouseSourceRef(in *warehouseSource) []struct {
 func warehouseSourceCreate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	var in warehouseSource
 	for _, e := range warehouseSourceRef(&in) {
-		load(d, e.k, e.v)
+		if e.k == "warehouse_source_group_id" {
+			// Use intFromResourceData to properly distinguish null vs 0
+			in.WarehouseSourceGroupID = intFromResourceData(d, e.k)
+		} else {
+			load(d, e.k, e.v)
+		}
 	}
 
 	load(d, "team_name", &in.TeamName)
@@ -322,7 +342,12 @@ func warehouseSourceUpdate(ctx context.Context, d *schema.ResourceData, meta int
 	var in warehouseSource
 	for _, e := range warehouseSourceRef(&in) {
 		if d.HasChange(e.k) {
-			load(d, e.k, e.v)
+			if e.k == "warehouse_source_group_id" {
+				// Use intFromResourceData to properly distinguish null vs 0
+				in.WarehouseSourceGroupID = intFromResourceData(d, e.k)
+			} else {
+				load(d, e.k, e.v)
+			}
 		}
 	}
 	return resourceUpdateWithBaseURL(ctx, meta, meta.(*client).WarehouseBaseURL(), fmt.Sprintf("/api/v1/sources/%s", url.PathEscape(d.Id())), &in)
