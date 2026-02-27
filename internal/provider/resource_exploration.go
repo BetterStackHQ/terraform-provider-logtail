@@ -47,6 +47,22 @@ var explorationSchema = map[string]*schema.Schema{
 		Description: "The ID of the exploration group this exploration belongs to. Use 0 to remove from group.",
 		Type:        schema.TypeInt,
 		Optional:    true,
+		DiffSuppressFunc: func(k, old, new string, d *schema.ResourceData) bool {
+			// Check if the attribute is actually set in config using raw config
+			rawConfig := d.GetRawConfig()
+			if !rawConfig.IsNull() && rawConfig.IsKnown() {
+				val := rawConfig.GetAttr("exploration_group_id")
+				if val.IsNull() || !val.IsKnown() {
+					// null/unset in config means "don't manage" - suppress diff
+					return true
+				}
+			}
+			// 0 in config means "explicitly no group" - suppress only if state is also 0 or empty
+			if new == "0" {
+				return old == "0" || old == ""
+			}
+			return false
+		},
 	},
 	"created_at": {
 		Description: "The time when this exploration was created.",
@@ -303,11 +319,11 @@ func loadExploration(d *schema.ResourceData) exploration {
 	load(d, "date_range_to", &in.DateRangeTo)
 	load(d, "team_name", &in.TeamName)
 
-	// Load exploration_group_id
-	if v, ok := d.GetOk("exploration_group_id"); ok {
-		groupID := v.(int)
-		in.ExplorationGroupID = &groupID
-	}
+	// Load exploration_group_id using intFromResourceData to properly distinguish:
+	// - null/unset -> don't send to API (don't care about group)
+	// - 0 -> send 0 to API (explicitly remove from group)
+	// - N -> send N to API (assign to group N)
+	in.ExplorationGroupID = intFromResourceData(d, "exploration_group_id")
 
 	// Load chart
 	// Note: chart.name is not accepted by the API on create/update - it's auto-derived from exploration name
