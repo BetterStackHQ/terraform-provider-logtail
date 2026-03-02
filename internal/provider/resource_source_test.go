@@ -906,6 +906,117 @@ func TestResourceSource(t *testing.T) {
 	})
 }
 
+func TestResourceSourceCodeMapping(t *testing.T) {
+	var data atomic.Value
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		t.Log("Received " + r.Method + " " + r.RequestURI)
+
+		if r.Header.Get("Authorization") != "Bearer foo" {
+			t.Fatal("Not authorized: " + r.Header.Get("Authorization"))
+		}
+
+		prefix := "/api/v1/sources"
+		id := "1"
+
+		switch {
+		case r.Method == http.MethodPost && r.RequestURI == prefix:
+			body, err := io.ReadAll(r.Body)
+			if err != nil {
+				t.Fatal(err)
+			}
+			body = inject(t, body, "token", "generated_by_logtail")
+			body = inject(t, body, "ingesting_host", "in.logs.betterstack.com")
+			body = inject(t, body, "table_name", "test_source")
+			body = inject(t, body, "team_id", 123456)
+			data.Store(body)
+			w.WriteHeader(http.StatusCreated)
+			_, _ = w.Write([]byte(fmt.Sprintf(`{"data":{"id":%q,"attributes":%s}}`, id, body)))
+		case r.Method == http.MethodGet && r.RequestURI == prefix+"/"+id:
+			_, _ = w.Write([]byte(fmt.Sprintf(`{"data":{"id":%q,"attributes":%s}}`, id, data.Load().([]byte))))
+		case r.Method == http.MethodPatch && r.RequestURI == prefix+"/"+id:
+			body, err := io.ReadAll(r.Body)
+			if err != nil {
+				t.Fatal(err)
+			}
+			patch := make(map[string]interface{})
+			if err = json.Unmarshal(data.Load().([]byte), &patch); err != nil {
+				t.Fatal(err)
+			}
+			if err = json.Unmarshal(body, &patch); err != nil {
+				t.Fatal(err)
+			}
+			patched, err := json.Marshal(patch)
+			if err != nil {
+				t.Fatal(err)
+			}
+			patched = inject(t, patched, "token", "generated_by_logtail")
+			patched = inject(t, patched, "ingesting_host", "in.logs.betterstack.com")
+			patched = inject(t, patched, "table_name", "test_source")
+			patched = inject(t, patched, "team_id", 123456)
+			data.Store(patched)
+			_, _ = w.Write([]byte(fmt.Sprintf(`{"data":{"id":%q,"attributes":%s}}`, id, patched)))
+		case r.Method == http.MethodDelete && r.RequestURI == prefix+"/"+id:
+			w.WriteHeader(http.StatusNoContent)
+			data.Store([]byte(nil))
+		default:
+			t.Fatal("Unexpected " + r.Method + " " + r.RequestURI)
+		}
+	}))
+	defer server.Close()
+
+	var name = "Test Source Code Mapping"
+	var platform = "ubuntu"
+
+	resource.Test(t, resource.TestCase{
+		IsUnitTest: true,
+		ProviderFactories: map[string]func() (*schema.Provider, error){
+			"logtail": func() (*schema.Provider, error) {
+				return New(WithURL(server.URL)), nil
+			},
+		},
+		Steps: []resource.TestStep{
+			// Step 1 - create with code mapping fields set.
+			{
+				Config: fmt.Sprintf(`
+				provider "logtail" {
+					api_token = "foo"
+				}
+
+				resource "logtail_source" "this" {
+					name                     = "%s"
+					platform                 = "%s"
+					code_mapping_stack_root  = "/usr/src/app/"
+					code_mapping_source_root = "apps/backend/"
+				}
+				`, name, platform),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr("logtail_source.this", "code_mapping_stack_root", "/usr/src/app/"),
+					resource.TestCheckResourceAttr("logtail_source.this", "code_mapping_source_root", "apps/backend/"),
+				),
+			},
+			// Step 2 - update code mapping fields.
+			{
+				Config: fmt.Sprintf(`
+				provider "logtail" {
+					api_token = "foo"
+				}
+
+				resource "logtail_source" "this" {
+					name                     = "%s"
+					platform                 = "%s"
+					code_mapping_stack_root  = "/opt/app/"
+					code_mapping_source_root = "src/"
+				}
+				`, name, platform),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr("logtail_source.this", "code_mapping_stack_root", "/opt/app/"),
+					resource.TestCheckResourceAttr("logtail_source.this", "code_mapping_source_root", "src/"),
+				),
+			},
+		},
+	})
+}
+
 func inject(t *testing.T, body json.RawMessage, key string, value interface{}) json.RawMessage {
 	// Inject source token.
 	computed := make(map[string]interface{})
