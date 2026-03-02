@@ -292,21 +292,21 @@ func newErrorsApplicationResource() *schema.Resource {
 }
 
 type errorsApplication struct {
-	Name               *string             `json:"name,omitempty"`
-	Token              *string             `json:"token,omitempty"`
-	TableName          *string             `json:"table_name,omitempty"`
-	Platform           *string             `json:"platform,omitempty"`
-	IngestingHost      *string             `json:"ingesting_host,omitempty"`
-	IngestingPaused    *bool               `json:"ingesting_paused,omitempty"`
-	ErrorsRetention    *int                `json:"errors_retention,omitempty"`
-	CreatedAt          *string             `json:"created_at,omitempty"`
-	UpdatedAt          *string             `json:"updated_at,omitempty"`
-	TeamName           *string             `json:"team_name,omitempty"`
+	Name                  *string             `json:"name,omitempty"`
+	Token                 *string             `json:"token,omitempty"`
+	TableName             *string             `json:"table_name,omitempty"`
+	Platform              *string             `json:"platform,omitempty"`
+	IngestingHost         *string             `json:"ingesting_host,omitempty"`
+	IngestingPaused       *bool               `json:"ingesting_paused,omitempty"`
+	ErrorsRetention       *int                `json:"errors_retention,omitempty"`
+	CreatedAt             *string             `json:"created_at,omitempty"`
+	UpdatedAt             *string             `json:"updated_at,omitempty"`
+	TeamName              *string             `json:"team_name,omitempty"`
 	DataRegion            *string             `json:"data_region,omitempty"`
 	CodeMappingStackRoot  *string             `json:"code_mapping_stack_root,omitempty"`
 	CodeMappingSourceRoot *string             `json:"code_mapping_source_root,omitempty"`
 	ApplicationGroupID    *int                `json:"application_group_id,omitempty"`
-	CustomBucket       *sourceCustomBucket `json:"custom_bucket,omitempty"`
+	CustomBucket          *sourceCustomBucket `json:"custom_bucket,omitempty"`
 }
 
 type errorsApplicationHTTPResponse struct {
