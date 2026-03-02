@@ -284,6 +284,9 @@ resource "logtail_exploration_alert" "threshold_alert" {
 
   email = true
   push  = true
+
+  # Set alert to check both sources
+  source_variable = "source:${logtail_source.this.table_name},${logtail_source.other.table_name}"
 }
 
 # Relative alert - escalate to specific team by ID
@@ -301,6 +304,9 @@ resource "logtail_exploration_alert" "relative_alert" {
   escalation_target {
     team_id = 328468
   }
+
+  # Set alert to check both sources
+  source_variable = "source:${logtail_source.this.table_name},${logtail_source.other.table_name}"
 }
 
 # Anomaly alert - no specific escalation target (uses current team)
@@ -315,6 +321,9 @@ resource "logtail_exploration_alert" "anomaly_alert" {
   escalation_target {
     policy_name = "My Existing Escalation Policy"
   }
+
+  # Set alert to check both sources
+  source_variable = "source:${logtail_source.this.table_name},${logtail_source.other.table_name}"
 }
 
 # Pie chart with variable filtering
