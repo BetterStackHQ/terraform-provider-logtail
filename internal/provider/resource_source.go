@@ -279,6 +279,16 @@ var sourceSchema = map[string]*schema.Schema{
 			return normalizeVRL(old) == normalizeVRL(new)
 		},
 	},
+	"code_mapping_stack_root": {
+		Description: "Stack trace root path prefix to match. When a stack trace file starts with this prefix, it will be replaced with the source code root to map to the correct repository path.",
+		Type:        schema.TypeString,
+		Optional:    true,
+	},
+	"code_mapping_source_root": {
+		Description: "Source code root path that replaces the stack trace root prefix. Used to map container or build paths to the corresponding repository paths for git blame.",
+		Type:        schema.TypeString,
+		Optional:    true,
+	},
 }
 
 func newSourceResource() *schema.Resource {
@@ -327,6 +337,8 @@ type source struct {
 	SourceGroupID                  *int                      `json:"source_group_id,omitempty"`
 	CustomBucket                   *sourceCustomBucket       `json:"custom_bucket,omitempty"`
 	VrlTransformation              *string                   `json:"vrl_transformation,omitempty"`
+	CodeMappingStackRoot           *string                   `json:"code_mapping_stack_root,omitempty"`
+	CodeMappingSourceRoot          *string                   `json:"code_mapping_source_root,omitempty"`
 }
 
 type sourceHTTPResponse struct {
@@ -364,6 +376,8 @@ func sourceRef(in *source) []struct {
 		{k: "data_region", v: &in.DataRegion},
 		{k: "source_group_id", v: &in.SourceGroupID},
 		{k: "vrl_transformation", v: &in.VrlTransformation},
+		{k: "code_mapping_stack_root", v: &in.CodeMappingStackRoot},
+		{k: "code_mapping_source_root", v: &in.CodeMappingSourceRoot},
 	}
 }
 

@@ -73,6 +73,8 @@ This resource allows you to create, modify, and delete your Sources. For more in
 
 ### Optional
 
+- `code_mapping_source_root` (String) Source code root path that replaces the stack trace root prefix. Used to map container or build paths to the corresponding repository paths for git blame.
+- `code_mapping_stack_root` (String) Stack trace root path prefix to match. When a stack trace file starts with this prefix, it will be replaced with the source code root to map to the correct repository path.
 - `custom_bucket` (Block List, Max: 1) Optional custom bucket configuration for the source. When provided, all fields (name, endpoint, access_key_id, secret_access_key) are required. (see [below for nested schema](#nestedblock--custom_bucket))
 - `data_region` (String) Data region or private cluster name to create the source in. Permitted values for most plans are: `us_east`, `germany`, `singapore`.
 - `ingesting_paused` (Boolean) This property allows you to temporarily pause data ingesting for this source (e.g., when you are reaching your plan's usage quota and you want to prioritize some sources over others).

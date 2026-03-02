@@ -206,6 +206,16 @@ var errorsApplicationSchema = map[string]*schema.Schema{
 		Optional:    true,
 		Computed:    true,
 	},
+	"code_mapping_stack_root": {
+		Description: "Stack trace root path prefix to match. When a stack trace file starts with this prefix, it will be replaced with the source code root to map to the correct repository path.",
+		Type:        schema.TypeString,
+		Optional:    true,
+	},
+	"code_mapping_source_root": {
+		Description: "Source code root path that replaces the stack trace root prefix. Used to map container or build paths to the corresponding repository paths for git blame.",
+		Type:        schema.TypeString,
+		Optional:    true,
+	},
 	"application_group_id": {
 		Description: "ID of the application group this application belongs to. Set to `0` to remove from a group.",
 		Type:        schema.TypeInt,
@@ -292,8 +302,10 @@ type errorsApplication struct {
 	CreatedAt          *string             `json:"created_at,omitempty"`
 	UpdatedAt          *string             `json:"updated_at,omitempty"`
 	TeamName           *string             `json:"team_name,omitempty"`
-	DataRegion         *string             `json:"data_region,omitempty"`
-	ApplicationGroupID *int                `json:"application_group_id,omitempty"`
+	DataRegion            *string             `json:"data_region,omitempty"`
+	CodeMappingStackRoot  *string             `json:"code_mapping_stack_root,omitempty"`
+	CodeMappingSourceRoot *string             `json:"code_mapping_source_root,omitempty"`
+	ApplicationGroupID    *int                `json:"application_group_id,omitempty"`
 	CustomBucket       *sourceCustomBucket `json:"custom_bucket,omitempty"`
 }
 
@@ -322,6 +334,8 @@ func errorsApplicationRef(in *errorsApplication) []struct {
 		{k: "created_at", v: &in.CreatedAt},
 		{k: "updated_at", v: &in.UpdatedAt},
 		{k: "data_region", v: &in.DataRegion},
+		{k: "code_mapping_stack_root", v: &in.CodeMappingStackRoot},
+		{k: "code_mapping_source_root", v: &in.CodeMappingSourceRoot},
 		{k: "application_group_id", v: &in.ApplicationGroupID},
 	}
 }

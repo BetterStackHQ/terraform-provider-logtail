@@ -21,6 +21,8 @@ This Data Source allows you to look up existing Sources using their table name. 
 
 ### Read-Only
 
+- `code_mapping_source_root` (String) Source code root path that replaces the stack trace root prefix. Used to map container or build paths to the corresponding repository paths for git blame.
+- `code_mapping_stack_root` (String) Stack trace root path prefix to match. When a stack trace file starts with this prefix, it will be replaced with the source code root to map to the correct repository path.
 - `created_at` (String) The time when this monitor group was created.
 - `custom_bucket` (List of Object) Optional custom bucket configuration for the source. When provided, all fields (name, endpoint, access_key_id, secret_access_key) are required. (see [below for nested schema](#nestedatt--custom_bucket))
 - `data_region` (String) Data region or private cluster name to create the source in. Permitted values for most plans are: `us_east`, `germany`, `singapore`.
