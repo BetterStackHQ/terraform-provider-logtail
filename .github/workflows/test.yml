@@ -68,7 +68,7 @@ jobs:
 
   notify-slack:
     if: ${{ failure() && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master' || github.event_name == 'schedule') }}
-    needs: [test]
+    needs: [e2e_test]
     runs-on: ubuntu-latest
     steps:
       - name: Notify Slack
