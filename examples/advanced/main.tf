@@ -101,10 +101,10 @@ data "logtail_dashboard" "host_prometheus" {
 
 # Create a dashboard from a dashboard template
 data "logtail_dashboard_template" "host_overview" {
-  name = "Host Overview"
+  name = "Hosts"
 }
 resource "logtail_dashboard" "from_template" {
-  name = "My copy of Host overview"
+  name = "My copy of Hosts"
   data = data.logtail_dashboard_template.host_overview.data
 }
 
