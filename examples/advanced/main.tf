@@ -131,6 +131,11 @@ resource "logtail_dashboard" "import_json" {
           default_values = null
           sql_definition = "level"
         },
+        {
+          name          = "source"
+          variable_type = "source"
+          values        = [logtail_source.this.id]
+        },
       ]
     }
     charts = [
@@ -196,6 +201,12 @@ resource "logtail_dashboard" "custom" {
     name           = "level"
     variable_type  = "select_with_sql"
     sql_definition = "level"
+  }
+
+  variable {
+    name          = "source"
+    variable_type = "source"
+    values        = [logtail_source.this.id]
   }
 }
 
