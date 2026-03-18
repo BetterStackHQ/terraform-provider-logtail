@@ -22,13 +22,13 @@ This resource allows you to create and manage dashboards. Use 'data' for import 
 ### Optional
 
 - `dashboard_group_id` (Number) The ID of the dashboard group this dashboard belongs to. Use 0 to remove from group.
-- `data` (String) The dashboard configuration data as a JSON string (import mode). When set, the dashboard is created via the import API and any change forces re-creation. Cannot be combined with individual fields like refresh_interval, date_range_from, etc.
-- `date_range_from` (String) The start of the date range (e.g., 'now-3h', 'now-24h') (CRUD mode only).
-- `date_range_to` (String) The end of the date range (e.g., 'now') (CRUD mode only).
-- `refresh_interval` (Number) The auto-refresh interval in seconds (CRUD mode only).
-- `source_eligibility_sql` (String) SQL expression to filter eligible sources (CRUD mode only).
+- `data` (String) The dashboard configuration data as a JSON string. When set, the dashboard is created via the import API and any change forces re-creation. Cannot be combined with individual fields like refresh_interval, date_range_from, chart and variable blocks, etc.
+- `date_range_from` (String) The start of the date range (e.g., 'now-3h', 'now-24h').
+- `date_range_to` (String) The end of the date range (e.g., 'now').
+- `refresh_interval` (Number) The auto-refresh interval in seconds.
+- `source_eligibility_sql` (String) SQL expression to filter eligible sources.
 - `team_name` (String) The team name to associate with the dashboard when using a global API token.
-- `variable` (Block List) Variables for this dashboard (CRUD mode only). Default variables (time, start_time, end_time, source) are auto-created. (see [below for nested schema](#nestedblock--variable))
+- `variable` (Block List) Variables for this dashboard. Default variables (time, start_time, end_time, source) are auto-created. (see [below for nested schema](#nestedblock--variable))
 
 ### Read-Only
 

@@ -99,18 +99,24 @@ data "logtail_dashboard" "host_prometheus" {
   # id = 1234
 }
 
+resource "logtail_dashboard_group" "custom" {
+  name = "Terraform Advanced Dashboard Group"
+}
+
 # Create a dashboard from a dashboard template
 data "logtail_dashboard_template" "host_overview" {
   name = "Hosts"
 }
 resource "logtail_dashboard" "from_template" {
-  name = "My copy of Hosts"
-  data = data.logtail_dashboard_template.host_overview.data
+  name               = "My copy of Hosts"
+  dashboard_group_id = logtail_dashboard_group.custom.id
+  data               = data.logtail_dashboard_template.host_overview.data
 }
 
 # Import mode: entire dashboard as a JSON blob (any change recreates it)
 resource "logtail_dashboard" "import_json" {
-  name = "Terraform Custom Dashboard (Import)"
+  name               = "Terraform Custom Dashboard (Import)"
+  dashboard_group_id = logtail_dashboard_group.custom.id
   data = jsonencode({
     refresh_interval = 0
     date_range_from  = "now-3h"
@@ -179,10 +185,6 @@ resource "logtail_dashboard" "import_json" {
 }
 
 # CRUD mode: same dashboard built with native resources (supports in-place updates)
-resource "logtail_dashboard_group" "custom" {
-  name = "Terraform Advanced Dashboard Group"
-}
-
 resource "logtail_dashboard" "custom" {
   name               = "Terraform Custom Dashboard"
   date_range_from    = "now-3h"

@@ -23,7 +23,7 @@ var dashboardSchema = map[string]*schema.Schema{
 		Required:    true,
 	},
 	"data": {
-		Description: "The dashboard configuration data as a JSON string (import mode). When set, the dashboard is created via the import API and any change forces re-creation. Cannot be combined with individual fields like refresh_interval, date_range_from, etc.",
+		Description: "The dashboard configuration data as a JSON string. When set, the dashboard is created via the import API and any change forces re-creation. Cannot be combined with individual fields like refresh_interval, date_range_from, chart and variable blocks, etc.",
 		Type:        schema.TypeString,
 		Optional:    true,
 		ForceNew:    true,
@@ -61,31 +61,31 @@ var dashboardSchema = map[string]*schema.Schema{
 		},
 	},
 	"refresh_interval": {
-		Description: "The auto-refresh interval in seconds (CRUD mode only).",
+		Description: "The auto-refresh interval in seconds.",
 		Type:        schema.TypeInt,
 		Optional:    true,
 		Computed:    true,
 	},
 	"date_range_from": {
-		Description: "The start of the date range (e.g., 'now-3h', 'now-24h') (CRUD mode only).",
+		Description: "The start of the date range (e.g., 'now-3h', 'now-24h').",
 		Type:        schema.TypeString,
 		Optional:    true,
 		Computed:    true,
 	},
 	"date_range_to": {
-		Description: "The end of the date range (e.g., 'now') (CRUD mode only).",
+		Description: "The end of the date range (e.g., 'now').",
 		Type:        schema.TypeString,
 		Optional:    true,
 		Computed:    true,
 	},
 	"source_eligibility_sql": {
-		Description: "SQL expression to filter eligible sources (CRUD mode only).",
+		Description: "SQL expression to filter eligible sources.",
 		Type:        schema.TypeString,
 		Optional:    true,
 		Computed:    true,
 	},
 	"variable": {
-		Description: "Variables for this dashboard (CRUD mode only). Default variables (time, start_time, end_time, source) are auto-created.",
+		Description: "Variables for this dashboard. Default variables (time, start_time, end_time, source) are auto-created.",
 		Type:        schema.TypeList,
 		Optional:    true,
 		Elem: &schema.Resource{
@@ -320,6 +320,11 @@ func dashboardReadImportMode(d *schema.ResourceData, attrs *dashboard) diag.Diag
 			return diag.FromErr(err)
 		}
 	}
+	if attrs.DashboardGroupID != nil {
+		if err := d.Set("dashboard_group_id", *attrs.DashboardGroupID); err != nil {
+			return diag.FromErr(err)
+		}
+	}
 	if attrs.CreatedAt != nil {
 		if err := d.Set("created_at", attrs.CreatedAt); err != nil {
 			return diag.FromErr(err)
@@ -334,11 +339,16 @@ func dashboardReadImportMode(d *schema.ResourceData, attrs *dashboard) diag.Diag
 }
 
 func dashboardUpdate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+	var in dashboard
+
 	if isDashboardImportMode(d) {
-		return diag.Errorf("dashboard updates are not supported in import mode - please rename the dashboard in Better Stack or switch to CRUD mode")
+		// Import mode: only name and dashboard_group_id can be updated
+		load(d, "name", &in.Name)
+		in.DashboardGroupID = intFromResourceData(d, "dashboard_group_id")
+	} else {
+		in = loadDashboardCRUD(d)
 	}
 
-	in := loadDashboardCRUD(d)
 	// Clear team_name on update as it's only used for creation
 	in.TeamName = nil
 
