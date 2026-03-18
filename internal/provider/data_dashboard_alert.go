@@ -12,25 +12,27 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
-func newExplorationAlertDataSource() *schema.Resource {
+func newDashboardAlertDataSource() *schema.Resource {
 	s := make(map[string]*schema.Schema)
 
-	for k, v := range explorationAlertSchema {
+	for k, v := range dashboardAlertSchema {
 		cp := *v
 		switch k {
-		case "exploration_id":
-			// exploration_id is required for lookup
+		case "dashboard_id":
+			cp.Computed = false
+			cp.Optional = false
+			cp.Required = true
+			cp.ForceNew = false
+		case "chart_id":
 			cp.Computed = false
 			cp.Optional = false
 			cp.Required = true
 			cp.ForceNew = false
 		case "name":
-			// Name is used for lookup - make it required
 			cp.Computed = false
 			cp.Optional = false
 			cp.Required = true
 		default:
-			// All other fields become computed (read-only)
 			cp.Computed = true
 			cp.Optional = false
 			cp.Required = false
@@ -46,26 +48,27 @@ func newExplorationAlertDataSource() *schema.Resource {
 	}
 
 	return &schema.Resource{
-		ReadContext: explorationAlertLookup,
-		Description: "This data source allows you to get information about an Alert on an Exploration in Better Stack Telemetry.",
+		ReadContext: dashboardAlertLookup,
+		Description: "This data source allows you to get information about an Alert on a Dashboard Chart in Better Stack Telemetry.",
 		Schema:      s,
 	}
 }
 
-type explorationAlertsHTTPResponse struct {
+type dashboardAlertsHTTPResponse struct {
 	Data []struct {
 		ID         string `json:"id"`
 		Attributes alert  `json:"attributes"`
 	} `json:"data"`
 }
 
-func explorationAlertLookup(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	explorationID := d.Get("exploration_id").(string)
+func dashboardAlertLookup(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+	dashboardID := d.Get("dashboard_id").(string)
+	chartID := d.Get("chart_id").(string)
 	name := d.Get("name").(string)
 	c := meta.(*client)
 
-	// Fetch all alerts for the exploration (no pagination for alerts)
-	res, err := c.Get(ctx, fmt.Sprintf("/api/v2/explorations/%s/alerts", url.PathEscape(explorationID)))
+	res, err := c.Get(ctx, fmt.Sprintf("/api/v2/dashboards/%s/charts/%s/alerts",
+		url.PathEscape(dashboardID), url.PathEscape(chartID)))
 	if err != nil {
 		return diag.FromErr(err)
 	}
@@ -82,19 +85,19 @@ func explorationAlertLookup(ctx context.Context, d *schema.ResourceData, meta in
 		return diag.FromErr(err)
 	}
 
-	var out explorationAlertsHTTPResponse
+	var out dashboardAlertsHTTPResponse
 	if err := json.Unmarshal(body, &out); err != nil {
 		return diag.FromErr(err)
 	}
 
-	// Find the alert by name
 	for _, item := range out.Data {
 		if item.Attributes.Name != nil && *item.Attributes.Name == name {
-			// Set composite ID: exploration_id/alert_id
-			d.SetId(fmt.Sprintf("%s/%s", explorationID, item.ID))
+			d.SetId(fmt.Sprintf("%s/%s/%s", dashboardID, chartID, item.ID))
 
-			// Set exploration_id explicitly
-			if err := d.Set("exploration_id", explorationID); err != nil {
+			if err := d.Set("dashboard_id", dashboardID); err != nil {
+				return diag.FromErr(err)
+			}
+			if err := d.Set("chart_id", chartID); err != nil {
 				return diag.FromErr(err)
 			}
 
@@ -102,5 +105,5 @@ func explorationAlertLookup(ctx context.Context, d *schema.ResourceData, meta in
 		}
 	}
 
-	return diag.Errorf("Alert with name %q not found in exploration %s", name, explorationID)
+	return diag.Errorf("Alert with name %q not found in dashboard %s chart %s", name, dashboardID, chartID)
 }

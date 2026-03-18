@@ -231,6 +231,7 @@ func TestResourceExplorationAlert(t *testing.T) {
 					alert_type          = "threshold"
 					operator            = "higher_than"
 					value               = 100
+					check_period        = 60
 					query_period        = 300
 					confirmation_period = 60
 					recovery_period     = 300
@@ -245,6 +246,7 @@ func TestResourceExplorationAlert(t *testing.T) {
 					resource.TestCheckResourceAttr("logtail_exploration_alert.this", "alert_type", "threshold"),
 					resource.TestCheckResourceAttr("logtail_exploration_alert.this", "operator", "higher_than"),
 					resource.TestCheckResourceAttr("logtail_exploration_alert.this", "value", "100"),
+					resource.TestCheckResourceAttr("logtail_exploration_alert.this", "check_period", "60"),
 					resource.TestCheckResourceAttr("logtail_exploration_alert.this", "query_period", "300"),
 					resource.TestCheckResourceAttr("logtail_exploration_alert.this", "confirmation_period", "60"),
 					resource.TestCheckResourceAttr("logtail_exploration_alert.this", "email", "true"),
@@ -278,6 +280,7 @@ func TestResourceExplorationAlert(t *testing.T) {
 					alert_type          = "threshold"
 					operator            = "higher_than"
 					value               = 200
+					check_period        = 120
 					query_period        = 600
 					confirmation_period = 120
 					recovery_period     = 600
@@ -522,6 +525,7 @@ func TestResourceExplorationAlertWithEscalationTarget(t *testing.T) {
 					alert_type          = "threshold"
 					operator            = "higher_than"
 					value               = 50
+					check_period        = 300
 					confirmation_period = 0
 
 					escalation_target {

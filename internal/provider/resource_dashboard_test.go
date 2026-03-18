@@ -1,6 +1,7 @@
 package provider
 
 import (
+	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
@@ -172,7 +173,7 @@ func TestResourceDashboard(t *testing.T) {
 					t.Log("step 3 - test updated_at changes are reflected from API")
 				},
 			},
-			// Step 4 - change name (should fail since updates not supported)
+			// Step 4 - change name (should fail since updates not supported in import mode)
 			{
 				Config: fmt.Sprintf(`
 				provider "logtail" {
@@ -184,10 +185,184 @@ func TestResourceDashboard(t *testing.T) {
 					data = %q
 				}
 				`, updatedName, updatedDashboardData),
-				ExpectError: regexp.MustCompile(`dashboard updates are not supported - please rename the dashboard in Better Stack`),
+				ExpectError: regexp.MustCompile(`dashboard updates are not supported in import mode`),
 				PreConfig: func() {
-					t.Log("step 4 - change name (should fail since updates not supported)")
+					t.Log("step 4 - change name (should fail since updates not supported in import mode)")
 				},
+			},
+		},
+	})
+}
+
+func TestResourceDashboardCRUDMode(t *testing.T) {
+	var dashboardData atomic.Value
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		t.Log("Received " + r.Method + " " + r.RequestURI)
+
+		if r.Header.Get("Authorization") != "Bearer foo" {
+			t.Fatal("Not authorized: " + r.Header.Get("Authorization"))
+		}
+
+		dashboardID := "1"
+
+		switch {
+		case r.Method == http.MethodPost && r.RequestURI == "/api/v2/dashboards":
+			body, err := io.ReadAll(r.Body)
+			if err != nil {
+				t.Fatal(err)
+			}
+			var reqData map[string]interface{}
+			if err := json.Unmarshal(body, &reqData); err != nil {
+				t.Fatal(err)
+			}
+			reqData["created_at"] = "2023-01-01T00:00:00Z"
+			reqData["updated_at"] = "2023-01-01T00:00:00Z"
+			if _, ok := reqData["date_range_from"]; !ok {
+				reqData["date_range_from"] = "now-3h"
+			}
+			if _, ok := reqData["date_range_to"]; !ok {
+				reqData["date_range_to"] = "now"
+			}
+			if _, ok := reqData["refresh_interval"]; !ok {
+				reqData["refresh_interval"] = 0
+			}
+			respData, _ := json.Marshal(reqData)
+			dashboardData.Store(respData)
+			w.WriteHeader(http.StatusCreated)
+			_, _ = w.Write([]byte(fmt.Sprintf(`{"data":{"id":%q,"attributes":%s}}`, dashboardID, respData)))
+
+		case r.Method == http.MethodGet && r.RequestURI == "/api/v2/dashboards/"+dashboardID:
+			_, _ = w.Write([]byte(fmt.Sprintf(`{"data":{"id":%q,"attributes":%s}}`, dashboardID, dashboardData.Load().([]byte))))
+
+		case r.Method == http.MethodPatch && r.RequestURI == "/api/v2/dashboards/"+dashboardID:
+			body, err := io.ReadAll(r.Body)
+			if err != nil {
+				t.Fatal(err)
+			}
+			patch := make(map[string]interface{})
+			if err = json.Unmarshal(dashboardData.Load().([]byte), &patch); err != nil {
+				t.Fatal(err)
+			}
+			if err = json.Unmarshal(body, &patch); err != nil {
+				t.Fatal(err)
+			}
+			patch["updated_at"] = "2023-01-02T00:00:00Z"
+			patched, _ := json.Marshal(patch)
+			dashboardData.Store(patched)
+			_, _ = w.Write([]byte(fmt.Sprintf(`{"data":{"id":%q,"attributes":%s}}`, dashboardID, patched)))
+
+		case r.Method == http.MethodDelete && r.RequestURI == "/api/v2/dashboards/"+dashboardID:
+			w.WriteHeader(http.StatusNoContent)
+
+		default:
+			t.Fatal("Unexpected " + r.Method + " " + r.RequestURI)
+		}
+	}))
+	defer server.Close()
+
+	resource.Test(t, resource.TestCase{
+		IsUnitTest: true,
+		ProviderFactories: map[string]func() (*schema.Provider, error){
+			"logtail": func() (*schema.Provider, error) {
+				return New(WithURL(server.URL)), nil
+			},
+		},
+		Steps: []resource.TestStep{
+			// Step 1 - create dashboard in CRUD mode
+			{
+				Config: `
+				provider "logtail" {
+					api_token = "foo"
+				}
+
+				resource "logtail_dashboard" "this" {
+					name             = "My Dashboard"
+					date_range_from  = "now-3h"
+					date_range_to    = "now"
+					refresh_interval = 30
+
+					variable {
+						name          = "env"
+						variable_type = "string"
+						values        = ["production", "staging"]
+						default_values = ["production"]
+					}
+				}
+				`,
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr("logtail_dashboard.this", "id", "1"),
+					resource.TestCheckResourceAttr("logtail_dashboard.this", "name", "My Dashboard"),
+					resource.TestCheckResourceAttr("logtail_dashboard.this", "date_range_from", "now-3h"),
+					resource.TestCheckResourceAttr("logtail_dashboard.this", "date_range_to", "now"),
+					resource.TestCheckResourceAttr("logtail_dashboard.this", "refresh_interval", "30"),
+					resource.TestCheckResourceAttr("logtail_dashboard.this", "variable.0.name", "env"),
+					resource.TestCheckResourceAttr("logtail_dashboard.this", "variable.0.variable_type", "string"),
+					resource.TestCheckResourceAttrSet("logtail_dashboard.this", "created_at"),
+				),
+			},
+			// Step 2 - update dashboard
+			{
+				Config: `
+				provider "logtail" {
+					api_token = "foo"
+				}
+
+				resource "logtail_dashboard" "this" {
+					name             = "My Dashboard Updated"
+					date_range_from  = "now-24h"
+					date_range_to    = "now"
+					refresh_interval = 60
+
+					variable {
+						name          = "env"
+						variable_type = "string"
+						values        = ["production", "staging", "dev"]
+						default_values = ["production"]
+					}
+				}
+				`,
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr("logtail_dashboard.this", "id", "1"),
+					resource.TestCheckResourceAttr("logtail_dashboard.this", "name", "My Dashboard Updated"),
+					resource.TestCheckResourceAttr("logtail_dashboard.this", "date_range_from", "now-24h"),
+					resource.TestCheckResourceAttr("logtail_dashboard.this", "refresh_interval", "60"),
+				),
+			},
+			// Step 3 - import
+			{
+				ResourceName:            "logtail_dashboard.this",
+				ImportState:             true,
+				ImportStateVerify:       true,
+				ImportStateVerifyIgnore: []string{"variable"},
+			},
+		},
+	})
+}
+
+func TestResourceDashboardDualModeValidation(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		IsUnitTest: true,
+		ProviderFactories: map[string]func() (*schema.Provider, error){
+			"logtail": func() (*schema.Provider, error) {
+				return New(WithURL("http://localhost")), nil
+			},
+		},
+		Steps: []resource.TestStep{
+			// Test that mixing data with CRUD fields produces error
+			{
+				Config: `
+				provider "logtail" {
+					api_token = "foo"
+				}
+
+				resource "logtail_dashboard" "this" {
+					name             = "Test"
+					data             = "{\"charts\":[]}"
+					refresh_interval = 30
+				}
+				`,
+				ExpectError: regexp.MustCompile(`cannot use 'data' \(import mode\) together with individual dashboard fields`),
 			},
 		},
 	})

@@ -3,12 +3,12 @@
 page_title: "logtail_dashboard Resource - terraform-provider-logtail"
 subcategory: ""
 description: |-
-  This resource allows you to create and manage dashboards using the import/export API. For more information about the Dashboard API check https://betterstack.com/docs/logs/api/dashboards/
+  This resource allows you to create and manage dashboards. Use 'data' for import mode (JSON blob, re-created on change) or individual fields for CRUD mode (updatable). For more information about the Dashboard API check https://betterstack.com/docs/logs/api/dashboards/
 ---
 
 # logtail_dashboard (Resource)
 
-This resource allows you to create and manage dashboards using the import/export API. For more information about the Dashboard API check https://betterstack.com/docs/logs/api/dashboards/
+This resource allows you to create and manage dashboards. Use 'data' for import mode (JSON blob, re-created on change) or individual fields for CRUD mode (updatable). For more information about the Dashboard API check https://betterstack.com/docs/logs/api/dashboards/
 
 
 
@@ -17,12 +17,18 @@ This resource allows you to create and manage dashboards using the import/export
 
 ### Required
 
-- `data` (String) The dashboard configuration data as a JSON string. Any change will re-create the dashboard. See [Dashboard Import API docs](https://betterstack.com/docs/logs/api/dashboards/import/) for details.
 - `name` (String) The name of the dashboard.
 
 ### Optional
 
+- `dashboard_group_id` (Number) The ID of the dashboard group this dashboard belongs to. Use 0 to remove from group.
+- `data` (String) The dashboard configuration data as a JSON string (import mode). When set, the dashboard is created via the import API and any change forces re-creation. Cannot be combined with individual fields like refresh_interval, date_range_from, etc.
+- `date_range_from` (String) The start of the date range (e.g., 'now-3h', 'now-24h') (CRUD mode only).
+- `date_range_to` (String) The end of the date range (e.g., 'now') (CRUD mode only).
+- `refresh_interval` (Number) The auto-refresh interval in seconds (CRUD mode only).
+- `source_eligibility_sql` (String) SQL expression to filter eligible sources (CRUD mode only).
 - `team_name` (String) The team name to associate with the dashboard when using a global API token.
+- `variable` (Block List) Variables for this dashboard (CRUD mode only). Default variables (time, start_time, end_time, source) are auto-created. (see [below for nested schema](#nestedblock--variable))
 
 ### Read-Only
 
@@ -30,3 +36,17 @@ This resource allows you to create and manage dashboards using the import/export
 - `id` (String) The ID of this dashboard.
 - `team_id` (Number) The team ID of the dashboard.
 - `updated_at` (String) The time when this dashboard was last updated.
+
+<a id="nestedblock--variable"></a>
+### Nested Schema for `variable`
+
+Required:
+
+- `name` (String) The name of the variable (used as {{name}} in queries).
+- `variable_type` (String) The type of variable: 'source', 'string', 'number', 'date', 'datetime', 'boolean', 'sql_expression', 'select_value', or 'select_with_sql'.
+
+Optional:
+
+- `default_values` (List of String) Default selected values for the variable.
+- `sql_definition` (String) SQL definition for 'sql_expression' or 'select_with_sql' type variables.
+- `values` (List of String) Predefined values for 'select_value' type variables.
