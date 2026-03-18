@@ -44,7 +44,7 @@ This resource allows you to create, modify, and delete Alerts on Explorations in
 - `sms` (Boolean) Enable SMS notifications.
 - `source_mode` (String) Source selection mode: 'source_variable', 'platforms_single_source', or 'platforms_all_sources'.
 - `source_platforms` (List of String) Platform filters (used when source_mode is 'platforms_*').
-- `source_variable` (String) Source reference (format: 'source:table_name'). If omitted, derived from exploration's source variable.
+- `source_variable` (String) Source reference (format: 'source:table_name'). If omitted, derived from the parent resource's source variable.
 - `string_value` (String) The string threshold value (only for threshold alerts with 'equal' or 'not_equal' operators).
 - `value` (Number) The numeric threshold value. Required for threshold and relative alerts.
 

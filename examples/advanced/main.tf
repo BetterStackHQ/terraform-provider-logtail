@@ -99,17 +99,24 @@ data "logtail_dashboard" "host_prometheus" {
   # id = 1234
 }
 
+resource "logtail_dashboard_group" "custom" {
+  name = "Terraform Advanced Dashboard Group"
+}
+
 # Create a dashboard from a dashboard template
 data "logtail_dashboard_template" "host_overview" {
   name = "Hosts"
 }
 resource "logtail_dashboard" "from_template" {
-  name = "My copy of Hosts"
-  data = data.logtail_dashboard_template.host_overview.data
+  name               = "My copy of Hosts"
+  dashboard_group_id = logtail_dashboard_group.custom.id
+  data               = data.logtail_dashboard_template.host_overview.data
 }
 
-resource "logtail_dashboard" "custom" {
-  name = "Terraform Custom Dashboard"
+# Import mode: entire dashboard as a JSON blob (any change recreates it)
+resource "logtail_dashboard" "import_json" {
+  name               = "Terraform Custom Dashboard (Import)"
+  dashboard_group_id = logtail_dashboard_group.custom.id
   data = jsonencode({
     refresh_interval = 0
     date_range_from  = "now-3h"
@@ -123,6 +130,11 @@ resource "logtail_dashboard" "custom" {
           values         = []
           default_values = null
           sql_definition = "level"
+        },
+        {
+          name          = "source"
+          variable_type = "source"
+          values        = [logtail_source.this.id]
         },
       ]
     }
@@ -175,6 +187,85 @@ resource "logtail_dashboard" "custom" {
     ]
     sections = []
   })
+}
+
+# CRUD mode: same dashboard built with native resources (supports in-place updates)
+resource "logtail_dashboard" "custom" {
+  name               = "Terraform Custom Dashboard"
+  date_range_from    = "now-3h"
+  date_range_to      = "now"
+  refresh_interval   = 0
+  dashboard_group_id = logtail_dashboard_group.custom.id
+
+  variable {
+    name           = "level"
+    variable_type  = "select_with_sql"
+    sql_definition = "level"
+  }
+
+  variable {
+    name          = "source"
+    variable_type = "source"
+    values        = [logtail_source.this.id]
+  }
+}
+
+resource "logtail_dashboard_chart" "number_of_logs" {
+  dashboard_id = logtail_dashboard.custom.id
+  chart_type   = "line_chart"
+  name         = "Number of logs"
+  x            = 0
+  y            = 0
+  w            = 9
+  h            = 8
+  settings = jsonencode({
+    unit                 = "shortened"
+    label                = "shown_below"
+    legend               = "shown_below"
+    stacking             = "dont_stack"
+    time_column          = "time"
+    series_colors        = { value = "#009fe3" }
+    series_column        = "series"
+    value_columns        = ["value"]
+    decimal_places       = 2
+    treat_missing_values = "connected"
+  })
+
+  query {
+    query_type      = "sql_expression"
+    sql_query       = "SELECT {{time}} as time, countMerge(events_count) as value\nFROM {{source}}\nWHERE time BETWEEN {{start_time}} AND {{end_time}}\n [[ AND level = {{level}} ]]\nGROUP BY time\n"
+    source_variable = "source"
+  }
+}
+
+resource "logtail_dashboard_chart" "static_text" {
+  dashboard_id = logtail_dashboard.custom.id
+  chart_type   = "static_text_chart"
+  name         = "Static text"
+  x            = 9
+  y            = 0
+  w            = 3
+  h            = 8
+
+  query {
+    query_type  = "static_text"
+    static_text = "## Built with Terraform\n\nThis dashboard is managed natively — each chart and alert is a separate resource."
+  }
+}
+
+resource "logtail_dashboard_alert" "high_log_volume" {
+  dashboard_id        = logtail_dashboard.custom.id
+  chart_id            = logtail_dashboard_chart.number_of_logs.id
+  name                = "High Log Volume"
+  alert_type          = "threshold"
+  operator            = "higher_than"
+  value               = 10000
+  check_period        = 60
+  query_period        = 300
+  confirmation_period = 60
+
+  email = true
+  push  = true
 }
 
 # =============================================================================
