@@ -207,6 +207,12 @@ var sourceSchema = map[string]*schema.Schema{
 		Optional:    true,
 		Sensitive:   true,
 	},
+	"skip_ssl_verify": {
+		Description: "Should the scraper skip SSL certificate verification? Enable for endpoints with self-signed or invalid certificates.",
+		Type:        schema.TypeBool,
+		Optional:    true,
+		Computed:    true,
+	},
 	"data_region": {
 		Description: "Data region or private cluster name to create the source in. Permitted values for most plans are: `us_east`, `germany`, `singapore`.",
 		Type:        schema.TypeString,
@@ -333,6 +339,7 @@ type source struct {
 	ScrapeRequestHeaders           *[]map[string]interface{} `json:"scrape_request_headers,omitempty"`
 	ScrapeRequestBasicAuthUser     *string                   `json:"scrape_request_basic_auth_user,omitempty"`
 	ScrapeRequestBasicAuthPassword *string                   `json:"scrape_request_basic_auth_password,omitempty"`
+	SkipSSLVerify                  *bool                     `json:"skip_ssl_verify,omitempty"`
 	DataRegion                     *string                   `json:"data_region,omitempty"`
 	SourceGroupID                  *int                      `json:"source_group_id,omitempty"`
 	CustomBucket                   *sourceCustomBucket       `json:"custom_bucket,omitempty"`
@@ -373,6 +380,7 @@ func sourceRef(in *source) []struct {
 		{k: "scrape_request_headers", v: &in.ScrapeRequestHeaders},
 		{k: "scrape_request_basic_auth_user", v: &in.ScrapeRequestBasicAuthUser},
 		{k: "scrape_request_basic_auth_password", v: &in.ScrapeRequestBasicAuthPassword},
+		{k: "skip_ssl_verify", v: &in.SkipSSLVerify},
 		{k: "data_region", v: &in.DataRegion},
 		{k: "source_group_id", v: &in.SourceGroupID},
 		{k: "vrl_transformation", v: &in.VrlTransformation},

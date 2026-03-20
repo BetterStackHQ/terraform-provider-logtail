@@ -240,6 +240,7 @@ func TestResourceSource(t *testing.T) {
 					platform         = "%s"
 					scrape_urls      = ["http://localhost:9100/metrics", "http://localhost:9101/metrics"]
 					scrape_frequency_secs = 60
+					skip_ssl_verify       = true
 				}
 				`, name, platform_scrape),
 				Check: resource.ComposeTestCheckFunc(
@@ -250,6 +251,7 @@ func TestResourceSource(t *testing.T) {
 					resource.TestCheckResourceAttr("logtail_source.this", "token", "generated_by_logtail"),
 					resource.TestCheckResourceAttr("logtail_source.this", "scrape_urls.#", "2"),
 					resource.TestCheckResourceAttr("logtail_source.this", "scrape_frequency_secs", "60"),
+					resource.TestCheckResourceAttr("logtail_source.this", "skip_ssl_verify", "true"),
 				),
 			},
 			// Step 2 - update.
@@ -276,6 +278,7 @@ func TestResourceSource(t *testing.T) {
 							value = "Bearer foo"
 						}
 					]
+					skip_ssl_verify = false
 				}
 				`, name, platform_scrape),
 				Check: resource.ComposeTestCheckFunc(
@@ -293,6 +296,7 @@ func TestResourceSource(t *testing.T) {
 					resource.TestCheckResourceAttr("logtail_source.this", "scrape_request_headers.0.value", "Bearer foo"),
 					resource.TestCheckResourceAttr("logtail_source.this", "scrape_request_basic_auth_user", "user1"),
 					resource.TestCheckResourceAttr("logtail_source.this", "scrape_request_basic_auth_password", "password1"),
+					resource.TestCheckResourceAttr("logtail_source.this", "skip_ssl_verify", "false"),
 				),
 			},
 			// Step 3 - make no changes, check plan is empty (omitted attributes are not controlled)

@@ -15,4 +15,5 @@ resource "logtail_source" "this" {
   ]
   scrape_request_basic_auth_user     = "foo"
   scrape_request_basic_auth_password = "bar"
+  skip_ssl_verify                    = true
 }
