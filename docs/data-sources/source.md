@@ -90,6 +90,7 @@ This Data Source allows you to look up existing Sources using their table name. 
 - `scrape_request_basic_auth_user` (String) Basic auth username for scraping.
 - `scrape_request_headers` (List of Map of String) An array of request headers, each containing `name` and `value` fields.
 - `scrape_urls` (List of String) For scrape platform types, the set of urls to scrape.
+- `skip_ssl_verify` (Boolean) Should the scraper skip SSL certificate verification? Enable for endpoints with self-signed or invalid certificates.
 - `source_group_id` (Number) The ID of the source group this source belongs to.
 - `team_id` (String) The team ID for this resource. Can be used with table_name in [Query API](https://betterstack.com/docs/logs/query-api/connect-remotely/).
 - `team_name` (String) Used to specify the team the resource should be created in when using global tokens.
