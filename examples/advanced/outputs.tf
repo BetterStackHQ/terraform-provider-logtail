@@ -16,11 +16,15 @@ output "dashboard_template_host_overview_id" {
   value = data.logtail_dashboard_template.host_overview.id
 }
 
-output "copied_dashboard_url" {
+output "dashboard_url_copied" {
   value = "https://telemetry.betterstack.com/team/${logtail_dashboard.from_template.team_id}/dashboards/${logtail_dashboard.from_template.id}"
 }
 
-output "custom_dashboard_url" {
+output "dashboard_url_import_json" {
+  value = "https://telemetry.betterstack.com/team/${logtail_dashboard.import_json.team_id}/dashboards/${logtail_dashboard.import_json.id}"
+}
+
+output "dashboard_url_custom" {
   value = "https://telemetry.betterstack.com/team/${logtail_dashboard.custom.team_id}/dashboards/${logtail_dashboard.custom.id}"
 }
 
