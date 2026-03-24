@@ -128,6 +128,7 @@ This Data Source allows you to look up existing Errors applications using their 
     - `wpf_errors`
     - `wsgi_errors`
 - `table_name` (String) The table name generated for this application.
+- `team_id` (String) The team ID for this resource.
 - `team_name` (String) Used to specify the team the resource should be created in when using global tokens.
 - `token` (String) The token of this application. This token is used to identify and route the data you will send to Better Stack.
 - `updated_at` (String) The time when this application was updated.

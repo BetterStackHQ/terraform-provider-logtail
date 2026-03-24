@@ -35,6 +35,7 @@ func TestResourceErrorsApplication(t *testing.T) {
 			body = inject(t, body, "token", "generated_by_logtail")
 			body = inject(t, body, "ingesting_host", "s1234.us-east-9.betterstackdata.com")
 			body = inject(t, body, "table_name", "test_errors_application")
+			body = inject(t, body, "team_id", 123456)
 
 			// Handle custom_bucket - remove secret_access_key from response as API doesn't return it
 			body = removeCustomBucketSecret(t, body)
@@ -63,6 +64,7 @@ func TestResourceErrorsApplication(t *testing.T) {
 			patched = inject(t, patched, "token", "generated_by_logtail")
 			patched = inject(t, patched, "ingesting_host", "s1234.us-east-9.betterstackdata.com")
 			patched = inject(t, patched, "table_name", "test_errors_application")
+			patched = inject(t, patched, "team_id", 123456)
 
 			// Handle custom_bucket - remove secret_access_key from response as API doesn't return it
 			patched = removeCustomBucketSecret(t, patched)
@@ -109,6 +111,7 @@ func TestResourceErrorsApplication(t *testing.T) {
 					resource.TestCheckResourceAttr("logtail_errors_application.this", "platform", platform),
 					resource.TestCheckResourceAttr("logtail_errors_application.this", "token", "generated_by_logtail"),
 					resource.TestCheckResourceAttr("logtail_errors_application.this", "ingesting_host", "s1234.us-east-9.betterstackdata.com"),
+					resource.TestCheckResourceAttr("logtail_errors_application.this", "team_id", "123456"),
 					resource.TestCheckResourceAttr("logtail_errors_application.this", "data_region", "us-east-9"),
 					resource.TestCheckResourceAttr("logtail_errors_application.this", "errors_retention", "90"),
 				),
