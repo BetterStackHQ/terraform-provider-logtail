@@ -124,6 +124,12 @@ var errorsApplicationSchema = map[string]*schema.Schema{
 			return d.Id() != ""
 		},
 	},
+	"team_id": {
+		Description: "The team ID for this resource.",
+		Type:        schema.TypeString,
+		Optional:    false,
+		Computed:    true,
+	},
 	"id": {
 		Description: "The ID of this application.",
 		Type:        schema.TypeString,
@@ -294,6 +300,7 @@ func newErrorsApplicationResource() *schema.Resource {
 type errorsApplication struct {
 	Name                  *string             `json:"name,omitempty"`
 	Token                 *string             `json:"token,omitempty"`
+	TeamId                *StringOrInt        `json:"team_id,omitempty"`
 	TableName             *string             `json:"table_name,omitempty"`
 	Platform              *string             `json:"platform,omitempty"`
 	IngestingHost         *string             `json:"ingesting_host,omitempty"`
@@ -326,6 +333,7 @@ func errorsApplicationRef(in *errorsApplication) []struct {
 	}{
 		{k: "name", v: &in.Name},
 		{k: "token", v: &in.Token},
+		{k: "team_id", v: &in.TeamId},
 		{k: "table_name", v: &in.TableName},
 		{k: "platform", v: &in.Platform},
 		{k: "ingesting_host", v: &in.IngestingHost},
@@ -343,7 +351,9 @@ func errorsApplicationRef(in *errorsApplication) []struct {
 func errorsApplicationCreate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	var in errorsApplication
 	for _, e := range errorsApplicationRef(&in) {
-		if e.k == "application_group_id" {
+		if e.k == "team_id" {
+			in.TeamId = StringOrIntFromResourceData(d, e.k)
+		} else if e.k == "application_group_id" {
 			// Use intFromResourceData to properly distinguish null vs 0
 			in.ApplicationGroupID = intFromResourceData(d, e.k)
 		} else {
@@ -401,6 +411,10 @@ func errorsApplicationCopyAttrs(d *schema.ResourceData, in *errorsApplication) d
 		} else if e.k == "platform" && d.Get("platform").(string) != "" {
 			// Don't update platform from API if it's already set - platform can't change and API doesn't return it
 			continue
+		} else if e.k == "team_id" {
+			if err := SetStringOrIntResourceData(d, "team_id", in.TeamId); err != nil {
+				derr = append(derr, diag.FromErr(err)[0])
+			}
 		} else if err := d.Set(e.k, reflect.Indirect(reflect.ValueOf(e.v)).Interface()); err != nil {
 			derr = append(derr, diag.FromErr(err)[0])
 		}
@@ -442,7 +456,9 @@ func errorsApplicationUpdate(ctx context.Context, d *schema.ResourceData, meta i
 	var in errorsApplication
 	for _, e := range errorsApplicationRef(&in) {
 		if d.HasChange(e.k) {
-			if e.k == "application_group_id" {
+			if e.k == "team_id" {
+				in.TeamId = StringOrIntFromResourceData(d, e.k)
+			} else if e.k == "application_group_id" {
 				// Use intFromResourceData to properly distinguish null vs 0
 				in.ApplicationGroupID = intFromResourceData(d, e.k)
 			} else {
