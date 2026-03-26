@@ -47,7 +47,6 @@ func TestResourceCollector(t *testing.T) {
 			body = removeCustomBucketSecret(t, body)
 
 			// Handle HTTP Basic Auth - move enable flag to configuration and remove password
-			body = processProxyConfig(t, body)
 
 			// Extract databases and store separately, replace with databases_count in main response
 			body, databases := extractDatabasesFromResponse(t, body)
@@ -90,7 +89,6 @@ func TestResourceCollector(t *testing.T) {
 			patched = removeCustomBucketSecret(t, patched)
 
 			// Handle HTTP Basic Auth - move enable flag to configuration and remove password
-			patched = processProxyConfig(t, patched)
 
 			// Handle databases update - process _destroy, then extract and store separately
 			patched = processDatabasesUpdate(t, patched)
@@ -420,36 +418,6 @@ func TestResourceCollector(t *testing.T) {
 				`, name, platform),
 				PlanOnly:    true,
 				ExpectError: regexp.MustCompile(`data_region cannot be changed after collector is created`),
-			},
-		},
-	})
-
-	// Test proxy_config rejected for non-proxy platforms
-	resource.Test(t, resource.TestCase{
-		IsUnitTest: true,
-		ProviderFactories: map[string]func() (*schema.Provider, error){
-			"logtail": func() (*schema.Provider, error) {
-				return New(WithURL(server.URL)), nil
-			},
-		},
-		Steps: []resource.TestStep{
-			{
-				Config: fmt.Sprintf(`
-				provider "logtail" {
-					api_token = "foo"
-				}
-
-				resource "logtail_collector" "this" {
-					name     = "%s"
-					platform = "%s"
-
-					proxy_config {
-						enable_buffering_proxy = true
-					}
-				}
-				`, name, platform),
-				PlanOnly:    true,
-				ExpectError: regexp.MustCompile(`proxy_config is only applicable to proxy platform collectors`),
 			},
 		},
 	})
@@ -982,28 +950,6 @@ func processDatabasesUpdate(t *testing.T, body json.RawMessage) json.RawMessage 
 	return body
 }
 
-// processProxyConfig handles proxy_config fields.
-// The API nests all proxy settings under proxy_config in the response.
-// http_basic_auth_password is removed (write-only field, never returned by the API).
-func processProxyConfig(t *testing.T, body json.RawMessage) json.RawMessage {
-	response := make(map[string]interface{})
-	if err := json.Unmarshal(body, &response); err != nil {
-		t.Fatal(err)
-	}
-
-	// If proxy_config exists, remove password from it
-	if proxyConfig, ok := response["proxy_config"].(map[string]interface{}); ok {
-		delete(proxyConfig, "http_basic_auth_password")
-	}
-
-	body, err := json.Marshal(response)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	return body
-}
-
 func TestResourceCollectorNewFeatures(t *testing.T) {
 	var collectorData atomic.Value
 	var databasesData atomic.Value
@@ -1032,7 +978,7 @@ func TestResourceCollectorNewFeatures(t *testing.T) {
 			body = inject(t, body, "hosts_count", 0)
 			body = inject(t, body, "hosts_up_count", 0)
 			body = removeCustomBucketSecret(t, body)
-			body = processProxyConfig(t, body)
+
 			body, databases := extractDatabasesFromResponse(t, body)
 			databasesData.Store(databases)
 			collectorData.Store(body)
@@ -1067,7 +1013,7 @@ func TestResourceCollectorNewFeatures(t *testing.T) {
 			patched = inject(t, patched, "team_id", 123456)
 			patched = inject(t, patched, "source_id", 42)
 			patched = removeCustomBucketSecret(t, patched)
-			patched = processProxyConfig(t, patched)
+
 			patched = processDatabasesUpdate(t, patched)
 			patched, databases := extractDatabasesFromResponse(t, patched)
 			databasesData.Store(databases)
@@ -1086,7 +1032,7 @@ func TestResourceCollectorNewFeatures(t *testing.T) {
 	defer server.Close()
 
 	var name = "Test Collector"
-	var platform = "proxy"
+	var platform = "docker"
 
 	// Test VRL transformation
 	resource.Test(t, resource.TestCase{
@@ -1142,145 +1088,6 @@ func TestResourceCollectorNewFeatures(t *testing.T) {
 		},
 	})
 
-	// Test SSL/TLS certificate settings via proxy_config
-	resource.Test(t, resource.TestCase{
-		IsUnitTest: true,
-		ProviderFactories: map[string]func() (*schema.Provider, error){
-			"logtail": func() (*schema.Provider, error) {
-				return New(WithURL(server.URL)), nil
-			},
-		},
-		Steps: []resource.TestStep{
-			// Step 1 - create with SSL settings
-			{
-				Config: fmt.Sprintf(`
-				provider "logtail" {
-					api_token = "foo"
-				}
-
-				resource "logtail_collector" "this" {
-					name     = "%s"
-					platform = "%s"
-
-					proxy_config {
-						enable_ssl_certificate = true
-						ssl_certificate_host   = "logs.example.com"
-					}
-				}
-				`, name, platform),
-				Check: resource.ComposeTestCheckFunc(
-					resource.TestCheckResourceAttrSet("logtail_collector.this", "id"),
-					resource.TestCheckResourceAttr("logtail_collector.this", "proxy_config.#", "1"),
-					resource.TestCheckResourceAttr("logtail_collector.this", "proxy_config.0.enable_ssl_certificate", "true"),
-					resource.TestCheckResourceAttr("logtail_collector.this", "proxy_config.0.ssl_certificate_host", "logs.example.com"),
-				),
-			},
-			// Step 2 - update SSL settings
-			{
-				Config: fmt.Sprintf(`
-				provider "logtail" {
-					api_token = "foo"
-				}
-
-				resource "logtail_collector" "this" {
-					name     = "%s"
-					platform = "%s"
-
-					proxy_config {
-						enable_ssl_certificate = true
-						ssl_certificate_host   = "logs2.example.com"
-					}
-				}
-				`, name, platform),
-				Check: resource.ComposeTestCheckFunc(
-					resource.TestCheckResourceAttr("logtail_collector.this", "proxy_config.0.ssl_certificate_host", "logs2.example.com"),
-				),
-			},
-		},
-	})
-
-	// Test HTTP Basic Auth via proxy_config
-	resource.Test(t, resource.TestCase{
-		IsUnitTest: true,
-		ProviderFactories: map[string]func() (*schema.Provider, error){
-			"logtail": func() (*schema.Provider, error) {
-				return New(WithURL(server.URL)), nil
-			},
-		},
-		Steps: []resource.TestStep{
-			// Step 1 - create with proxy_config
-			{
-				Config: fmt.Sprintf(`
-				provider "logtail" {
-					api_token = "foo"
-				}
-
-				resource "logtail_collector" "this" {
-					name     = "%s"
-					platform = "%s"
-
-					proxy_config {
-						enable_http_basic_auth   = true
-						http_basic_auth_username = "api_user"
-						http_basic_auth_password = "secret_password"
-					}
-				}
-				`, name, platform),
-				Check: resource.ComposeTestCheckFunc(
-					resource.TestCheckResourceAttrSet("logtail_collector.this", "id"),
-					resource.TestCheckResourceAttr("logtail_collector.this", "proxy_config.#", "1"),
-					resource.TestCheckResourceAttr("logtail_collector.this", "proxy_config.0.enable_http_basic_auth", "true"),
-					resource.TestCheckResourceAttr("logtail_collector.this", "proxy_config.0.http_basic_auth_username", "api_user"),
-					resource.TestCheckResourceAttr("logtail_collector.this", "proxy_config.0.http_basic_auth_password", "secret_password"),
-				),
-			},
-			// Step 2 - update username (password preserved)
-			{
-				Config: fmt.Sprintf(`
-				provider "logtail" {
-					api_token = "foo"
-				}
-
-				resource "logtail_collector" "this" {
-					name     = "%s"
-					platform = "%s"
-
-					proxy_config {
-						enable_http_basic_auth   = true
-						http_basic_auth_username = "new_user"
-						http_basic_auth_password = "secret_password"
-					}
-				}
-				`, name, platform),
-				Check: resource.ComposeTestCheckFunc(
-					resource.TestCheckResourceAttr("logtail_collector.this", "proxy_config.0.enable_http_basic_auth", "true"),
-					resource.TestCheckResourceAttr("logtail_collector.this", "proxy_config.0.http_basic_auth_username", "new_user"),
-					resource.TestCheckResourceAttr("logtail_collector.this", "proxy_config.0.http_basic_auth_password", "secret_password"),
-				),
-			},
-			// Step 3 - disable HTTP Basic Auth
-			{
-				Config: fmt.Sprintf(`
-				provider "logtail" {
-					api_token = "foo"
-				}
-
-				resource "logtail_collector" "this" {
-					name     = "%s"
-					platform = "%s"
-
-					proxy_config {
-						enable_http_basic_auth = false
-					}
-				}
-				`, name, platform),
-				Check: resource.ComposeTestCheckFunc(
-					resource.TestCheckResourceAttr("logtail_collector.this", "proxy_config.0.enable_http_basic_auth", "false"),
-				),
-			},
-		},
-	})
-
 	// Test user_vector_config
 	resource.Test(t, resource.TestCase{
 		IsUnitTest: true,
@@ -1325,75 +1132,6 @@ func TestResourceCollectorNewFeatures(t *testing.T) {
 				`, name, platform),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("logtail_collector.this", "user_vector_config", "sources:\n  updated_input:\n    type: file\n"),
-				),
-			},
-		},
-	})
-
-	// Test batching (in configuration) and buffering proxy (in proxy_config)
-	resource.Test(t, resource.TestCase{
-		IsUnitTest: true,
-		ProviderFactories: map[string]func() (*schema.Provider, error){
-			"logtail": func() (*schema.Provider, error) {
-				return New(WithURL(server.URL)), nil
-			},
-		},
-		Steps: []resource.TestStep{
-			// Step 1 - create with batching config and buffering proxy
-			{
-				Config: fmt.Sprintf(`
-				provider "logtail" {
-					api_token = "foo"
-				}
-
-				resource "logtail_collector" "this" {
-					name     = "%s"
-					platform = "%s"
-
-					configuration {
-						disk_batch_size_mb   = 512
-						memory_batch_size_mb = 20
-					}
-
-					proxy_config {
-						enable_buffering_proxy    = true
-						buffering_proxy_listen_on = "0.0.0.0:8080"
-					}
-				}
-				`, name, platform),
-				Check: resource.ComposeTestCheckFunc(
-					resource.TestCheckResourceAttrSet("logtail_collector.this", "id"),
-					resource.TestCheckResourceAttr("logtail_collector.this", "configuration.0.disk_batch_size_mb", "512"),
-					resource.TestCheckResourceAttr("logtail_collector.this", "configuration.0.memory_batch_size_mb", "20"),
-					resource.TestCheckResourceAttr("logtail_collector.this", "proxy_config.0.enable_buffering_proxy", "true"),
-					resource.TestCheckResourceAttr("logtail_collector.this", "proxy_config.0.buffering_proxy_listen_on", "0.0.0.0:8080"),
-				),
-			},
-			// Step 2 - update batching config and disable buffering proxy
-			{
-				Config: fmt.Sprintf(`
-				provider "logtail" {
-					api_token = "foo"
-				}
-
-				resource "logtail_collector" "this" {
-					name     = "%s"
-					platform = "%s"
-
-					configuration {
-						disk_batch_size_mb   = 1024
-						memory_batch_size_mb = 30
-					}
-
-					proxy_config {
-						enable_buffering_proxy = false
-					}
-				}
-				`, name, platform),
-				Check: resource.ComposeTestCheckFunc(
-					resource.TestCheckResourceAttr("logtail_collector.this", "configuration.0.disk_batch_size_mb", "1024"),
-					resource.TestCheckResourceAttr("logtail_collector.this", "configuration.0.memory_batch_size_mb", "30"),
-					resource.TestCheckResourceAttr("logtail_collector.this", "proxy_config.0.enable_buffering_proxy", "false"),
 				),
 			},
 		},
@@ -1529,61 +1267,6 @@ func TestResourceCollectorNewFeatures(t *testing.T) {
 						"name": "my-service", "log_sampling": "100", "ingest_traces": "true",
 					}),
 					resource.TestCheckResourceAttr("logtail_collector.this", "configuration.0.namespace_option.#", "2"),
-				),
-			},
-		},
-	})
-
-	// Test combined features (proxy_config has SSL + basic auth + buffering, configuration has sampling + VRL)
-	resource.Test(t, resource.TestCase{
-		IsUnitTest: true,
-		ProviderFactories: map[string]func() (*schema.Provider, error){
-			"logtail": func() (*schema.Provider, error) {
-				return New(WithURL(server.URL)), nil
-			},
-		},
-		Steps: []resource.TestStep{
-			{
-				Config: fmt.Sprintf(`
-				provider "logtail" {
-					api_token = "foo"
-				}
-
-				resource "logtail_collector" "this" {
-					name     = "%s"
-					platform = "%s"
-
-					proxy_config {
-						enable_http_basic_auth    = true
-						http_basic_auth_username  = "proxy_user"
-						http_basic_auth_password  = "proxy_pass"
-						enable_ssl_certificate    = true
-						ssl_certificate_host      = "logs.example.com"
-						enable_buffering_proxy    = true
-						buffering_proxy_listen_on = "0.0.0.0:80"
-					}
-
-					configuration {
-						logs_sample_rate   = 100
-						traces_sample_rate = 50
-						vrl_transformation = ".level = downcase!(.level)"
-					}
-				}
-				`, name, platform),
-				Check: resource.ComposeTestCheckFunc(
-					resource.TestCheckResourceAttrSet("logtail_collector.this", "id"),
-					resource.TestCheckResourceAttr("logtail_collector.this", "proxy_config.#", "1"),
-					resource.TestCheckResourceAttr("logtail_collector.this", "proxy_config.0.enable_http_basic_auth", "true"),
-					resource.TestCheckResourceAttr("logtail_collector.this", "proxy_config.0.http_basic_auth_username", "proxy_user"),
-					resource.TestCheckResourceAttr("logtail_collector.this", "proxy_config.0.http_basic_auth_password", "proxy_pass"),
-					resource.TestCheckResourceAttr("logtail_collector.this", "proxy_config.0.enable_ssl_certificate", "true"),
-					resource.TestCheckResourceAttr("logtail_collector.this", "proxy_config.0.ssl_certificate_host", "logs.example.com"),
-					resource.TestCheckResourceAttr("logtail_collector.this", "proxy_config.0.enable_buffering_proxy", "true"),
-					resource.TestCheckResourceAttr("logtail_collector.this", "proxy_config.0.buffering_proxy_listen_on", "0.0.0.0:80"),
-					resource.TestCheckResourceAttr("logtail_collector.this", "configuration.#", "1"),
-					resource.TestCheckResourceAttr("logtail_collector.this", "configuration.0.logs_sample_rate", "100"),
-					resource.TestCheckResourceAttr("logtail_collector.this", "configuration.0.traces_sample_rate", "50"),
-					resource.TestCheckResourceAttr("logtail_collector.this", "configuration.0.vrl_transformation", ".level = downcase!(.level)"),
 				),
 			},
 		},

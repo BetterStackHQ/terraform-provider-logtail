@@ -138,58 +138,6 @@ resource "logtail_collector" "with_databases" {
 }
 
 # ---------------------------------------------------------------------------
-# Proxy collector with auth, SSL, and custom Vector YAML
-# ---------------------------------------------------------------------------
-resource "logtail_collector" "proxy_with_auth" {
-  name     = "E2E Proxy ${random_pet.unique.id}"
-  platform = "proxy"
-  note     = "Proxy collector with authentication and custom SSL"
-
-  proxy_config {
-    enable_http_basic_auth    = true
-    http_basic_auth_username  = "api_user"
-    http_basic_auth_password  = var.proxy_password
-    enable_ssl_certificate    = true
-    ssl_certificate_host      = "logs.example.com"
-    enable_buffering_proxy    = true
-    buffering_proxy_listen_on = "0.0.0.0:8080"
-  }
-
-  # Looking for sinks to send data to Better Stack?
-  # The sink `better_stack_http_logs_sink` in generated.vector.yaml will automatically pick up any source or transform with a name starting with `better_stack_logs_`.
-  # Sinks `better_stack_http_traces_sink` and `better_stack_http_metrics_sink` will pick up any source or transform with a name starting with `better_stack_traces_` and `better_stack_metrics_` respectively.
-  user_vector_config = <<-EOT
-    sources:
-      better_stack_logs_my_custom_input:
-        type: file
-        include:
-          - "/var/log/app/*.log"
-
-      better_stack_traces_sample_input:
-        type: file
-        include:
-          - /dev/null
-
-      better_stack_metrics_sample_input:
-        type: static_metrics
-  EOT
-
-  configuration {
-    logs_sample_rate   = 100
-    traces_sample_rate = 50
-
-    disk_batch_size_mb   = 512
-    memory_batch_size_mb = 20
-
-    # VRL transformation to normalize log levels
-    vrl_transformation = <<-EOT
-      .level = downcase!(.level)
-      .processed_at = now()
-    EOT
-  }
-}
-
-# ---------------------------------------------------------------------------
 # Data source to look up a collector created above
 # ---------------------------------------------------------------------------
 data "logtail_collector" "existing" {

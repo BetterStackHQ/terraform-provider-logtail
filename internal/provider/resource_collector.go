@@ -51,7 +51,6 @@ var collectorPlatformTypes = []string{
 	"docker",
 	"swarm",
 	"kubernetes",
-	"proxy",
 }
 
 var collectorSchema = map[string]*schema.Schema{
@@ -82,7 +81,7 @@ var collectorSchema = map[string]*schema.Schema{
 		Required:    true,
 	},
 	"platform": {
-		Description:  "The platform of this collector. This value can be set only when creating a new collector and cannot be changed later. Valid values are: `docker`, `swarm`, `kubernetes`, `proxy`.",
+		Description:  "The platform of this collector. This value can be set only when creating a new collector and cannot be changed later. Valid values are: `docker`, `swarm`, `kubernetes`.",
 		Type:         schema.TypeString,
 		Required:     true,
 		ForceNew:     true,
@@ -313,55 +312,6 @@ var collectorSchema = map[string]*schema.Schema{
 			},
 		},
 	},
-	"proxy_config": {
-		Description: "Proxy settings including buffering proxy, SSL/TLS, and HTTP Basic Authentication. Only applicable to `proxy` platform collectors.",
-		Type:        schema.TypeList,
-		Optional:    true,
-		MaxItems:    1,
-		Elem: &schema.Resource{
-			Schema: map[string]*schema.Schema{
-				"enable_buffering_proxy": {
-					Description: "Enable the HTTP buffering proxy for the collector.",
-					Type:        schema.TypeBool,
-					Optional:    true,
-					Default:     false,
-				},
-				"buffering_proxy_listen_on": {
-					Description: "Address and port for the buffering proxy to listen on.",
-					Type:        schema.TypeString,
-					Optional:    true,
-				},
-				"enable_ssl_certificate": {
-					Description: "Enable custom SSL/TLS certificate for the collector.",
-					Type:        schema.TypeBool,
-					Optional:    true,
-					Default:     false,
-				},
-				"ssl_certificate_host": {
-					Description: "Hostname for the SSL certificate.",
-					Type:        schema.TypeString,
-					Optional:    true,
-				},
-				"enable_http_basic_auth": {
-					Description: "Enable HTTP Basic Authentication for the collector proxy.",
-					Type:        schema.TypeBool,
-					Optional:    true,
-					Default:     false,
-				},
-				"http_basic_auth_username": {
-					Description: "Username for HTTP Basic Authentication.",
-					Type:        schema.TypeString,
-					Optional:    true,
-				},
-				"http_basic_auth_password": {
-					Description: "Password for HTTP Basic Authentication. This value is write-only and never returned by the API.",
-					Type:        schema.TypeString,
-					Optional:    true,
-					Sensitive:   true,
-				},
-			},
-		},
-	},
 	"custom_bucket": {
 		Description: "Optional custom bucket configuration for the collector. Once set, it cannot be removed.",
 		Type:        schema.TypeList,
@@ -430,16 +380,6 @@ type collectorConfiguration struct {
 	NamespacesOptions map[string]collectorEntityOption `json:"namespaces_options,omitempty"`
 }
 
-type collectorProxyConfig struct {
-	EnableBufferingProxy   *bool   `json:"enable_buffering_proxy,omitempty"`
-	BufferingProxyListenOn *string `json:"buffering_proxy_listen_on,omitempty"`
-	EnableSSLCertificate   *bool   `json:"enable_ssl_certificate,omitempty"`
-	SSLCertificateHost     *string `json:"ssl_certificate_host,omitempty"`
-	EnableHTTPBasicAuth    *bool   `json:"enable_http_basic_auth,omitempty"`
-	HTTPBasicAuthUsername  *string `json:"http_basic_auth_username,omitempty"`
-	HTTPBasicAuthPassword  *string `json:"http_basic_auth_password,omitempty"`
-}
-
 type collectorCustomBucket struct {
 	Name                   *string `json:"name,omitempty"`
 	Endpoint               *string `json:"endpoint,omitempty"`
@@ -484,7 +424,6 @@ type collector struct {
 	UserVectorConfig        *string                 `json:"user_vector_config,omitempty"`
 	SourceVrlTransformation *string                 `json:"source_vrl_transformation,omitempty"`
 	Configuration           *collectorConfiguration `json:"configuration,omitempty"`
-	ProxyConfig             *collectorProxyConfig   `json:"proxy_config,omitempty"`
 	CustomBucket            *collectorCustomBucket  `json:"custom_bucket,omitempty"`
 	Databases               *[]collectorDatabase    `json:"databases,omitempty"`
 }
@@ -784,43 +723,6 @@ func loadCollectorConfiguration(d *schema.ResourceData) *collectorConfiguration 
 	return cfg
 }
 
-// loadCollectorProxyConfig reads the proxy_config block into the API struct.
-func loadCollectorProxyConfig(d *schema.ResourceData, in *collector) {
-	proxyData, ok := d.GetOk("proxy_config")
-	if !ok {
-		return
-	}
-	proxyList := proxyData.([]interface{})
-	if len(proxyList) == 0 {
-		return
-	}
-	pm := proxyList[0].(map[string]interface{})
-
-	pc := &collectorProxyConfig{}
-	if v, ok := pm["enable_buffering_proxy"].(bool); ok {
-		pc.EnableBufferingProxy = boolPtr(v)
-	}
-	if v, ok := pm["buffering_proxy_listen_on"].(string); ok && v != "" {
-		pc.BufferingProxyListenOn = stringPtr(v)
-	}
-	if v, ok := pm["enable_ssl_certificate"].(bool); ok {
-		pc.EnableSSLCertificate = boolPtr(v)
-	}
-	if v, ok := pm["ssl_certificate_host"].(string); ok && v != "" {
-		pc.SSLCertificateHost = stringPtr(v)
-	}
-	if v, ok := pm["enable_http_basic_auth"].(bool); ok {
-		pc.EnableHTTPBasicAuth = boolPtr(v)
-	}
-	if v, ok := pm["http_basic_auth_username"].(string); ok && v != "" {
-		pc.HTTPBasicAuthUsername = stringPtr(v)
-	}
-	if v, ok := pm["http_basic_auth_password"].(string); ok && v != "" {
-		pc.HTTPBasicAuthPassword = stringPtr(v)
-	}
-	in.ProxyConfig = pc
-}
-
 func collectorCreate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	var in collector
 	for _, e := range collectorRef(&in) {
@@ -837,9 +739,6 @@ func collectorCreate(ctx context.Context, d *schema.ResourceData, meta interface
 
 	// Load configuration
 	in.Configuration = loadCollectorConfiguration(d)
-
-	// Load proxy config (buffering proxy, SSL, HTTP Basic Auth)
-	loadCollectorProxyConfig(d, &in)
 
 	// Load custom_bucket
 	if customBucketData, ok := d.GetOk("custom_bucket"); ok {
@@ -939,11 +838,6 @@ func collectorUpdate(ctx context.Context, d *schema.ResourceData, meta interface
 			}
 			mergeEntityOptions(in.Configuration, serverCfg)
 		}
-	}
-
-	// Load proxy config if changed (buffering proxy, SSL, HTTP Basic Auth)
-	if d.HasChange("proxy_config") {
-		loadCollectorProxyConfig(d, &in)
 	}
 
 	// Load custom_bucket if changed
@@ -1131,50 +1025,6 @@ func collectorCopyAttrs(d *schema.ResourceData, in *collector) diag.Diagnostics 
 		}
 	}
 
-	// Copy proxy_config from the API response (only returned for proxy-platform collectors).
-	if in.ProxyConfig != nil {
-		proxyData := make(map[string]interface{})
-		if in.ProxyConfig.EnableBufferingProxy != nil {
-			proxyData["enable_buffering_proxy"] = *in.ProxyConfig.EnableBufferingProxy
-		}
-		if in.ProxyConfig.BufferingProxyListenOn != nil {
-			proxyData["buffering_proxy_listen_on"] = *in.ProxyConfig.BufferingProxyListenOn
-		}
-		if in.ProxyConfig.EnableSSLCertificate != nil {
-			proxyData["enable_ssl_certificate"] = *in.ProxyConfig.EnableSSLCertificate
-		}
-		if in.ProxyConfig.SSLCertificateHost != nil {
-			proxyData["ssl_certificate_host"] = *in.ProxyConfig.SSLCertificateHost
-		}
-		if in.ProxyConfig.EnableHTTPBasicAuth != nil {
-			proxyData["enable_http_basic_auth"] = *in.ProxyConfig.EnableHTTPBasicAuth
-		}
-		if in.ProxyConfig.HTTPBasicAuthUsername != nil {
-			proxyData["http_basic_auth_username"] = *in.ProxyConfig.HTTPBasicAuthUsername
-		}
-
-		// Preserve http_basic_auth_password from existing state (API never returns it)
-		if existingProxy, ok := d.GetOk("proxy_config"); ok {
-			existingList := existingProxy.([]interface{})
-			if len(existingList) > 0 {
-				existingMap := existingList[0].(map[string]interface{})
-				if password, ok := existingMap["http_basic_auth_password"]; ok {
-					proxyData["http_basic_auth_password"] = password
-				}
-			}
-		}
-
-		if err := d.Set("proxy_config", []interface{}{proxyData}); err != nil {
-			derr = append(derr, diag.FromErr(err)[0])
-		}
-	} else if _, userDeclared := d.GetOk("proxy_config"); userDeclared {
-		// API returned nil proxy_config (non-proxy platform) but user declared it —
-		// clear it from state to avoid drift.
-		if err := d.Set("proxy_config", nil); err != nil {
-			derr = append(derr, diag.FromErr(err)[0])
-		}
-	}
-
 	// Copy custom_bucket (preserve secret_access_key from state)
 	if in.CustomBucket != nil {
 		customBucketData := make(map[string]interface{})
@@ -1268,17 +1118,6 @@ func collectorCopyAttrs(d *schema.ResourceData, in *collector) diag.Diagnostics 
 }
 
 func validateCollector(ctx context.Context, diff *schema.ResourceDiff, v interface{}) error {
-	// Reject proxy_config for non-proxy platforms at plan time
-	if proxyConfig, ok := diff.GetOk("proxy_config"); ok {
-		proxyList := proxyConfig.([]interface{})
-		if len(proxyList) > 0 {
-			platform := diff.Get("platform").(string)
-			if platform != "proxy" {
-				return fmt.Errorf("proxy_config is only applicable to proxy platform collectors, but platform is %q", platform)
-			}
-		}
-	}
-
 	if diff.Id() != "" && diff.HasChange("data_region") {
 		return fmt.Errorf("data_region cannot be changed after collector is created")
 	}

@@ -42,8 +42,7 @@ data "logtail_collector" "production" {
 - `metrics_retention` (Number) Data retention for metrics in days. Allowed values: 7, 30, 60, 90, 180, 365, 730, 1095, 1460, 1825. There might be additional charges for longer retention.
 - `note` (String) A description or note about this collector.
 - `pinged_at` (String) The time when this collector last received data.
-- `platform` (String) The platform of this collector. This value can be set only when creating a new collector and cannot be changed later. Valid values are: `docker`, `swarm`, `kubernetes`, `proxy`.
-- `proxy_config` (List of Object) Proxy settings including buffering proxy, SSL/TLS, and HTTP Basic Authentication. Only applicable to `proxy` platform collectors. (see [below for nested schema](#nestedatt--proxy_config))
+- `platform` (String) The platform of this collector. This value can be set only when creating a new collector and cannot be changed later. Valid values are: `docker`, `swarm`, `kubernetes`.
 - `secret` (String, Sensitive) The secret token used to authenticate collector hosts.
 - `source_group_id` (Number) The ID of the source group (folder) this collector belongs to. Set to `0` to remove from a group.
 - `source_id` (Number) The ID of the underlying source. Use this with `logtail_metric` to define metrics on this collector's data.
@@ -133,17 +132,3 @@ Read-Only:
 - `ssl_mode` (String)
 - `tls` (String)
 - `username` (String)
-
-
-<a id="nestedatt--proxy_config"></a>
-### Nested Schema for `proxy_config`
-
-Read-Only:
-
-- `buffering_proxy_listen_on` (String)
-- `enable_buffering_proxy` (Boolean)
-- `enable_http_basic_auth` (Boolean)
-- `enable_ssl_certificate` (Boolean)
-- `http_basic_auth_password` (String)
-- `http_basic_auth_username` (String)
-- `ssl_certificate_host` (String)
