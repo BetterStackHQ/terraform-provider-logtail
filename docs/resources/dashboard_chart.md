@@ -52,7 +52,7 @@ resource "logtail_dashboard_chart" "error_count" {
 
 ### Required
 
-- `chart_type` (String) The type of chart (e.g., 'line_chart', 'bar_chart', 'pie_chart', 'number_chart', 'table_chart', 'tail_chart', 'static_text_chart', 'scatter_chart', 'gauge_chart', 'heatmap_chart', 'map_chart', 'text_chart', 'funnel_chart', 'anomalies_chart').
+- `chart_type` (String) The type of chart: 'line_chart', 'bar_chart', 'pie_chart', 'number_chart', 'table_chart', 'tail_chart', 'static_text_chart', 'scatter_chart', 'gauge_chart', 'heatmap_chart', 'map_chart', 'text_chart', 'funnel_chart', or 'anomalies_chart'.
 - `dashboard_id` (String) The ID of the dashboard this chart belongs to.
 - `name` (String) The name of this chart.
 - `query` (Block List, Min: 1) The queries for this chart. At least one query is required. (see [below for nested schema](#nestedblock--query))
