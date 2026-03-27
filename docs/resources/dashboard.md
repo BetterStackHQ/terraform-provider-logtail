@@ -43,10 +43,10 @@ This resource allows you to create and manage dashboards. Use 'data' for import 
 Required:
 
 - `name` (String) The name of the variable (used as {{name}} in queries).
-- `variable_type` (String) The type of variable: 'source', 'string', 'number', 'date', 'datetime', 'boolean', 'sql_expression', 'select_value', or 'select_with_sql'.
+- `variable_type` (String) The type of variable: 'source', 'string', 'number', 'date', 'datetime', 'boolean', 'sql_expression', 'select_value', 'select_with_sql', or 'multi_select_with_sql'.
 
 Optional:
 
 - `default_values` (List of String) Default selected values for the variable.
-- `sql_definition` (String) SQL definition for 'sql_expression' or 'select_with_sql' type variables.
+- `sql_definition` (String) SQL definition for 'select_with_sql' or 'multi_select_with_sql' type variables.
 - `values` (List of String) Predefined values for 'select_value' type variables.

@@ -96,7 +96,7 @@ var dashboardSchema = map[string]*schema.Schema{
 					Required:    true,
 				},
 				"variable_type": {
-					Description: "The type of variable: 'source', 'string', 'number', 'date', 'datetime', 'boolean', 'sql_expression', 'select_value', or 'select_with_sql'.",
+					Description: "The type of variable: 'source', 'string', 'number', 'date', 'datetime', 'boolean', 'sql_expression', 'select_value', 'select_with_sql', or 'multi_select_with_sql'.",
 					Type:        schema.TypeString,
 					Required:    true,
 				},
@@ -115,7 +115,7 @@ var dashboardSchema = map[string]*schema.Schema{
 					Elem:        &schema.Schema{Type: schema.TypeString},
 				},
 				"sql_definition": {
-					Description: "SQL definition for 'sql_expression' or 'select_with_sql' type variables.",
+					Description: "SQL definition for 'select_with_sql' or 'multi_select_with_sql' type variables.",
 					Type:        schema.TypeString,
 					Optional:    true,
 					Computed:    true,
