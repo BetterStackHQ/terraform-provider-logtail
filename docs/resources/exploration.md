@@ -40,7 +40,7 @@ This resource allows you to create, modify, and delete Explorations in Better St
 
 Required:
 
-- `chart_type` (String) The type of chart (e.g., 'line_chart', 'bar_chart', 'pie_chart', 'number_chart', 'table_chart', 'tail_chart', 'static_text_chart').
+- `chart_type` (String) The type of chart: 'line_chart', 'bar_chart', 'pie_chart', 'number_chart', 'table_chart', 'tail_chart', 'static_text_chart', 'scatter_chart', 'gauge_chart', 'heatmap_chart', 'map_chart', 'text_chart', 'funnel_chart', or 'anomalies_chart'.
 
 Optional:
 

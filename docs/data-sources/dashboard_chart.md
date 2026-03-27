@@ -29,7 +29,7 @@ data "logtail_dashboard_chart" "request_rate" {
 
 ### Read-Only
 
-- `chart_type` (String) The type of chart (e.g., 'line_chart', 'bar_chart', 'pie_chart', 'number_chart', 'table_chart', 'tail_chart', 'static_text_chart', 'scatter_chart', 'gauge_chart', 'heatmap_chart', 'map_chart', 'text_chart', 'funnel_chart', 'anomalies_chart').
+- `chart_type` (String) The type of chart: 'line_chart', 'bar_chart', 'pie_chart', 'number_chart', 'table_chart', 'tail_chart', 'static_text_chart', 'scatter_chart', 'gauge_chart', 'heatmap_chart', 'map_chart', 'text_chart', 'funnel_chart', or 'anomalies_chart'.
 - `created_at` (String) The time when this chart was created.
 - `description` (String) The description of this chart.
 - `h` (Number) The height of this chart in grid units.

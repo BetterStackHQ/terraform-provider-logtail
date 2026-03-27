@@ -7,6 +7,7 @@ import (
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 )
 
 func validateAlert(_ context.Context, diff *schema.ResourceDiff, _ interface{}) error {
@@ -39,15 +40,17 @@ var alertSchema = map[string]*schema.Schema{
 		Required:    true,
 	},
 	"alert_type": {
-		Description: "The type of alert: 'threshold', 'relative', or 'anomaly_rrcf'.",
-		Type:        schema.TypeString,
-		Required:    true,
+		Description:  "The type of alert: 'threshold', 'relative', or 'anomaly_rrcf'.",
+		Type:         schema.TypeString,
+		Required:     true,
+		ValidateFunc: validation.StringInSlice([]string{"threshold", "relative", "anomaly_rrcf"}, false),
 	},
 	"operator": {
-		Description: "The comparison operator. For threshold: 'equal', 'not_equal', 'higher_than', 'higher_than_or_equal', 'lower_than', 'lower_than_or_equal'. For relative: 'increases_by', 'decreases_by', 'changes_by'. Not required for anomaly alerts.",
-		Type:        schema.TypeString,
-		Optional:    true,
-		Computed:    true,
+		Description:  "The comparison operator. For threshold: 'equal', 'not_equal', 'higher_than', 'higher_than_or_equal', 'lower_than', 'lower_than_or_equal'. For relative: 'increases_by', 'decreases_by', 'changes_by'. Not required for anomaly alerts.",
+		Type:         schema.TypeString,
+		Optional:     true,
+		Computed:     true,
+		ValidateFunc: validation.StringInSlice([]string{"equal", "not_equal", "higher_than", "higher_than_or_equal", "lower_than", "lower_than_or_equal", "increases_by", "decreases_by", "changes_by"}, false),
 	},
 	"value": {
 		Description: "The numeric threshold value. Required for threshold and relative alerts.",
@@ -105,10 +108,11 @@ var alertSchema = map[string]*schema.Schema{
 		Computed:    true,
 	},
 	"source_mode": {
-		Description: "Source selection mode: 'source_variable', 'platforms_single_source', or 'platforms_all_sources'.",
-		Type:        schema.TypeString,
-		Optional:    true,
-		Computed:    true,
+		Description:  "Source selection mode: 'source_variable', 'platforms_single_source', or 'platforms_all_sources'.",
+		Type:         schema.TypeString,
+		Optional:     true,
+		Computed:     true,
+		ValidateFunc: validation.StringInSlice([]string{"source_variable", "platforms_single_source", "platforms_all_sources"}, false),
 	},
 	"source_platforms": {
 		Description: "Platform filters (used when source_mode is 'platforms_*').",
@@ -172,10 +176,11 @@ var alertSchema = map[string]*schema.Schema{
 		Computed:    true,
 	},
 	"anomaly_trigger": {
-		Description: "Anomaly trigger mode: 'any', 'higher', or 'lower' (only for 'anomaly_rrcf' type).",
-		Type:        schema.TypeString,
-		Optional:    true,
-		Computed:    true,
+		Description:  "Anomaly trigger mode: 'any', 'higher', or 'lower' (only for 'anomaly_rrcf' type).",
+		Type:         schema.TypeString,
+		Optional:     true,
+		Computed:     true,
+		ValidateFunc: validation.StringInSlice([]string{"any", "higher", "lower"}, false),
 	},
 	"paused_reason": {
 		Description: "Read-only field explaining why the alert is paused (e.g., 'Manually paused', complexity issues, too many failures).",

@@ -9,6 +9,7 @@ import (
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 )
 
 var dashboardChartSchema = map[string]*schema.Schema{
@@ -25,9 +26,10 @@ var dashboardChartSchema = map[string]*schema.Schema{
 		Computed:    true,
 	},
 	"chart_type": {
-		Description: "The type of chart (e.g., 'line_chart', 'bar_chart', 'pie_chart', 'number_chart', 'table_chart', 'tail_chart', 'static_text_chart', 'scatter_chart', 'gauge_chart', 'heatmap_chart', 'map_chart', 'text_chart', 'funnel_chart', 'anomalies_chart').",
-		Type:        schema.TypeString,
-		Required:    true,
+		Description:  "The type of chart: 'line_chart', 'bar_chart', 'pie_chart', 'number_chart', 'table_chart', 'tail_chart', 'static_text_chart', 'scatter_chart', 'gauge_chart', 'heatmap_chart', 'map_chart', 'text_chart', 'funnel_chart', or 'anomalies_chart'.",
+		Type:         schema.TypeString,
+		Required:     true,
+		ValidateFunc: validation.StringInSlice([]string{"line_chart", "bar_chart", "pie_chart", "number_chart", "table_chart", "tail_chart", "static_text_chart", "scatter_chart", "gauge_chart", "heatmap_chart", "map_chart", "text_chart", "funnel_chart", "anomalies_chart"}, false),
 	},
 	"name": {
 		Description: "The name of this chart.",
@@ -109,9 +111,10 @@ var dashboardChartSchema = map[string]*schema.Schema{
 					Computed:    true,
 				},
 				"query_type": {
-					Description: "The type of query: 'sql_expression', 'tail_query', or 'static_text'. Note: 'pql_expression', 'query_builder', and 'funnel_query' are read-only.",
-					Type:        schema.TypeString,
-					Required:    true,
+					Description:  "The type of query: 'sql_expression', 'tail_query', or 'static_text'. Note: 'pql_expression', 'query_builder', and 'funnel_query' are read-only.",
+					Type:         schema.TypeString,
+					Required:     true,
+					ValidateFunc: validation.StringInSlice([]string{"sql_expression", "tail_query", "static_text", "pql_expression", "query_builder", "funnel_query"}, false),
 				},
 				"sql_query": {
 					Description: "The SQL query string. Required when query_type is 'sql_expression'.",

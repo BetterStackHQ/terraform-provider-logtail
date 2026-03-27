@@ -8,6 +8,7 @@ import (
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 )
 
 var explorationSchema = map[string]*schema.Schema{
@@ -84,9 +85,10 @@ var explorationSchema = map[string]*schema.Schema{
 		Elem: &schema.Resource{
 			Schema: map[string]*schema.Schema{
 				"chart_type": {
-					Description: "The type of chart (e.g., 'line_chart', 'bar_chart', 'pie_chart', 'number_chart', 'table_chart', 'tail_chart', 'static_text_chart').",
-					Type:        schema.TypeString,
-					Required:    true,
+					Description:  "The type of chart: 'line_chart', 'bar_chart', 'pie_chart', 'number_chart', 'table_chart', 'tail_chart', 'static_text_chart', 'scatter_chart', 'gauge_chart', 'heatmap_chart', 'map_chart', 'text_chart', 'funnel_chart', or 'anomalies_chart'.",
+					Type:         schema.TypeString,
+					Required:     true,
+					ValidateFunc: validation.StringInSlice([]string{"line_chart", "bar_chart", "pie_chart", "number_chart", "table_chart", "tail_chart", "static_text_chart", "scatter_chart", "gauge_chart", "heatmap_chart", "map_chart", "text_chart", "funnel_chart", "anomalies_chart"}, false),
 				},
 				"name": {
 					Description: "The name of the chart. Automatically set to the exploration name by the API.",
@@ -146,9 +148,10 @@ var explorationSchema = map[string]*schema.Schema{
 					Optional:    true,
 				},
 				"query_type": {
-					Description: "The type of query: 'sql_expression', 'tail_query', or 'static_text'. Note: 'pql_expression', 'query_builder', and 'funnel_query' are read-only.",
-					Type:        schema.TypeString,
-					Required:    true,
+					Description:  "The type of query: 'sql_expression', 'tail_query', or 'static_text'. Note: 'pql_expression', 'query_builder', and 'funnel_query' are read-only.",
+					Type:         schema.TypeString,
+					Required:     true,
+					ValidateFunc: validation.StringInSlice([]string{"sql_expression", "tail_query", "static_text", "pql_expression", "query_builder", "funnel_query"}, false),
 				},
 				"sql_query": {
 					Description: "The SQL query string. Required when query_type is 'sql_expression'.",
@@ -186,9 +189,10 @@ var explorationSchema = map[string]*schema.Schema{
 					Required:    true,
 				},
 				"variable_type": {
-					Description: "The type of variable: 'source', 'string', 'number', 'date', 'datetime', 'boolean', 'sql_expression', 'select_value', 'select_with_sql', or 'multi_select_with_sql'.",
-					Type:        schema.TypeString,
-					Required:    true,
+					Description:  "The type of variable: 'source', 'string', 'number', 'date', 'datetime', 'boolean', 'sql_expression', 'select_value', 'select_with_sql', or 'multi_select_with_sql'.",
+					Type:         schema.TypeString,
+					Required:     true,
+					ValidateFunc: validation.StringInSlice([]string{"source", "string", "number", "date", "datetime", "boolean", "sql_expression", "select_value", "select_with_sql", "multi_select_with_sql"}, false),
 				},
 				"values": {
 					Description: "Predefined values for 'select_value' type variables.",
