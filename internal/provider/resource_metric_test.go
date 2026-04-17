@@ -38,6 +38,13 @@ func TestResourceMetric(t *testing.T) {
 			_, _ = w.Write([]byte(fmt.Sprintf(`{"data":{"id":"%d","attributes":%s}}`, id.Load(), body)))
 		case r.Method == http.MethodGet && r.RequestURI == prefix+"?page=1":
 			_, _ = w.Write([]byte(fmt.Sprintf(`{"data":[{"id":"%d","attributes":%s}],"pagination":{"next":null}}`, id.Load(), data.Load())))
+		case r.Method == http.MethodPatch && r.RequestURI == fmt.Sprintf(`%s/%d`, prefix, id.Load()):
+			body, err := io.ReadAll(r.Body)
+			if err != nil {
+				t.Fatal(err)
+			}
+			data.Store(body)
+			_, _ = w.Write([]byte(fmt.Sprintf(`{"data":{"id":"%d","attributes":%s}}`, id.Load(), body)))
 		case r.Method == http.MethodDelete && r.RequestURI == fmt.Sprintf(`%s/%d`, prefix, id.Load()):
 			w.WriteHeader(http.StatusNoContent)
 			data.Store([]byte(nil))
@@ -110,7 +117,7 @@ func TestResourceMetric(t *testing.T) {
 					t.Log("step 2")
 				},
 			},
-			// Step 3 - update, should change ID because it's a recreation
+			// Step 3 - update aggregations in-place, ID should stay the same
 			{
 				Config: fmt.Sprintf(`
 				provider "logtail" {
@@ -126,7 +133,7 @@ func TestResourceMetric(t *testing.T) {
 				}
 				`, sourceID, name, sqlExpression, metricType),
 				Check: resource.ComposeTestCheckFunc(
-					resource.TestCheckResourceAttr("logtail_metric.this", "id", "2"),
+					resource.TestCheckResourceAttr("logtail_metric.this", "id", "1"),
 					resource.TestCheckResourceAttr("logtail_metric.this", "source_id", sourceID),
 					resource.TestCheckResourceAttr("logtail_metric.this", "name", name),
 					resource.TestCheckResourceAttr("logtail_metric.this", "sql_expression", sqlExpression),
@@ -139,7 +146,7 @@ func TestResourceMetric(t *testing.T) {
 					t.Log("step 3")
 				},
 			},
-			// Step 4 - make no changes, check plan is empty
+			// Step 4 - rename the metric in-place, ID should stay the same
 			{
 				Config: fmt.Sprintf(`
 				provider "logtail" {
@@ -148,7 +155,30 @@ func TestResourceMetric(t *testing.T) {
 
 				resource "logtail_metric" "this" {
 					source_id      = "%s"
-					name           = "%s"
+					name           = "%s Renamed"
+					sql_expression = "%s"
+					type           = "%s"
+					aggregations   = ["min", "max"]
+				}
+				`, sourceID, name, sqlExpression, metricType),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr("logtail_metric.this", "id", "1"),
+					resource.TestCheckResourceAttr("logtail_metric.this", "name", name+" Renamed"),
+				),
+				PreConfig: func() {
+					t.Log("step 4")
+				},
+			},
+			// Step 5 - make no changes, check plan is empty
+			{
+				Config: fmt.Sprintf(`
+				provider "logtail" {
+					api_token = "foo"
+				}
+
+				resource "logtail_metric" "this" {
+					source_id      = "%s"
+					name           = "%s Renamed"
 					sql_expression = "%s"
 					type           = "%s"
 					aggregations   = ["min", "max"]
@@ -156,7 +186,7 @@ func TestResourceMetric(t *testing.T) {
 				`, sourceID, name, sqlExpression, metricType),
 				PlanOnly: true,
 				PreConfig: func() {
-					t.Log("step 4")
+					t.Log("step 5")
 				},
 			},
 		},

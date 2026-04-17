@@ -31,26 +31,22 @@ var metricSchema = map[string]*schema.Schema{
 		Description: "The name of this metric.",
 		Type:        schema.TypeString,
 		Required:    true,
-		ForceNew:    true,
 	},
 	"sql_expression": {
 		Description: "The SQL expression used to extract the metric value.",
 		Type:        schema.TypeString,
 		Required:    true,
-		ForceNew:    true,
 	},
 	"aggregations": {
 		Description: "The list of aggregations to perform on the metric.",
 		Type:        schema.TypeList,
 		Required:    true,
-		ForceNew:    true,
 		Elem:        &schema.Schema{Type: schema.TypeString, ValidateFunc: validation.StringInSlice([]string{"avg", "count", "uniq", "max", "min", "anyLast", "sum", "p50", "p90", "p95", "p99"}, false)},
 	},
 	"type": {
 		Description:  "The type of the metric.",
 		Type:         schema.TypeString,
 		Required:     true,
-		ForceNew:     true,
 		ValidateFunc: validation.StringInSlice([]string{"string_low_cardinality", "int64_delta", "float64_delta", "datetime64_delta", "boolean"}, false),
 	},
 }
@@ -59,11 +55,12 @@ func newMetricResource() *schema.Resource {
 	return &schema.Resource{
 		CreateContext: metricCreate,
 		ReadContext:   metricLookup,
+		UpdateContext: metricUpdate,
 		DeleteContext: metricDelete,
 		Importer: &schema.ResourceImporter{
 			StateContext: schema.ImportStatePassthroughContext,
 		},
-		Description: "This resource allows you to create and delete Metrics.",
+		Description: "This resource allows you to create, update and delete Metrics.",
 		Schema:      metricSchema,
 	}
 }
@@ -181,6 +178,18 @@ func metricCopyAttrs(d *schema.ResourceData, in *metric) diag.Diagnostics {
 		}
 	}
 	return derr
+}
+
+func metricUpdate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+	var in metric
+	for _, e := range metricRef(&in) {
+		load(d, e.k, e.v)
+	}
+	sourceId := d.Get("source_id").(string)
+	if diags := resourceUpdate(ctx, meta, fmt.Sprintf("/api/v2/sources/%s/metrics/%s", url.PathEscape(sourceId), url.PathEscape(d.Id())), &in); diags != nil {
+		return diags
+	}
+	return metricLookup(ctx, d, meta)
 }
 
 func metricDelete(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {

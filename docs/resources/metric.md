@@ -3,12 +3,12 @@
 page_title: "logtail_metric Resource - terraform-provider-logtail"
 subcategory: ""
 description: |-
-  This resource allows you to create and delete Metrics.
+  This resource allows you to create, update and delete Metrics.
 ---
 
 # logtail_metric (Resource)
 
-This resource allows you to create and delete Metrics.
+This resource allows you to create, update and delete Metrics.
 
 
 
