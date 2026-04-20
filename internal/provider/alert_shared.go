@@ -71,7 +71,7 @@ var alertSchema = map[string]*schema.Schema{
 		Computed:    true,
 	},
 	"confirmation_period": {
-		Description: "The confirmation delay in seconds before triggering (required, >= 0).",
+		Description: "The confirmation delay in seconds before triggering. Must be one of: 0, 30, 60, 120, 300, 600, 1800, 3600, 7200, 14400.",
 		Type:        schema.TypeInt,
 		Optional:    true,
 		Computed:    true,

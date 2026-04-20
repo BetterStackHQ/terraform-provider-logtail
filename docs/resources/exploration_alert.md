@@ -28,7 +28,7 @@ This resource allows you to create, modify, and delete Alerts on Explorations in
 - `anomaly_trigger` (String) Anomaly trigger mode: 'any', 'higher', or 'lower' (only for 'anomaly_rrcf' type).
 - `call` (Boolean) Enable phone call notifications.
 - `check_period` (Number) How often to check the alert condition in seconds.
-- `confirmation_period` (Number) The confirmation delay in seconds before triggering (required, >= 0).
+- `confirmation_period` (Number) The confirmation delay in seconds before triggering. Must be one of: 0, 30, 60, 120, 300, 600, 1800, 3600, 7200, 14400.
 - `critical_alert` (Boolean) Mark as critical alert (bypasses quiet hours).
 - `email` (Boolean) Enable email notifications.
 - `escalation_target` (Block List, Max: 1) The escalation target for this alert. Specify either team_id/team_name OR policy_id/policy_name. (see [below for nested schema](#nestedblock--escalation_target))

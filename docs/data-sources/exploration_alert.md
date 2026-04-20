@@ -28,7 +28,7 @@ This data source allows you to get information about an Alert on an Exploration 
 - `anomaly_trigger` (String) Anomaly trigger mode: 'any', 'higher', or 'lower' (only for 'anomaly_rrcf' type).
 - `call` (Boolean) Enable phone call notifications.
 - `check_period` (Number) How often to check the alert condition in seconds.
-- `confirmation_period` (Number) The confirmation delay in seconds before triggering (required, >= 0).
+- `confirmation_period` (Number) The confirmation delay in seconds before triggering. Must be one of: 0, 30, 60, 120, 300, 600, 1800, 3600, 7200, 14400.
 - `created_at` (String) The time when this alert was created.
 - `critical_alert` (Boolean) Mark as critical alert (bypasses quiet hours).
 - `email` (Boolean) Enable email notifications.
