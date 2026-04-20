@@ -40,6 +40,7 @@ This resource allows you to create, modify, and delete your Sources. For more in
     - `fluentbit`
     - `fluentd`
     - `fly_io`
+    - `gcp`
     - `go`
     - `google_cloud_pubsub`
     - `haproxy`

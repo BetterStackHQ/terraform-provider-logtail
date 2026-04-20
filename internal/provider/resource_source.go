@@ -35,6 +35,7 @@ var platformTypes = []string{
 	"fluentbit",
 	"fluentd",
 	"fly_io",
+	"gcp",
 	"go",
 	"google_cloud_pubsub",
 	"haproxy",
