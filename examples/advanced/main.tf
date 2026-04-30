@@ -268,7 +268,8 @@ resource "logtail_dashboard_alert" "high_log_volume" {
   push  = true
 
   metadata = {
-    level: "warning"
+    level: "warning",
+    resolvers: ["alice", "bob"]
   }
 }
 
@@ -386,7 +387,8 @@ resource "logtail_exploration_alert" "threshold_alert" {
   source_variable = "source:${logtail_source.this.table_name},${logtail_source.other.table_name}"
 
   metadata = {
-    level: "error"
+    level: "error",
+    group: ["this", "other"]
   }
 }
 
