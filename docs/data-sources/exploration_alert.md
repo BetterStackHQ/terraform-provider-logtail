@@ -36,7 +36,7 @@ This data source allows you to get information about an Alert on an Exploration 
 - `id` (String) The ID of this alert.
 - `incident_cause` (String) Incident description template (supports {{variable}} interpolation).
 - `incident_per_series` (Boolean) Create separate incidents per series.
-- `metadata` (Map of String) Custom metadata key-value pairs included in incident notifications.
+- `metadata` (Map of String) Custom metadata key-value pairs included in incident notifications. Use a plain string for a single value; for multiple values use jsonencode([...]).
 - `operator` (String) The comparison operator. For threshold: 'equal', 'not_equal', 'higher_than', 'higher_than_or_equal', 'lower_than', 'lower_than_or_equal'. For relative: 'increases_by', 'decreases_by', 'changes_by'. Not required for anomaly alerts.
 - `paused` (Boolean) Whether the alert is paused.
 - `paused_reason` (String) Read-only field explaining why the alert is paused (e.g., 'Manually paused', complexity issues, too many failures).
