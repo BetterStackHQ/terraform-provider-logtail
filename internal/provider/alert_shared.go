@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"strings"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
@@ -218,7 +219,7 @@ var alertSchema = map[string]*schema.Schema{
 		},
 	},
 	"metadata": {
-		Description: "Custom metadata key-value pairs included in incident notifications.",
+		Description: "Custom metadata key-value pairs included in incident notifications. Use a plain string for a single value; for multiple values use jsonencode([...]).",
 		Type:        schema.TypeMap,
 		Optional:    true,
 		Elem:        &schema.Schema{Type: schema.TypeString},
@@ -235,6 +236,72 @@ var alertSchema = map[string]*schema.Schema{
 		Optional:    false,
 		Computed:    true,
 	},
+}
+
+// alertMetadataValue represents a Better Stack alert metadata value, which may
+// be either a plain string or a JSON array of strings on the wire. The API
+// always returns arrays on reads but still accepts both shapes on writes.
+type alertMetadataValue struct {
+	isArray bool
+	str     string
+	arr     []string
+}
+
+func (v *alertMetadataValue) UnmarshalJSON(data []byte) error {
+	var arr []string
+	if err := json.Unmarshal(data, &arr); err == nil {
+		v.isArray = true
+		v.arr = arr
+		return nil
+	}
+	var s string
+	if err := json.Unmarshal(data, &s); err == nil {
+		v.isArray = false
+		v.str = s
+		return nil
+	}
+	return fmt.Errorf("metadata value must be string or []string, got %s", string(data))
+}
+
+func (v alertMetadataValue) MarshalJSON() ([]byte, error) {
+	if v.isArray {
+		if v.arr == nil {
+			return json.Marshal([]string{})
+		}
+		return json.Marshal(v.arr)
+	}
+	return json.Marshal(v.str)
+}
+
+// terraformValue normalizes a metadata value back to its Terraform schema
+// representation (TypeMap of TypeString). Single-element arrays become plain
+// strings; multi-element arrays are emitted as compact JSON, matching the
+// shape produced by HCL's jsonencode().
+func (v alertMetadataValue) terraformValue() string {
+	if !v.isArray {
+		return v.str
+	}
+	if len(v.arr) == 1 {
+		return v.arr[0]
+	}
+	buf, err := json.Marshal(v.arr)
+	if err != nil {
+		return ""
+	}
+	return string(buf)
+}
+
+// metadataValueFromTerraform parses a Terraform metadata string into the
+// wire shape. Strings that look like JSON arrays of strings are sent as
+// arrays; everything else is sent as a plain string.
+func metadataValueFromTerraform(s string) alertMetadataValue {
+	if strings.HasPrefix(s, "[") {
+		var arr []string
+		if err := json.Unmarshal([]byte(s), &arr); err == nil {
+			return alertMetadataValue{isArray: true, arr: arr}
+		}
+	}
+	return alertMetadataValue{isArray: false, str: s}
 }
 
 // alertEscalationTarget handles polymorphic response - can be null, string "current_team", or object
@@ -276,35 +343,35 @@ func (w alertEscalationTargetWrapper) MarshalJSON() ([]byte, error) {
 }
 
 type alert struct {
-	Name                *string                      `json:"name,omitempty"`
-	AlertType           *string                      `json:"alert_type,omitempty"`
-	Operator            *string                      `json:"operator,omitempty"`
-	Value               *float64                     `json:"value,omitempty"`
-	StringValue         *string                      `json:"string_value,omitempty"`
-	QueryPeriod         *int                         `json:"query_period,omitempty"`
-	ConfirmationPeriod  *int                         `json:"confirmation_period,omitempty"`
-	RecoveryPeriod      *int                         `json:"recovery_period,omitempty"`
-	AggregationInterval *int                         `json:"aggregation_interval,omitempty"`
-	CheckPeriod         *int                         `json:"check_period,omitempty"`
-	SeriesNames         []string                     `json:"series_names,omitempty"`
-	SourceVariable      *string                      `json:"source_variable,omitempty"`
-	SourceMode          *string                      `json:"source_mode,omitempty"`
-	SourcePlatforms     []string                     `json:"source_platforms,omitempty"`
-	IncidentCause       *string                      `json:"incident_cause,omitempty"`
-	IncidentPerSeries   *bool                        `json:"incident_per_series,omitempty"`
-	Paused              *bool                        `json:"paused,omitempty"`
-	PausedReason        *string                      `json:"paused_reason,omitempty"`
-	Call                *bool                        `json:"call,omitempty"`
-	SMS                 *bool                        `json:"sms,omitempty"`
-	Email               *bool                        `json:"email,omitempty"`
-	Push                *bool                        `json:"push,omitempty"`
-	CriticalAlert       *bool                        `json:"critical_alert,omitempty"`
-	AnomalySensitivity  *float64                     `json:"anomaly_sensitivity,omitempty"`
-	AnomalyTrigger      *string                      `json:"anomaly_trigger,omitempty"`
-	EscalationTarget    alertEscalationTargetWrapper `json:"escalation_target,omitempty"`
-	Metadata            map[string]string            `json:"metadata,omitempty"`
-	CreatedAt           *string                      `json:"created_at,omitempty"`
-	UpdatedAt           *string                      `json:"updated_at,omitempty"`
+	Name                *string                       `json:"name,omitempty"`
+	AlertType           *string                       `json:"alert_type,omitempty"`
+	Operator            *string                       `json:"operator,omitempty"`
+	Value               *float64                      `json:"value,omitempty"`
+	StringValue         *string                       `json:"string_value,omitempty"`
+	QueryPeriod         *int                          `json:"query_period,omitempty"`
+	ConfirmationPeriod  *int                          `json:"confirmation_period,omitempty"`
+	RecoveryPeriod      *int                          `json:"recovery_period,omitempty"`
+	AggregationInterval *int                          `json:"aggregation_interval,omitempty"`
+	CheckPeriod         *int                          `json:"check_period,omitempty"`
+	SeriesNames         []string                      `json:"series_names,omitempty"`
+	SourceVariable      *string                       `json:"source_variable,omitempty"`
+	SourceMode          *string                       `json:"source_mode,omitempty"`
+	SourcePlatforms     []string                      `json:"source_platforms,omitempty"`
+	IncidentCause       *string                       `json:"incident_cause,omitempty"`
+	IncidentPerSeries   *bool                         `json:"incident_per_series,omitempty"`
+	Paused              *bool                         `json:"paused,omitempty"`
+	PausedReason        *string                       `json:"paused_reason,omitempty"`
+	Call                *bool                         `json:"call,omitempty"`
+	SMS                 *bool                         `json:"sms,omitempty"`
+	Email               *bool                         `json:"email,omitempty"`
+	Push                *bool                         `json:"push,omitempty"`
+	CriticalAlert       *bool                         `json:"critical_alert,omitempty"`
+	AnomalySensitivity  *float64                      `json:"anomaly_sensitivity,omitempty"`
+	AnomalyTrigger      *string                       `json:"anomaly_trigger,omitempty"`
+	EscalationTarget    alertEscalationTargetWrapper  `json:"escalation_target,omitempty"`
+	Metadata            map[string]alertMetadataValue `json:"metadata,omitempty"`
+	CreatedAt           *string                       `json:"created_at,omitempty"`
+	UpdatedAt           *string                       `json:"updated_at,omitempty"`
 }
 
 type alertHTTPResponse struct {
@@ -420,10 +487,10 @@ func loadAlert(d *schema.ResourceData) alert {
 	// Load metadata
 	if v, ok := d.GetOk("metadata"); ok {
 		metaMap := v.(map[string]interface{})
-		metadata := make(map[string]string)
+		metadata := make(map[string]alertMetadataValue)
 		for k, val := range metaMap {
 			if s, ok := val.(string); ok {
-				metadata[k] = s
+				metadata[k] = metadataValueFromTerraform(s)
 			}
 		}
 		in.Metadata = metadata
@@ -623,9 +690,15 @@ func alertCopyAttrs(d *schema.ResourceData, in *alert) diag.Diagnostics {
 		}
 	}
 
-	// Copy metadata
+	// Copy metadata - flatten polymorphic values back to strings.
+	// Single-element arrays become plain strings; multi-element arrays are
+	// emitted as compact JSON, matching what jsonencode([...]) produces.
 	if in.Metadata != nil {
-		if err := d.Set("metadata", in.Metadata); err != nil {
+		flat := make(map[string]string, len(in.Metadata))
+		for k, val := range in.Metadata {
+			flat[k] = val.terraformValue()
+		}
+		if err := d.Set("metadata", flat); err != nil {
 			derr = append(derr, diag.FromErr(err)[0])
 		}
 	}

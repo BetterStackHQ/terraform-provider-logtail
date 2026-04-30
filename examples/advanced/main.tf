@@ -266,6 +266,11 @@ resource "logtail_dashboard_alert" "high_log_volume" {
 
   email = true
   push  = true
+
+  metadata = {
+    level     = "warning"
+    resolvers = jsonencode(["alice", "bob"])
+  }
 }
 
 # =============================================================================
@@ -380,6 +385,11 @@ resource "logtail_exploration_alert" "threshold_alert" {
 
   # Set alert to check both sources
   source_variable = "source:${logtail_source.this.table_name},${logtail_source.other.table_name}"
+
+  metadata = {
+    level = "error"
+    group = jsonencode(["this", "other"])
+  }
 }
 
 # Relative alert - escalate to specific team by ID

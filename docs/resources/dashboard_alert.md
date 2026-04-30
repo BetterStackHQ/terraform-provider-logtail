@@ -51,7 +51,7 @@ resource "logtail_dashboard_alert" "high_error_rate" {
 - `escalation_target` (Block List, Max: 1) The escalation target for this alert. Specify either team_id/team_name OR policy_id/policy_name. (see [below for nested schema](#nestedblock--escalation_target))
 - `incident_cause` (String) Incident description template (supports {{variable}} interpolation).
 - `incident_per_series` (Boolean) Create separate incidents per series.
-- `metadata` (Map of String) Custom metadata key-value pairs included in incident notifications.
+- `metadata` (Map of String) Custom metadata key-value pairs included in incident notifications. Use a plain string for a single value; for multiple values use jsonencode([...]).
 - `operator` (String) The comparison operator. For threshold: 'equal', 'not_equal', 'higher_than', 'higher_than_or_equal', 'lower_than', 'lower_than_or_equal'. For relative: 'increases_by', 'decreases_by', 'changes_by'. Not required for anomaly alerts.
 - `paused` (Boolean) Whether the alert is paused.
 - `push` (Boolean) Enable push notifications.
