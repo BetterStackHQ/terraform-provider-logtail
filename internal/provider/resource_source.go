@@ -20,6 +20,7 @@ var platformTypes = []string{
 	"aws_ecs",
 	"aws_elb",
 	"aws_fargate",
+	"azure",
 	"azure_logs",
 	"cloudflare_logpush",
 	"cloudflare_worker",
