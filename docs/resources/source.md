@@ -25,6 +25,7 @@ This resource allows you to create, modify, and delete your Sources. For more in
     - `aws_ecs`
     - `aws_elb`
     - `aws_fargate`
+    - `azure`
     - `azure_logs`
     - `cloudflare_logpush`
     - `cloudflare_worker`
