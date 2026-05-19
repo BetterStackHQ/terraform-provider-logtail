@@ -62,7 +62,7 @@ resource "logtail_collector" "production" {
 - `configuration` (Block List, Max: 1) Collector-level configuration including active components, sampling rates, batching, and VRL transformations. These settings run on the collector host inside your infrastructure. (see [below for nested schema](#nestedblock--configuration))
 - `custom_bucket` (Block List, Max: 1) Optional custom bucket configuration for the collector. Once set, it cannot be removed. (see [below for nested schema](#nestedblock--custom_bucket))
 - `data_region` (String) Data region (e.g. `eu`, `us`) or private cluster name to create the collector in. This can only be set at creation time. Note: the API may return a different identifier (the internal storage region name) than the value you provided.
-- `databases` (Block List) Database connections for the collector. (see [below for nested schema](#nestedblock--databases))
+- `databases` (Block List, Deprecated) Database connections for the collector. Deprecated — use the `logtail_collector_target` resource instead. (see [below for nested schema](#nestedblock--databases))
 - `ingesting_paused` (Boolean) Whether ingestion is paused for this collector.
 - `live_tail_pattern` (String) Freeform text template for formatting Live tail output with columns wrapped in {column} brackets. Example: "PID: {message_json.pid} {level} {message}"
 - `logs_retention` (Number) Data retention for logs in days. Allowed values: 7, 30, 60, 90, 180, 365, 730, 1095, 1460, 1825. There might be additional charges for longer retention.

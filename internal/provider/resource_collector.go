@@ -328,7 +328,8 @@ var collectorSchema = map[string]*schema.Schema{
 		},
 	},
 	"databases": {
-		Description: "Database connections for the collector.",
+		Description: "Database connections for the collector. Deprecated — use the `logtail_collector_target` resource instead.",
+		Deprecated:  "Use the `logtail_collector_target` resource instead.",
 		Type:        schema.TypeList,
 		Optional:    true,
 		Elem: &schema.Resource{
