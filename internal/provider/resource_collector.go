@@ -335,7 +335,8 @@ var collectorSchema = map[string]*schema.Schema{
 		},
 	},
 	"databases": {
-		Description: "Database connections for the collector.",
+		Description: "Database connections for the collector. Deprecated — use the `logtail_collector_target` resource instead.",
+		Deprecated:  "Use the `logtail_collector_target` resource instead.",
 		Type:        schema.TypeList,
 		Optional:    true,
 		Elem: &schema.Resource{
@@ -792,12 +793,16 @@ func collectorCreate(ctx context.Context, d *schema.ResourceData, meta interface
 	}
 	d.SetId(out.Data.ID)
 
-	// Fetch databases separately - the API doesn't return them in the create response
-	databases, derr := fetchCollectorDatabases(ctx, meta, out.Data.ID)
-	if derr != nil {
-		return derr
+	// Only fetch databases when the user manages them via this deprecated block. Otherwise
+	// they're owned by logtail_collector_target resources, and syncing them back here would
+	// cause spurious drift (collector wants to delete them; target resource wants to keep them).
+	if userManagesDatabasesBlock(d) {
+		databases, derr := fetchCollectorDatabases(ctx, meta, out.Data.ID)
+		if derr != nil {
+			return derr
+		}
+		out.Data.Attributes.Databases = &databases
 	}
-	out.Data.Attributes.Databases = &databases
 
 	return collectorCopyAttrs(d, &out.Data.Attributes)
 }
@@ -811,14 +816,30 @@ func collectorRead(ctx context.Context, d *schema.ResourceData, meta interface{}
 		return nil
 	}
 
-	// Fetch databases separately - the API doesn't return them in the show response
-	databases, derr := fetchCollectorDatabases(ctx, meta, d.Id())
-	if derr != nil {
-		return derr
+	if userManagesDatabasesBlock(d) {
+		databases, derr := fetchCollectorDatabases(ctx, meta, d.Id())
+		if derr != nil {
+			return derr
+		}
+		out.Data.Attributes.Databases = &databases
 	}
-	out.Data.Attributes.Databases = &databases
 
 	return collectorCopyAttrs(d, &out.Data.Attributes)
+}
+
+// userManagesDatabasesBlock reports whether the user's HCL declares any `databases` blocks
+// on this collector. When false, the deprecated `databases` field is left alone so that
+// logtail_collector_target resources can own the same rows without conflict.
+func userManagesDatabasesBlock(d *schema.ResourceData) bool {
+	rawConfig := d.GetRawConfig()
+	if rawConfig.IsNull() || !rawConfig.IsKnown() {
+		return false
+	}
+	val := rawConfig.GetAttr("databases")
+	if val.IsNull() || !val.IsKnown() {
+		return false
+	}
+	return val.LengthInt() > 0
 }
 
 func collectorUpdate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
