@@ -31,6 +31,8 @@ resource "logtail_collector" "kubernetes_full" {
     logs_sample_rate   = 100
     traces_sample_rate = 50
 
+    log_line_length_limit_kb = 32
+
     components {
       ebpf_metrics      = true
       metrics_databases = true

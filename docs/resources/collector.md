@@ -94,6 +94,7 @@ Optional:
 
 - `components` (Block List, Max: 1) Enable or disable specific collector components. Maps to the Logs, Metrics, and eBPF tabs in the collector settings UI. (see [below for nested schema](#nestedblock--configuration--components))
 - `disk_batch_size_mb` (Number) Disk buffer size in MB for outgoing requests. Minimum 256 MB.
+- `log_line_length_limit_kb` (Number) Maximum log line length in kB. Lines longer than this are dropped by the collector to protect Vector from memory exhaustion. Higher values may use more memory. Must be between 4 and 128. Defaults to 8.
 - `logs_sample_rate` (Number) Sample rate for logs (0-100).
 - `memory_batch_size_mb` (Number) Memory batch size in MB for outgoing requests. Maximum 40 MB.
 - `namespace_option` (Block Set) Per-namespace overrides for log sampling rate and trace ingestion (Kubernetes only). Order-independent; entries are identified by name. (see [below for nested schema](#nestedblock--configuration--namespace_option))

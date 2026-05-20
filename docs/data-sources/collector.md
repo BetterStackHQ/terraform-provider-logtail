@@ -60,6 +60,7 @@ Read-Only:
 
 - `components` (List of Object) (see [below for nested schema](#nestedobjatt--configuration--components))
 - `disk_batch_size_mb` (Number)
+- `log_line_length_limit_kb` (Number)
 - `logs_sample_rate` (Number)
 - `memory_batch_size_mb` (Number)
 - `namespace_option` (Set of Object) (see [below for nested schema](#nestedobjatt--configuration--namespace_option))

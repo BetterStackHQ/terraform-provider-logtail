@@ -1088,6 +1088,57 @@ func TestResourceCollectorNewFeatures(t *testing.T) {
 		},
 	})
 
+	// Test log_line_length_limit_kb
+	resource.Test(t, resource.TestCase{
+		IsUnitTest: true,
+		ProviderFactories: map[string]func() (*schema.Provider, error){
+			"logtail": func() (*schema.Provider, error) {
+				return New(WithURL(server.URL)), nil
+			},
+		},
+		Steps: []resource.TestStep{
+			{
+				Config: fmt.Sprintf(`
+				provider "logtail" {
+					api_token = "foo"
+				}
+
+				resource "logtail_collector" "this" {
+					name     = "%s"
+					platform = "%s"
+
+					configuration {
+						log_line_length_limit_kb = 16
+					}
+				}
+				`, name, platform),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttrSet("logtail_collector.this", "id"),
+					resource.TestCheckResourceAttr("logtail_collector.this", "configuration.0.log_line_length_limit_kb", "16"),
+				),
+			},
+			{
+				Config: fmt.Sprintf(`
+				provider "logtail" {
+					api_token = "foo"
+				}
+
+				resource "logtail_collector" "this" {
+					name     = "%s"
+					platform = "%s"
+
+					configuration {
+						log_line_length_limit_kb = 32
+					}
+				}
+				`, name, platform),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr("logtail_collector.this", "configuration.0.log_line_length_limit_kb", "32"),
+				),
+			},
+		},
+	})
+
 	// Test user_vector_config
 	resource.Test(t, resource.TestCase{
 		IsUnitTest: true,
