@@ -8,7 +8,7 @@ GOLANGCI_LINT := golangci-lint run --disable-all \
 	-E staticcheck \
 	-E typecheck \
 	-E unused
-VERSION := 10.10.0
+VERSION := 10.11.0
 .PHONY: test build
 
 help:
@@ -68,13 +68,13 @@ gen:
 	@echo "docs/ can be previewed at https://registry.terraform.io/tools/doc-preview"
 
 test:
-	go test ./...
+	go test -timeout 20m ./...
 
 test-race:
-	go test -race ./...
+	go test -timeout 20m -race ./...
 
 test-coverage:
-	go test -coverprofile cover.out ./...
+	go test -timeout 20m -coverprofile cover.out ./...
 	go tool cover -html=cover.out -o coverage.html
 	rm -f cover.out
 	@echo

@@ -31,7 +31,7 @@ data "logtail_collector" "production" {
 - `created_at` (String) The time when this collector was created.
 - `custom_bucket` (List of Object) Optional custom bucket configuration for the collector. Once set, it cannot be removed. (see [below for nested schema](#nestedatt--custom_bucket))
 - `data_region` (String) Data region (e.g. `eu`, `us`) or private cluster name to create the collector in. This can only be set at creation time. Note: the API may return a different identifier (the internal storage region name) than the value you provided.
-- `databases` (List of Object) Database connections for the collector. (see [below for nested schema](#nestedatt--databases))
+- `databases` (List of Object, Deprecated) Database connections for the collector. Deprecated — use the `logtail_collector_target` resource instead. (see [below for nested schema](#nestedatt--databases))
 - `databases_count` (Number) The number of database connections configured for this collector.
 - `hosts_count` (Number) The number of hosts connected to this collector.
 - `hosts_up_count` (Number) The number of hosts currently online.

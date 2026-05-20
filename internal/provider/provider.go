@@ -119,6 +119,7 @@ func New(opts ...Option) *schema.Provider {
 			"logtail_dashboard_section":        newDashboardSectionResource(),
 			"logtail_dashboard_alert":          newDashboardAlertResource(),
 			"logtail_collector":                newCollectorResource(),
+			"logtail_collector_target":         newCollectorTargetResource(),
 			"logtail_exploration_group":        newExplorationGroupResource(),
 			"logtail_exploration":              newExplorationResource(),
 			"logtail_exploration_alert":        newExplorationAlertResource(),
