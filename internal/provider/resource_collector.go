@@ -283,6 +283,13 @@ var collectorSchema = map[string]*schema.Schema{
 					Computed:     true,
 					ValidateFunc: validation.IntAtMost(40),
 				},
+				"log_line_length_limit_kb": {
+					Description:  "Maximum log line length in kB. Lines longer than this are dropped by the collector to protect Vector from memory exhaustion. Higher values may use more memory. Must be between 4 and 128. Defaults to 8.",
+					Type:         schema.TypeInt,
+					Optional:     true,
+					Computed:     true,
+					ValidateFunc: validation.IntBetween(4, 128),
+				},
 				"service_option": {
 					Description: "Per-service overrides for log sampling rate and trace ingestion. Only includes user-managed services; internal collector services (`better-stack-beyla`, `better-stack-collector`) are excluded. Use the `logtail_collector` data source to see all discovered services.",
 					Type:        schema.TypeSet,
@@ -371,14 +378,15 @@ type collectorEntityOption struct {
 }
 
 type collectorConfiguration struct {
-	LogsSampleRate    *int                             `json:"logs_sample_rate,omitempty"`
-	TracesSampleRate  *int                             `json:"traces_sample_rate,omitempty"`
-	Components        *collectorComponents             `json:"components,omitempty"`
-	VRLTransformation *string                          `json:"vrl_transformation,omitempty"`
-	DiskBatchSizeMB   *int                             `json:"disk_batch_size_mb,omitempty"`
-	MemoryBatchSizeMB *int                             `json:"memory_batch_size_mb,omitempty"`
-	ServicesOptions   map[string]collectorEntityOption `json:"services_options,omitempty"`
-	NamespacesOptions map[string]collectorEntityOption `json:"namespaces_options,omitempty"`
+	LogsSampleRate       *int                             `json:"logs_sample_rate,omitempty"`
+	TracesSampleRate     *int                             `json:"traces_sample_rate,omitempty"`
+	Components           *collectorComponents             `json:"components,omitempty"`
+	VRLTransformation    *string                          `json:"vrl_transformation,omitempty"`
+	DiskBatchSizeMB      *int                             `json:"disk_batch_size_mb,omitempty"`
+	MemoryBatchSizeMB    *int                             `json:"memory_batch_size_mb,omitempty"`
+	LogLineLengthLimitKB *int                             `json:"log_line_length_limit_kb,omitempty"`
+	ServicesOptions      map[string]collectorEntityOption `json:"services_options,omitempty"`
+	NamespacesOptions    map[string]collectorEntityOption `json:"namespaces_options,omitempty"`
 }
 
 type collectorCustomBucket struct {
@@ -682,6 +690,9 @@ func loadCollectorConfiguration(d *schema.ResourceData) *collectorConfiguration 
 	if v, ok := configMap["memory_batch_size_mb"].(int); ok && v != 0 {
 		cfg.MemoryBatchSizeMB = intPtr(v)
 	}
+	if v, ok := configMap["log_line_length_limit_kb"].(int); ok && v != 0 {
+		cfg.LogLineLengthLimitKB = intPtr(v)
+	}
 
 	// Load service_option set → services_options map
 	if serviceOptionsSet, ok := configMap["service_option"].(*schema.Set); ok && serviceOptionsSet.Len() > 0 {
@@ -972,6 +983,9 @@ func collectorCopyAttrs(d *schema.ResourceData, in *collector) diag.Diagnostics 
 		}
 		if in.Configuration.MemoryBatchSizeMB != nil {
 			configData["memory_batch_size_mb"] = *in.Configuration.MemoryBatchSizeMB
+		}
+		if in.Configuration.LogLineLengthLimitKB != nil {
+			configData["log_line_length_limit_kb"] = *in.Configuration.LogLineLengthLimitKB
 		}
 
 		// Copy services_options map → service_option, filtered to user-managed entries.
