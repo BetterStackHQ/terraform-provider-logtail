@@ -429,6 +429,58 @@ resource "logtail_exploration_alert" "anomaly_alert" {
   source_variable = "source:${logtail_source.this.table_name},${logtail_source.other.table_name}"
 }
 
+# =============================================================================
+# Collectors and collect-metrics targets
+# =============================================================================
+
+resource "logtail_collector" "advanced" {
+  name              = "Terraform Advanced Collector"
+  platform          = "kubernetes"
+  data_region       = "germany"
+  logs_retention    = 30
+  metrics_retention = 90
+}
+
+# Database target — PostgreSQL with SSL.
+resource "logtail_collector_target" "advanced_postgres" {
+  collector_id = logtail_collector.advanced.id
+  kind         = "postgres"
+  host         = "10.0.0.5"
+  port         = 5432
+  username     = "monitor"
+  password     = "example-rotate-me"
+  ssl_mode     = "require"
+}
+
+# Database target — Elasticsearch with API key authentication.
+resource "logtail_collector_target" "advanced_elasticsearch" {
+  collector_id = logtail_collector.advanced.id
+  kind         = "elasticsearch"
+  host         = "10.0.0.6"
+  port         = 9200
+  scheme       = "https"
+  api_key      = "example-rotate-me"
+}
+
+# Process target — Nginx exporter on a known collector host.
+resource "logtail_collector_target" "advanced_nginx" {
+  collector_id   = logtail_collector.advanced.id
+  kind           = "nginx"
+  service        = "edge-nginx"
+  collector_host = "edge-1.internal"
+  listen_ip      = "127.0.0.1"
+  port           = 80
+}
+
+# Process target — custom Prometheus exporter at a full scrape URL.
+resource "logtail_collector_target" "advanced_prometheus" {
+  collector_id   = logtail_collector.advanced.id
+  kind           = "prometheus"
+  service        = "my-app"
+  collector_host = "app-1.internal"
+  endpoint       = "http://10.0.0.5:9090/metrics"
+}
+
 # Pie chart with variable filtering
 resource "logtail_exploration" "pie_chart_filtered" {
   name                 = "Terraform Pie Chart with Filtering"

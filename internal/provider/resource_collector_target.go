@@ -24,6 +24,28 @@ var collectorTargetProcessKinds = map[string]bool{
 	"prometheus": true,
 }
 
+// Mirrors the API's per-kind whitelist (telemetry: API::V1::CollectorTargetsController::KIND_FIELDS).
+// Lets plan-time validation reject fields that would no-op or 422 on apply.
+var collectorTargetAllowedFields = map[string]map[string]bool{
+	"postgres":      {"host": true, "port": true, "username": true, "password": true, "ssl_mode": true},
+	"mysql":         {"host": true, "port": true, "username": true, "password": true, "tls": true},
+	"redis":         {"host": true, "port": true, "username": true, "password": true},
+	"mongodb":       {"host": true, "port": true, "username": true, "password": true},
+	"memcached":     {"host": true, "port": true, "username": true, "password": true},
+	"elasticsearch": {"host": true, "port": true, "username": true, "password": true, "api_key": true, "scheme": true},
+	"nginx":         {"collector_host": true, "port": true, "service": true, "listen_ip": true},
+	"apache":        {"collector_host": true, "port": true, "service": true, "listen_ip": true},
+	"kafka":         {"collector_host": true, "port": true, "service": true, "listen_ip": true},
+	"prometheus":    {"collector_host": true, "service": true, "endpoint": true},
+}
+
+// Fields that participate in the "forbidden for this kind" check. host and collector_host
+// are excluded — they're handled by the dedicated swap checks for clearer error messages.
+var collectorTargetCheckableFields = []string{
+	"port", "username", "password", "api_key",
+	"scheme", "ssl_mode", "tls", "service", "listen_ip", "endpoint",
+}
+
 var collectorTargetSchema = map[string]*schema.Schema{
 	"id": {
 		Description: "The ID of this target.",
@@ -214,11 +236,13 @@ func validateCollectorTarget(ctx context.Context, diff *schema.ResourceDiff, v i
 		return nil
 	}
 
+	allowed, ok := collectorTargetAllowedFields[kind]
+	if !ok {
+		return nil
+	}
+
 	host := diff.Get("host").(string)
 	collectorHost := diff.Get("collector_host").(string)
-	service := diff.Get("service").(string)
-	endpoint := diff.Get("endpoint").(string)
-	scheme := diff.Get("scheme").(string)
 
 	if collectorTargetProcessKinds[kind] {
 		if collectorHost == "" {
@@ -227,10 +251,10 @@ func validateCollectorTarget(ctx context.Context, diff *schema.ResourceDiff, v i
 		if host != "" {
 			return fmt.Errorf("host is for database kinds; use collector_host for process kind %q", kind)
 		}
-		if service == "" {
+		if diff.Get("service").(string) == "" {
 			return fmt.Errorf("service is required for process kind %q", kind)
 		}
-		if kind == "prometheus" && endpoint == "" {
+		if kind == "prometheus" && diff.Get("endpoint").(string) == "" {
 			return fmt.Errorf("endpoint is required for prometheus")
 		}
 	} else {
@@ -240,8 +264,24 @@ func validateCollectorTarget(ctx context.Context, diff *schema.ResourceDiff, v i
 		if collectorHost != "" {
 			return fmt.Errorf("collector_host is for process kinds; use host for kind %q", kind)
 		}
-		if kind == "elasticsearch" && scheme == "" {
+		if kind == "elasticsearch" && diff.Get("scheme").(string) == "" {
 			return fmt.Errorf("scheme is required for elasticsearch")
+		}
+	}
+
+	for _, field := range collectorTargetCheckableFields {
+		if allowed[field] {
+			continue
+		}
+		switch val := diff.Get(field).(type) {
+		case string:
+			if val != "" {
+				return fmt.Errorf("%s is not valid for kind %q", field, kind)
+			}
+		case int:
+			if val != 0 {
+				return fmt.Errorf("%s is not valid for kind %q", field, kind)
+			}
 		}
 	}
 

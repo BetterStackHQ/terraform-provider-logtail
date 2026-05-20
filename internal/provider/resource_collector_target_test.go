@@ -556,6 +556,130 @@ func TestResourceCollectorTargetValidation(t *testing.T) {
 			`,
 			errorRe: `The argument "kind" is required`,
 		},
+		{
+			name: "endpoint on postgres (not valid for kind)",
+			config: `
+			resource "logtail_collector_target" "x" {
+				collector_id = "1"
+				kind         = "postgres"
+				host         = "pg.example.com"
+				port         = 5432
+				ssl_mode     = "require"
+				endpoint     = "http://does/not/apply"
+			}
+			`,
+			errorRe: `endpoint is not valid for kind "postgres"`,
+		},
+		{
+			name: "scheme on redis (not valid for kind)",
+			config: `
+			resource "logtail_collector_target" "x" {
+				collector_id = "1"
+				kind         = "redis"
+				host         = "r.example.com"
+				port         = 6379
+				scheme       = "https"
+			}
+			`,
+			errorRe: `scheme is not valid for kind "redis"`,
+		},
+		{
+			name: "api_key on postgres (not valid for kind)",
+			config: `
+			resource "logtail_collector_target" "x" {
+				collector_id = "1"
+				kind         = "postgres"
+				host         = "pg.example.com"
+				port         = 5432
+				ssl_mode     = "require"
+				api_key      = "leaked-key"
+			}
+			`,
+			errorRe: `api_key is not valid for kind "postgres"`,
+		},
+		{
+			name: "ssl_mode on mysql (not valid for kind)",
+			config: `
+			resource "logtail_collector_target" "x" {
+				collector_id = "1"
+				kind         = "mysql"
+				host         = "m.example.com"
+				port         = 3306
+				tls          = "true"
+				ssl_mode     = "require"
+			}
+			`,
+			errorRe: `ssl_mode is not valid for kind "mysql"`,
+		},
+		{
+			name: "tls on postgres (not valid for kind)",
+			config: `
+			resource "logtail_collector_target" "x" {
+				collector_id = "1"
+				kind         = "postgres"
+				host         = "pg.example.com"
+				port         = 5432
+				ssl_mode     = "require"
+				tls          = "true"
+			}
+			`,
+			errorRe: `tls is not valid for kind "postgres"`,
+		},
+		{
+			name: "listen_ip on redis (not valid for kind)",
+			config: `
+			resource "logtail_collector_target" "x" {
+				collector_id = "1"
+				kind         = "redis"
+				host         = "r.example.com"
+				port         = 6379
+				listen_ip    = "10.0.0.1"
+			}
+			`,
+			errorRe: `listen_ip is not valid for kind "redis"`,
+		},
+		{
+			name: "service on redis (not valid for kind)",
+			config: `
+			resource "logtail_collector_target" "x" {
+				collector_id = "1"
+				kind         = "redis"
+				host         = "r.example.com"
+				port         = 6379
+				service      = "my-redis"
+			}
+			`,
+			errorRe: `service is not valid for kind "redis"`,
+		},
+		{
+			name: "port on prometheus (not valid for kind)",
+			config: `
+			resource "logtail_collector_target" "x" {
+				collector_id   = "1"
+				kind           = "prometheus"
+				collector_host = "h"
+				service        = "my-app"
+				endpoint       = "http://10.0.0.5:9090/metrics"
+				port           = 9090
+			}
+			`,
+			errorRe: `port is not valid for kind "prometheus"`,
+		},
+		{
+			name: "username on nginx (not valid for kind)",
+			config: `
+			resource "logtail_collector_target" "x" {
+				collector_id   = "1"
+				kind           = "nginx"
+				collector_host = "h"
+				service        = "my-nginx"
+				listen_ip      = "10.0.0.1"
+				port           = 80
+				username       = "u"
+			}
+			`,
+			errorRe: `username is not valid for kind "nginx"`,
+		},
 	}
 
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
