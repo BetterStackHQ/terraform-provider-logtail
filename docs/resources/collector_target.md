@@ -78,7 +78,7 @@ resource "logtail_collector_target" "paused_replica" {
 
 - `api_key` (String, Sensitive) API key for authentication. Used by elasticsearch.
 - `collector_host` (String) Hostname of the collector host running this process. Use this for process kinds (nginx, apache, kafka, prometheus). Must match the hostname of a `collector_host` reporting to this collector. For database kinds use `host` instead.
-- `enabled` (Boolean) Whether the collector should scrape this target. Defaults to `true`. Setting to `false` puts the target into `disabled` status — it remains configured but is not scraped.
+- `enabled` (Boolean) Whether the collector should scrape this target. Defaults to `true` server-side. Setting to `false` puts the target into `disabled` status — it remains configured but is not scraped.
 - `endpoint` (String) Full scrape URL. Required for prometheus.
 - `host` (String) Hostname or IP of the database server. Use this for database kinds (postgres, mysql, redis, mongodb, memcached, elasticsearch). For process kinds use `collector_host` instead.
 - `listen_ip` (String) IP address the process listens on, as seen from the collector host. Used for nginx, apache, kafka.

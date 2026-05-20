@@ -131,10 +131,10 @@ var collectorTargetSchema = map[string]*schema.Schema{
 		ValidateFunc: validation.StringInSlice([]string{"false", "true", "skip-verify", "preferred"}, false),
 	},
 	"enabled": {
-		Description: "Whether the collector should scrape this target. Defaults to `true`. Setting to `false` puts the target into `disabled` status — it remains configured but is not scraped.",
+		Description: "Whether the collector should scrape this target. Defaults to `true` server-side. Setting to `false` puts the target into `disabled` status — it remains configured but is not scraped.",
 		Type:        schema.TypeBool,
 		Optional:    true,
-		Default:     true,
+		Computed:    true,
 	},
 	"status": {
 		Description: "Current status of the target as reported by the collector.",
