@@ -440,7 +440,6 @@ func dataSourceDashboardTemplateRead(ctx context.Context, d *schema.ResourceData
 		}
 
 		// Get the full template details using export API
-		// Try telemetry base URL first, then warehouse base URL for templates
 		var out dashboardExportResponse
 		if err, ok := resourceReadWithBaseURL(ctx, meta, meta.(*client).TelemetryBaseURL(), fmt.Sprintf("/api/v2/dashboards/%s/export", url.PathEscape(id)), &out); !ok {
 			return diag.Errorf("dashboard template %q was found but couldn't be exported: %v", templateName, err)

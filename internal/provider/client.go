@@ -26,13 +26,12 @@ func rateLimitRetryPolicy(ctx context.Context, resp *http.Response, err error) (
 }
 
 type client struct {
-	baseURL          string
-	errorsBaseURL    string
-	warehouseBaseURL string
-	token            string
-	retryClient      *retryablehttp.Client
-	userAgent        string
-	rateLimiter      *rate.Limiter
+	baseURL       string
+	errorsBaseURL string
+	token         string
+	retryClient   *retryablehttp.Client
+	userAgent     string
+	rateLimiter   *rate.Limiter
 }
 
 type ClientConfig struct {
@@ -99,21 +98,18 @@ func newClient(config ClientConfig) (*client, error) {
 	}
 
 	errorsBaseURL := "https://errors.betterstack.com"
-	warehouseBaseURL := "https://warehouse.betterstack.com"
 	// Override with test URL if baseURL is not the production URL
 	if config.BaseURL != "https://telemetry.betterstack.com" {
 		errorsBaseURL = config.BaseURL
-		warehouseBaseURL = config.BaseURL
 	}
 
 	return &client{
-		baseURL:          config.BaseURL,
-		errorsBaseURL:    errorsBaseURL,
-		warehouseBaseURL: warehouseBaseURL,
-		token:            config.Token,
-		retryClient:      retryClient,
-		userAgent:        config.UserAgent,
-		rateLimiter:      rateLimiter,
+		baseURL:       config.BaseURL,
+		errorsBaseURL: errorsBaseURL,
+		token:         config.Token,
+		retryClient:   retryClient,
+		userAgent:     config.UserAgent,
+		rateLimiter:   rateLimiter,
 	}, nil
 }
 
@@ -155,10 +151,6 @@ func (c *client) TelemetryBaseURL() string {
 
 func (c *client) ErrorsBaseURL() string {
 	return c.errorsBaseURL
-}
-
-func (c *client) WarehouseBaseURL() string {
-	return c.warehouseBaseURL
 }
 
 func (c *client) do(ctx context.Context, method, baseURL, path string, body io.Reader) (*http.Response, error) {
