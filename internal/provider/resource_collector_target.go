@@ -159,18 +159,18 @@ var collectorTargetSchema = map[string]*schema.Schema{
 }
 
 type collectorTarget struct {
-	Kind                    *string `json:"kind,omitempty"`
-	Host                    *string `json:"host,omitempty"`
-	Port                    *int    `json:"port,omitempty"`
-	Service                 *string `json:"service,omitempty"`
-	ListenIP                *string `json:"listen_ip,omitempty"`
-	Endpoint                *string `json:"endpoint,omitempty"`
-	Scheme                  *string `json:"scheme,omitempty"`
-	Username                *string `json:"username,omitempty"`
-	Password                *string `json:"password,omitempty"`
-	APIKey                  *string `json:"api_key,omitempty"`
-	SSLMode                 *string `json:"ssl_mode,omitempty"`
-	TLS                     *string `json:"tls,omitempty"`
+	Kind      *string `json:"kind,omitempty"`
+	Host      *string `json:"host,omitempty"`
+	Port      *int    `json:"port,omitempty"`
+	Service   *string `json:"service,omitempty"`
+	ListenIP  *string `json:"listen_ip,omitempty"`
+	Endpoint  *string `json:"endpoint,omitempty"`
+	Scheme    *string `json:"scheme,omitempty"`
+	Username  *string `json:"username,omitempty"`
+	Password  *string `json:"password,omitempty"`
+	APIKey    *string `json:"api_key,omitempty"`
+	SSLMode   *string `json:"ssl_mode,omitempty"`
+	TLS       *string `json:"tls,omitempty"`
 	Enabled   *bool   `json:"enabled,omitempty"`
 	Status    *string `json:"status,omitempty"`
 	Container *string `json:"container,omitempty"`
