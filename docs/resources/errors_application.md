@@ -118,6 +118,7 @@ This resource allows you to create, modify, and delete your Errors applications.
 ### Optional
 
 - `application_group_id` (Number) ID of the application group this application belongs to. Set to `0` to remove from a group.
+- `canonical_parent_id` (Number) ID of an existing source to correlate errors with for log and trace correlation. Cannot be changed after creation.
 - `code_mapping_source_root` (String) Source code root path that replaces the stack trace root prefix. Used to map container or build paths to the corresponding repository paths for git blame.
 - `code_mapping_stack_root` (String) Stack trace root path prefix to match. When a stack trace file starts with this prefix, it will be replaced with the source code root to map to the correct repository path.
 - `custom_bucket` (Block List, Max: 1) Optional custom bucket configuration for the application. When provided, all fields (name, endpoint, access_key_id, secret_access_key) are required. (see [below for nested schema](#nestedblock--custom_bucket))
