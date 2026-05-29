@@ -243,11 +243,10 @@ var errorsApplicationSchema = map[string]*schema.Schema{
 			return false
 		},
 	},
-	"canonical_parent_id": {
-		Description: "ID of an existing source to correlate errors with for log and trace correlation. Cannot be changed after creation.",
+	"correlate_with_source_id": {
+		Description: "ID of an existing source to correlate errors from this application with, for log and trace correlation. Cannot be changed after the application is created.",
 		Type:        schema.TypeInt,
 		Optional:    true,
-		ForceNew:    true,
 	},
 	"custom_bucket": {
 		Description: "Optional custom bucket configuration for the application. When provided, all fields (name, endpoint, access_key_id, secret_access_key) are required.",
@@ -319,7 +318,7 @@ type errorsApplication struct {
 	CodeMappingStackRoot  *string             `json:"code_mapping_stack_root,omitempty"`
 	CodeMappingSourceRoot *string             `json:"code_mapping_source_root,omitempty"`
 	ApplicationGroupID    *int                `json:"application_group_id,omitempty"`
-	CanonicalParentID     *int                `json:"canonical_parent_id,omitempty"`
+	CorrelateWithSourceID *int                `json:"correlate_with_source_id,omitempty"`
 	CustomBucket          *sourceCustomBucket `json:"custom_bucket,omitempty"`
 }
 
@@ -352,7 +351,7 @@ func errorsApplicationRef(in *errorsApplication) []struct {
 		{k: "code_mapping_stack_root", v: &in.CodeMappingStackRoot},
 		{k: "code_mapping_source_root", v: &in.CodeMappingSourceRoot},
 		{k: "application_group_id", v: &in.ApplicationGroupID},
-		{k: "canonical_parent_id", v: &in.CanonicalParentID},
+		{k: "correlate_with_source_id", v: &in.CorrelateWithSourceID},
 	}
 }
 
@@ -482,6 +481,10 @@ func errorsApplicationDelete(ctx context.Context, d *schema.ResourceData, meta i
 }
 
 func validateErrorsApplication(ctx context.Context, diff *schema.ResourceDiff, v interface{}) error {
+	if diff.Id() != "" && diff.HasChange("correlate_with_source_id") {
+		return fmt.Errorf("correlate_with_source_id cannot be changed after the application is created")
+	}
+
 	if err := validateCustomBucketRemoval(ctx, diff, v); err != nil {
 		return err
 	}
