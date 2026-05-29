@@ -140,6 +140,17 @@ resource "logtail_collector" "with_databases" {
 }
 
 # ---------------------------------------------------------------------------
+# Errors application correlated with the Docker collector for log and trace
+# correlation. correlate_with_source_id cannot be changed after the
+# application is created.
+# ---------------------------------------------------------------------------
+resource "logtail_errors_application" "correlated_with_docker_collector" {
+  name                     = "E2E Correlated App ${random_pet.unique.id}"
+  platform                 = "python_errors"
+  correlate_with_source_id = logtail_collector.docker_basic.source_id
+}
+
+# ---------------------------------------------------------------------------
 # Data source to look up a collector created above
 # ---------------------------------------------------------------------------
 data "logtail_collector" "existing" {
