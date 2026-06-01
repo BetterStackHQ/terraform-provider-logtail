@@ -216,10 +216,14 @@ var sourceSchema = map[string]*schema.Schema{
 		Computed:    true,
 	},
 	"data_region": {
-		Description: "Data region or private cluster name to create the source in. Permitted values for most plans are: `us_east`, `germany`, `singapore`.",
-		Type:        schema.TypeString,
-		Optional:    true,
-		Computed:    true,
+		Description: "Data region or private cluster name to create the source in. Permitted values for most plans are: `us_east`, `germany`, `singapore`. " +
+			"This value can only be set at creation time and cannot be changed afterwards. " +
+			"The API returns the specific cluster name, which may differ from the value you provide (for example, `germany` may read back as `eu-nbg-2`).  \n" +
+			"When importing an existing source, leave `data_region` unset in your configuration - Terraform reads it from the API. " +
+			"Pinning it to an identifier that differs from the stored cluster name produces a spurious `data_region cannot be changed after source is created` error.",
+		Type:     schema.TypeString,
+		Optional: true,
+		Computed: true,
 	},
 	"source_group_id": {
 		Description: "The ID of the source group this source belongs to.",

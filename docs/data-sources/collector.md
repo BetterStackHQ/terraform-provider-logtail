@@ -30,7 +30,8 @@ data "logtail_collector" "production" {
 - `configuration` (List of Object) Collector-level configuration including active components, sampling rates, batching, and VRL transformations. These settings run on the collector host inside your infrastructure. (see [below for nested schema](#nestedatt--configuration))
 - `created_at` (String) The time when this collector was created.
 - `custom_bucket` (List of Object) Optional custom bucket configuration for the collector. Once set, it cannot be removed. (see [below for nested schema](#nestedatt--custom_bucket))
-- `data_region` (String) Data region (e.g. `eu`, `us`) or private cluster name to create the collector in. This can only be set at creation time. Note: the API may return a different identifier (the internal storage region name) than the value you provided.
+- `data_region` (String) Data region or private cluster name to create the collector in. Permitted values for most plans are: `us_east`, `germany`, `singapore`. This value can only be set at creation time and cannot be changed afterwards. The API returns the specific cluster name, which may differ from the value you provide (for example, `germany` may read back as `eu-nbg-2`).  
+When importing an existing collector, leave `data_region` unset in your configuration - Terraform reads it from the API. Pinning it to an identifier that differs from the stored cluster name produces a spurious `data_region cannot be changed after collector is created` error.
 - `databases` (List of Object, Deprecated) Database connections for the collector. Deprecated — use the `logtail_collector_target` resource instead. (see [below for nested schema](#nestedatt--databases))
 - `databases_count` (Number) The number of database connections configured for this collector.
 - `hosts_count` (Number) The number of hosts connected to this collector.

@@ -25,7 +25,8 @@ This Data Source allows you to look up existing Sources using their table name. 
 - `code_mapping_stack_root` (String) Stack trace root path prefix to match. When a stack trace file starts with this prefix, it will be replaced with the source code root to map to the correct repository path.
 - `created_at` (String) The time when this monitor group was created.
 - `custom_bucket` (List of Object) Optional custom bucket configuration for the source. When provided, all fields (name, endpoint, access_key_id, secret_access_key) are required. (see [below for nested schema](#nestedatt--custom_bucket))
-- `data_region` (String) Data region or private cluster name to create the source in. Permitted values for most plans are: `us_east`, `germany`, `singapore`.
+- `data_region` (String) Data region or private cluster name to create the source in. Permitted values for most plans are: `us_east`, `germany`, `singapore`. This value can only be set at creation time and cannot be changed afterwards. The API returns the specific cluster name, which may differ from the value you provide (for example, `germany` may read back as `eu-nbg-2`).  
+When importing an existing source, leave `data_region` unset in your configuration - Terraform reads it from the API. Pinning it to an identifier that differs from the stored cluster name produces a spurious `data_region cannot be changed after source is created` error.
 - `id` (String) The ID of this source.
 - `ingesting_host` (String) The host where the logs or metrics should be sent. See [documentation](https://betterstack.com/docs/logs/start/) for your specific source platform for details.
 - `ingesting_paused` (Boolean) This property allows you to temporarily pause data ingesting for this source (e.g., when you are reaching your plan's usage quota and you want to prioritize some sources over others).
