@@ -95,10 +95,17 @@ var alertSchema = map[string]*schema.Schema{
 		Computed:    true,
 	},
 	"check_period": {
-		Description: "How often to check the alert condition in seconds. Required for threshold and relative alerts.",
+		Description: "How often to check the alert condition in seconds. Required for threshold and relative alerts; ignored for anomaly alerts, which derive their cadence from query_period.",
 		Type:        schema.TypeInt,
 		Optional:    true,
 		Computed:    true,
+		DiffSuppressFunc: func(k, old, new string, d *schema.ResourceData) bool {
+			// The API does not return check_period for anomaly alerts (they use
+			// query_period), so once the alert exists a configured value is not
+			// real drift. This keeps imported anomaly alerts from showing a
+			// perpetual diff; new alerts still send check_period on create.
+			return d.Id() != "" && d.Get("alert_type").(string) == "anomaly_rrcf"
+		},
 	},
 	"series_names": {
 		Description: "Specific series to monitor.",

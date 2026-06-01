@@ -582,3 +582,31 @@ func TestResourceExplorationAlertRequiresOperator(t *testing.T) {
 		},
 	})
 }
+
+func TestAlertCheckPeriodDiffSuppress(t *testing.T) {
+	res := newExplorationAlertResource()
+	suppress := res.Schema["check_period"].DiffSuppressFunc
+	if suppress == nil {
+		t.Fatal("expected a DiffSuppressFunc on check_period")
+	}
+
+	existingAnomaly := res.TestResourceData()
+	existingAnomaly.SetId("1/2")
+	_ = existingAnomaly.Set("alert_type", "anomaly_rrcf")
+	if !suppress("check_period", "0", "300", existingAnomaly) {
+		t.Error("expected check_period drift to be suppressed for an existing anomaly alert")
+	}
+
+	existingThreshold := res.TestResourceData()
+	existingThreshold.SetId("1/2")
+	_ = existingThreshold.Set("alert_type", "threshold")
+	if suppress("check_period", "0", "300", existingThreshold) {
+		t.Error("expected check_period drift NOT to be suppressed for a threshold alert")
+	}
+
+	newAnomaly := res.TestResourceData()
+	_ = newAnomaly.Set("alert_type", "anomaly_rrcf")
+	if suppress("check_period", "", "300", newAnomaly) {
+		t.Error("expected check_period NOT to be suppressed on create so it is sent to the API")
+	}
+}
