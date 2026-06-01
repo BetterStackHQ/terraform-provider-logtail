@@ -18,10 +18,9 @@ resource "logtail_exploration" "this" {
     source_variable = "source"
   }
 
-  # Select the source the queries run against. A source variable needs both
-  # `values` (the sources offered) and `default_values` (the source selected by
-  # default) - with values but no default_values the source is offered but not
-  # selected, so the chart has no data.
+  # Select the source the queries run against. `values` holds the source ID(s)
+  # the variable resolves to (what the queries and any alerts run against);
+  # `default_values` only sets the initial picker selection and is optional.
   variable {
     name           = "source"
     variable_type  = "source"

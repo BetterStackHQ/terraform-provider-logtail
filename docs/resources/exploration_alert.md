@@ -31,9 +31,9 @@ resource "logtail_exploration" "this" {
     source_variable = "source"
   }
 
-  # A source variable needs both `values` (selectable sources) and
-  # `default_values` (the selected source); otherwise the source is offered but
-  # not selected and the alert has no data to evaluate.
+  # `values` holds the source ID(s) the variable resolves to - the sources the
+  # exploration's queries and this exploration's alerts run against.
+  # `default_values` only sets the initial picker selection and is optional.
   variable {
     name           = "source"
     variable_type  = "source"

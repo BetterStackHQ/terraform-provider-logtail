@@ -33,10 +33,9 @@ resource "logtail_exploration" "this" {
     source_variable = "source"
   }
 
-  # Select the source the queries run against. A source variable needs both
-  # `values` (the sources offered) and `default_values` (the source selected by
-  # default) - with values but no default_values the source is offered but not
-  # selected, so the chart has no data.
+  # Select the source the queries run against. `values` holds the source ID(s)
+  # the variable resolves to (what the queries and any alerts run against);
+  # `default_values` only sets the initial picker selection and is optional.
   variable {
     name           = "source"
     variable_type  = "source"
@@ -116,6 +115,6 @@ Required:
 
 Optional:
 
-- `default_values` (List of String) The values selected by default. For a 'source' variable set this to the source ID(s) the exploration and its alerts should query - a source variable with values but no default_values is offered but not selected.
+- `default_values` (List of String) The values selected by default in the picker. For a 'source' variable the source its queries and alerts resolve to comes from `values`; default_values only sets the initial picker selection, so it is optional (the UI sets it to match `values`).
 - `sql_definition` (String) SQL definition for 'select_with_sql' or 'multi_select_with_sql' type variables.
-- `values` (List of String) The values the variable can take. For a 'source' variable these are the selectable source IDs (e.g. logtail_source.web.id); for 'select_value' variables they are the predefined options.
+- `values` (List of String) The values the variable can take. For a 'source' variable these are the source IDs it resolves to - the sources its queries (and any alerts derived from it) run against, e.g. logtail_source.web.id. This is the field that selects the source. For 'select_value' variables these are the predefined options.
