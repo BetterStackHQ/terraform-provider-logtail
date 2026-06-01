@@ -1021,6 +1021,92 @@ func TestResourceSourceCodeMapping(t *testing.T) {
 	})
 }
 
+// TestResourceSourceImportDataRegion covers importing with data_region omitted: the API returns
+// the cluster name ("eu-nbg-2"), not the region identifier given at creation, so the plan stays empty.
+func TestResourceSourceImportDataRegion(t *testing.T) {
+	var data atomic.Value
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Header.Get("Authorization") != "Bearer foo" {
+			t.Fatal("Not authorized: " + r.Header.Get("Authorization"))
+		}
+
+		prefix := "/api/v1/sources"
+		id := "1"
+
+		switch {
+		case r.Method == http.MethodPost && r.RequestURI == prefix:
+			body, err := io.ReadAll(r.Body)
+			if err != nil {
+				t.Fatal(err)
+			}
+			body = inject(t, body, "token", "generated_by_logtail")
+			body = inject(t, body, "ingesting_host", "in.logs.betterstack.com")
+			body = inject(t, body, "table_name", "test_source")
+			body = inject(t, body, "team_id", 123456)
+			// API returns the cluster name, not the region identifier given at creation.
+			body = inject(t, body, "data_region", "eu-nbg-2")
+			data.Store(body)
+			w.WriteHeader(http.StatusCreated)
+			_, _ = w.Write([]byte(fmt.Sprintf(`{"data":{"id":%q,"attributes":%s}}`, id, body)))
+		case r.Method == http.MethodGet && r.RequestURI == prefix+"/"+id:
+			_, _ = w.Write([]byte(fmt.Sprintf(`{"data":{"id":%q,"attributes":%s}}`, id, data.Load().([]byte))))
+		case r.Method == http.MethodDelete && r.RequestURI == prefix+"/"+id:
+			w.WriteHeader(http.StatusNoContent)
+			data.Store([]byte(nil))
+		default:
+			t.Fatal("Unexpected " + r.Method + " " + r.RequestURI)
+		}
+	}))
+	defer server.Close()
+
+	resource.Test(t, resource.TestCase{
+		IsUnitTest: true,
+		ProviderFactories: map[string]func() (*schema.Provider, error){
+			"logtail": func() (*schema.Provider, error) {
+				return New(WithURL(server.URL)), nil
+			},
+		},
+		Steps: []resource.TestStep{
+			// Create with data_region omitted; the cluster name lands in state.
+			{
+				Config: `
+				provider "logtail" {
+					api_token = "foo"
+				}
+
+				resource "logtail_source" "this" {
+					name     = "Imported Source"
+					platform = "ubuntu"
+				}
+				`,
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr("logtail_source.this", "data_region", "eu-nbg-2"),
+				),
+			},
+			// Import: state matches, no spurious data_region diff.
+			{
+				ResourceName:      "logtail_source.this",
+				ImportState:       true,
+				ImportStateVerify: true,
+			},
+			// Re-plan with data_region omitted: empty plan.
+			{
+				Config: `
+				provider "logtail" {
+					api_token = "foo"
+				}
+
+				resource "logtail_source" "this" {
+					name     = "Imported Source"
+					platform = "ubuntu"
+				}
+				`,
+				PlanOnly: true,
+			},
+		},
+	})
+}
+
 func inject(t *testing.T, body json.RawMessage, key string, value interface{}) json.RawMessage {
 	// Inject source token.
 	computed := make(map[string]interface{})
