@@ -122,7 +122,8 @@ This resource allows you to create, modify, and delete your Errors applications.
 - `code_mapping_stack_root` (String) Stack trace root path prefix to match. When a stack trace file starts with this prefix, it will be replaced with the source code root to map to the correct repository path.
 - `correlate_with_source_id` (Number) ID of an existing source to correlate errors from this application with, for log and trace correlation. Cannot be changed after the application is created.
 - `custom_bucket` (Block List, Max: 1) Optional custom bucket configuration for the application. When provided, all fields (name, endpoint, access_key_id, secret_access_key) are required. (see [below for nested schema](#nestedblock--custom_bucket))
-- `data_region` (String) Data region or cluster name where application data will be stored. If omitted, the default data region for your team will be used.
+- `data_region` (String) Data region or private cluster name to create the application in. Permitted values for most plans are: `us_east`, `germany`, `singapore`. This value can only be set at creation time and cannot be changed afterwards. The API returns the specific cluster name, which may differ from the value you provide (for example, `germany` may read back as `eu-nbg-2`).  
+When importing an existing application, leave `data_region` unset in your configuration - Terraform reads it from the API. Pinning it to an identifier that differs from the stored cluster name produces a spurious `data_region cannot be changed after application is created` error.
 - `errors_retention` (Number) Error data retention period in days. Default retention is 90 days.
 - `ingesting_paused` (Boolean) This property allows you to temporarily pause data ingesting for this application.
 - `team_name` (String) Used to specify the team the resource should be created in when using global tokens.

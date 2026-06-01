@@ -139,10 +139,10 @@ var collectorSchema = map[string]*schema.Schema{
 		Computed:    true,
 	},
 	"data_region": {
-		Description: "Data region (e.g. `eu`, `us`) or private cluster name to create the collector in. " +
+		Description: "Data region or private cluster name to create the collector in. Permitted values for most plans are: `us_east`, `germany`, `singapore`. " +
 			"This value can only be set at creation time and cannot be changed afterwards. " +
-			"The API returns the specific cluster name, which may differ from the value you provide (for example, `eu` may read back as `eu-nbg-2`). " +
-			"When importing an existing collector, leave `data_region` unset in your configuration — Terraform reads it from the API. " +
+			"The API returns the specific cluster name, which may differ from the value you provide (for example, `germany` may read back as `eu-nbg-2`).  \n" +
+			"When importing an existing collector, leave `data_region` unset in your configuration - Terraform reads it from the API. " +
 			"Pinning it to an identifier that differs from the stored cluster name produces a spurious `data_region cannot be changed after collector is created` error.",
 		Type:     schema.TypeString,
 		Optional: true,

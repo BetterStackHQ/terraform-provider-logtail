@@ -207,10 +207,14 @@ var errorsApplicationSchema = map[string]*schema.Schema{
 		Computed:    true,
 	},
 	"data_region": {
-		Description: "Data region or cluster name where application data will be stored. If omitted, the default data region for your team will be used.",
-		Type:        schema.TypeString,
-		Optional:    true,
-		Computed:    true,
+		Description: "Data region or private cluster name to create the application in. Permitted values for most plans are: `us_east`, `germany`, `singapore`. " +
+			"This value can only be set at creation time and cannot be changed afterwards. " +
+			"The API returns the specific cluster name, which may differ from the value you provide (for example, `germany` may read back as `eu-nbg-2`).  \n" +
+			"When importing an existing application, leave `data_region` unset in your configuration - Terraform reads it from the API. " +
+			"Pinning it to an identifier that differs from the stored cluster name produces a spurious `data_region cannot be changed after application is created` error.",
+		Type:     schema.TypeString,
+		Optional: true,
+		Computed: true,
 	},
 	"code_mapping_stack_root": {
 		Description: "Stack trace root path prefix to match. When a stack trace file starts with this prefix, it will be replaced with the source code root to map to the correct repository path.",
@@ -483,6 +487,10 @@ func errorsApplicationDelete(ctx context.Context, d *schema.ResourceData, meta i
 func validateErrorsApplication(ctx context.Context, diff *schema.ResourceDiff, v interface{}) error {
 	if diff.Id() != "" && diff.HasChange("correlate_with_source_id") {
 		return fmt.Errorf("correlate_with_source_id cannot be changed after the application is created")
+	}
+
+	if diff.Id() != "" && diff.HasChange("data_region") {
+		return fmt.Errorf("data_region cannot be changed after application is created")
 	}
 
 	if err := validateCustomBucketRemoval(ctx, diff, v); err != nil {
