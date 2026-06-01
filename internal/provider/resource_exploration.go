@@ -558,20 +558,39 @@ func explorationCopyAttrs(d *schema.ResourceData, in *exploration) diag.Diagnost
 			}
 		}
 
-		// Get user-configured variables in their original order
-		var userVarNames []string
+		// Determine which variables to surface and in what order. Normally we
+		// follow the user's configured order and only emit variables they manage.
+		// On terraform import there is no prior config, so fall back to every
+		// non-system variable the API returns - this is what carries the source
+		// variable (and any other custom variables) into state.
+		var orderedNames []string
 		if varConfig, ok := d.GetOk("variable"); ok {
 			for _, v := range varConfig.([]interface{}) {
 				vMap := v.(map[string]interface{})
 				if name, ok := vMap["name"].(string); ok {
-					userVarNames = append(userVarNames, name)
+					orderedNames = append(orderedNames, name)
 				}
 			}
 		}
+		if len(orderedNames) == 0 {
+			for i := range in.Variables {
+				v := in.Variables[i]
+				if v.Name == nil || systemVars[*v.Name] {
+					continue
+				}
+				// Only surface variables that carry configuration. This imports a
+				// source variable that has a source selected while skipping the
+				// empty source variable the API auto-creates for every exploration.
+				if len(v.Values) == 0 && len(v.DefaultValues) == 0 && (v.SQLDefinition == nil || *v.SQLDefinition == "") {
+					continue
+				}
+				orderedNames = append(orderedNames, *v.Name)
+			}
+		}
 
-		// Build result in user's order, using API values
-		varData := make([]interface{}, 0, len(userVarNames))
-		for _, name := range userVarNames {
+		// Build result in the chosen order, using API values
+		varData := make([]interface{}, 0, len(orderedNames))
+		for _, name := range orderedNames {
 			// Skip system variables
 			if systemVars[name] {
 				continue
