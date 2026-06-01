@@ -237,6 +237,14 @@ func validateCollectorTarget(ctx context.Context, diff *schema.ResourceDiff, v i
 		if kind == "elasticsearch" && diff.Get("scheme").(string) == "" {
 			return fmt.Errorf("scheme is required for elasticsearch")
 		}
+		// Mirror the API's per-kind required fields (telemetry: CollectorTarget#validate_settings_for_kind)
+		// so a missing ssl_mode/tls is caught at plan time instead of as a 422 on apply.
+		if kind == "postgres" && diff.Get("ssl_mode").(string) == "" {
+			return fmt.Errorf("ssl_mode is required for kind %q", kind)
+		}
+		if kind == "mysql" && diff.Get("tls").(string) == "" {
+			return fmt.Errorf("tls is required for kind %q", kind)
+		}
 	}
 
 	for _, field := range collectorTargetCheckableFields {

@@ -481,6 +481,30 @@ func TestResourceCollectorTargetValidation(t *testing.T) {
 			errorRe: `scheme is required for elasticsearch`,
 		},
 		{
+			name: "postgres without ssl_mode",
+			config: `
+			resource "logtail_collector_target" "x" {
+				collector_id = "1"
+				kind         = "postgres"
+				host         = "pg.example.com"
+				port         = 5432
+			}
+			`,
+			errorRe: `ssl_mode is required for kind "postgres"`,
+		},
+		{
+			name: "mysql without tls",
+			config: `
+			resource "logtail_collector_target" "x" {
+				collector_id = "1"
+				kind         = "mysql"
+				host         = "m.example.com"
+				port         = 3306
+			}
+			`,
+			errorRe: `tls is required for kind "mysql"`,
+		},
+		{
 			name: "unknown kind",
 			config: `
 			resource "logtail_collector_target" "x" {
