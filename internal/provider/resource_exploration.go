@@ -195,13 +195,13 @@ var explorationSchema = map[string]*schema.Schema{
 					ValidateFunc: validation.StringInSlice([]string{"source", "string", "number", "date", "datetime", "boolean", "sql_expression", "select_value", "select_with_sql", "multi_select_with_sql"}, false),
 				},
 				"values": {
-					Description: "Predefined values for 'select_value' type variables.",
+					Description: "The values the variable can take. For a 'source' variable these are the selectable source IDs (e.g. logtail_source.web.id); for 'select_value' variables they are the predefined options.",
 					Type:        schema.TypeList,
 					Optional:    true,
 					Elem:        &schema.Schema{Type: schema.TypeString},
 				},
 				"default_values": {
-					Description: "Default selected values for the variable.",
+					Description: "The values selected by default. For a 'source' variable set this to the source ID(s) the exploration and its alerts should query - a source variable with values but no default_values is offered but not selected.",
 					Type:        schema.TypeList,
 					Optional:    true,
 					Elem:        &schema.Schema{Type: schema.TypeString},
