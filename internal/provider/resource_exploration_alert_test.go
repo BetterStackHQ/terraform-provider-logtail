@@ -539,6 +539,14 @@ func TestResourceExplorationAlertWithEscalationTarget(t *testing.T) {
 					resource.TestCheckResourceAttr("logtail_exploration_alert.this", "escalation_target.0.policy_id", "123"),
 				),
 			},
+			// Import: the escalation_target must survive the round-trip. It used to be
+			// dropped because the read only mirrored fields already present in config.
+			{
+				ResourceName:      "logtail_exploration_alert.this",
+				ImportState:       true,
+				ImportStateVerify: true,
+				ImportStateId:     "2/20",
+			},
 		},
 	})
 }

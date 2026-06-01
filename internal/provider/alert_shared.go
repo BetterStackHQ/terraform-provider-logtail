@@ -647,41 +647,59 @@ func alertCopyAttrs(d *schema.ResourceData, in *alert) diag.Diagnostics {
 		}
 	}
 
-	// Copy escalation_target - only store the exact fields user configured to avoid drift
+	// Copy escalation_target. On a normal refresh we mirror back only the fields
+	// already present in config/state to avoid drift (the API echoes both the id
+	// and the name, but the user may have configured only one). With no prior
+	// config - e.g. terraform import - we adopt the canonical identifier the API
+	// returns so the target isn't silently dropped.
 	if in.EscalationTarget.Value != nil {
-		// Check what fields the user configured
-		var userConfiguredTeamID, userConfiguredTeamName, userConfiguredPolicyID, userConfiguredPolicyName bool
+		v := in.EscalationTarget.Value
+
+		var hasTeamID, hasTeamName, hasPolicyID, hasPolicyName bool
 		if escConfig, ok := d.GetOk("escalation_target"); ok {
 			list := escConfig.([]interface{})
-			if len(list) > 0 {
+			if len(list) > 0 && list[0] != nil {
 				targetMap := list[0].(map[string]interface{})
-				if v, ok := targetMap["team_id"].(int); ok && v != 0 {
-					userConfiguredTeamID = true
+				if id, ok := targetMap["team_id"].(int); ok && id != 0 {
+					hasTeamID = true
 				}
-				if v, ok := targetMap["team_name"].(string); ok && v != "" {
-					userConfiguredTeamName = true
+				if name, ok := targetMap["team_name"].(string); ok && name != "" {
+					hasTeamName = true
 				}
-				if v, ok := targetMap["policy_id"].(int); ok && v != 0 {
-					userConfiguredPolicyID = true
+				if id, ok := targetMap["policy_id"].(int); ok && id != 0 {
+					hasPolicyID = true
 				}
-				if v, ok := targetMap["policy_name"].(string); ok && v != "" {
-					userConfiguredPolicyName = true
+				if name, ok := targetMap["policy_name"].(string); ok && name != "" {
+					hasPolicyName = true
 				}
 			}
 		}
 
 		targetData := make(map[string]interface{})
-		if in.EscalationTarget.Value.TeamID != nil && userConfiguredTeamID {
-			targetData["team_id"] = *in.EscalationTarget.Value.TeamID
-		}
-		if in.EscalationTarget.Value.TeamName != nil && userConfiguredTeamName {
-			targetData["team_name"] = *in.EscalationTarget.Value.TeamName
-		}
-		if in.EscalationTarget.Value.PolicyID != nil && userConfiguredPolicyID {
-			targetData["policy_id"] = *in.EscalationTarget.Value.PolicyID
-		}
-		if in.EscalationTarget.Value.PolicyName != nil && userConfiguredPolicyName {
-			targetData["policy_name"] = *in.EscalationTarget.Value.PolicyName
+		if hasTeamID || hasTeamName || hasPolicyID || hasPolicyName {
+			if v.TeamID != nil && hasTeamID {
+				targetData["team_id"] = *v.TeamID
+			}
+			if v.TeamName != nil && hasTeamName {
+				targetData["team_name"] = *v.TeamName
+			}
+			if v.PolicyID != nil && hasPolicyID {
+				targetData["policy_id"] = *v.PolicyID
+			}
+			if v.PolicyName != nil && hasPolicyName {
+				targetData["policy_name"] = *v.PolicyName
+			}
+		} else {
+			switch {
+			case v.PolicyID != nil:
+				targetData["policy_id"] = *v.PolicyID
+			case v.TeamID != nil:
+				targetData["team_id"] = *v.TeamID
+			case v.PolicyName != nil:
+				targetData["policy_name"] = *v.PolicyName
+			case v.TeamName != nil:
+				targetData["team_name"] = *v.TeamName
+			}
 		}
 		if len(targetData) > 0 {
 			if err := d.Set("escalation_target", []interface{}{targetData}); err != nil {
