@@ -12,14 +12,19 @@ import (
 )
 
 func validateAlert(_ context.Context, diff *schema.ResourceDiff, _ interface{}) error {
-	// Only validate on new resources or when alert_type/check_period changed
-	if diff.Id() != "" && !diff.HasChange("alert_type") && !diff.HasChange("check_period") {
+	// Only validate on create or when one of the relevant attributes changes.
+	if diff.Id() != "" &&
+		!diff.HasChange("alert_type") &&
+		!diff.HasChange("operator") &&
+		!diff.HasChange("check_period") {
 		return nil
 	}
 	alertType := diff.Get("alert_type").(string)
 	if alertType == "threshold" || alertType == "relative" {
-		checkPeriod := diff.Get("check_period").(int)
-		if checkPeriod == 0 {
+		if diff.Get("operator").(string) == "" {
+			return fmt.Errorf("operator is required for %s alerts", alertType)
+		}
+		if diff.Get("check_period").(int) == 0 {
 			return fmt.Errorf("check_period is required for %s alerts", alertType)
 		}
 	}
@@ -47,7 +52,7 @@ var alertSchema = map[string]*schema.Schema{
 		ValidateFunc: validation.StringInSlice([]string{"threshold", "relative", "anomaly_rrcf"}, false),
 	},
 	"operator": {
-		Description:  "The comparison operator. For threshold: 'equal', 'not_equal', 'higher_than', 'higher_than_or_equal', 'lower_than', 'lower_than_or_equal'. For relative: 'increases_by', 'decreases_by', 'changes_by'. Not required for anomaly alerts.",
+		Description:  "The comparison operator. Required for threshold and relative alerts; not used for anomaly alerts. For threshold: 'equal', 'not_equal', 'higher_than', 'higher_than_or_equal', 'lower_than', 'lower_than_or_equal'. For relative: 'increases_by', 'decreases_by', 'changes_by'.",
 		Type:         schema.TypeString,
 		Optional:     true,
 		Computed:     true,
@@ -72,7 +77,7 @@ var alertSchema = map[string]*schema.Schema{
 		Computed:    true,
 	},
 	"confirmation_period": {
-		Description: "The confirmation delay in seconds before triggering (required, >= 0).",
+		Description: "The confirmation delay in seconds before triggering. Optional; defaults to 60.",
 		Type:        schema.TypeInt,
 		Optional:    true,
 		Computed:    true,
@@ -90,7 +95,7 @@ var alertSchema = map[string]*schema.Schema{
 		Computed:    true,
 	},
 	"check_period": {
-		Description: "How often to check the alert condition in seconds.",
+		Description: "How often to check the alert condition in seconds. Required for threshold and relative alerts.",
 		Type:        schema.TypeInt,
 		Optional:    true,
 		Computed:    true,

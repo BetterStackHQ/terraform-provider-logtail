@@ -6,6 +6,7 @@ import (
 	"io"
 	"net/http"
 	"net/http/httptest"
+	"regexp"
 	"strings"
 	"sync/atomic"
 	"testing"
@@ -546,6 +547,37 @@ func TestResourceExplorationAlertWithEscalationTarget(t *testing.T) {
 				ImportState:       true,
 				ImportStateVerify: true,
 				ImportStateId:     "2/20",
+			},
+		},
+	})
+}
+
+func TestResourceExplorationAlertRequiresOperator(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		IsUnitTest: true,
+		ProviderFactories: map[string]func() (*schema.Provider, error){
+			"logtail": func() (*schema.Provider, error) {
+				return New(WithURL("http://127.0.0.1:1")), nil
+			},
+		},
+		Steps: []resource.TestStep{
+			{
+				// A threshold alert with no operator must fail at plan time with a
+				// clear message instead of a late, opaque API error.
+				Config: `
+				provider "logtail" {
+					api_token = "foo"
+				}
+
+				resource "logtail_exploration_alert" "this" {
+					exploration_id = "1"
+					name           = "Missing operator"
+					alert_type     = "threshold"
+					value          = 100
+					check_period   = 60
+				}
+				`,
+				ExpectError: regexp.MustCompile("operator is required for threshold alerts"),
 			},
 		},
 	})
