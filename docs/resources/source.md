@@ -28,6 +28,7 @@ This resource allows you to create, modify, and delete your Sources. For more in
     - `azure`
     - `azure_logs`
     - `cloudflare_logpush`
+    - `cloudflare_prometheus_exporter`
     - `cloudflare_worker`
     - `datadog_agent`
     - `digitalocean`

@@ -23,6 +23,7 @@ var platformTypes = []string{
 	"azure",
 	"azure_logs",
 	"cloudflare_logpush",
+	"cloudflare_prometheus_exporter",
 	"cloudflare_worker",
 	"datadog_agent",
 	"digitalocean",
