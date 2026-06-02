@@ -27,7 +27,7 @@ This resource allows you to create and manage dashboards. Use 'data' for import 
 - `date_range_to` (String) The end of the date range (e.g., 'now').
 - `refresh_interval` (Number) The auto-refresh interval in seconds.
 - `source_eligibility_sql` (String) SQL expression to filter eligible sources.
-- `team_name` (String) The team name to associate with the dashboard when using a global API token.
+- `team_name` (String) The team name to associate with the dashboard when using a global API token. You can't update this value later.
 - `variable` (Block List) Variables for this dashboard. Default variables (time, start_time, end_time, source) are auto-created. (see [below for nested schema](#nestedblock--variable))
 
 ### Read-Only

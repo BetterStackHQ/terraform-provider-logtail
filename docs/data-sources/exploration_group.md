@@ -23,5 +23,5 @@ This data source allows you to get information about an Exploration Group in Bet
 
 - `created_at` (String) The time when this exploration group was created.
 - `id` (String) The ID of this exploration group.
-- `team_name` (String) Used to specify the team the resource should be created in when using global tokens.
+- `team_name` (String) Used to specify the team the resource should be created in when using global tokens. You can't update this value later.
 - `updated_at` (String) The time when this exploration group was updated.

@@ -22,7 +22,7 @@ This resource allows you to create, modify, and delete your Source Groups. For m
 ### Optional
 
 - `sort_index` (Number) The sort index of this source group.
-- `team_name` (String) Used to specify the team the resource should be created in when using global tokens.
+- `team_name` (String) Used to specify the team the resource should be created in when using global tokens. You can't update this value later.
 
 ### Read-Only
 

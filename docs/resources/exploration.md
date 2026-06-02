@@ -26,7 +26,7 @@ This resource allows you to create, modify, and delete Explorations in Better St
 - `date_range_from` (String) The start of the date range (e.g., 'now-3h', 'now-24h').
 - `date_range_to` (String) The end of the date range (e.g., 'now').
 - `exploration_group_id` (Number) The ID of the exploration group this exploration belongs to. Use 0 to remove from group.
-- `team_name` (String) Used to specify the team the resource should be created in when using global tokens.
+- `team_name` (String) Used to specify the team the resource should be created in when using global tokens. You can't update this value later.
 - `variable` (Block List) Variables for this exploration. Default variables (time, start_time, end_time, source) are auto-created. (see [below for nested schema](#nestedblock--variable))
 
 ### Read-Only

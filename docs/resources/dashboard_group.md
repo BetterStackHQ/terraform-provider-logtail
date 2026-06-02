@@ -27,7 +27,7 @@ resource "logtail_dashboard_group" "production" {
 
 ### Optional
 
-- `team_name` (String) Used to specify the team the resource should be created in when using global tokens.
+- `team_name` (String) Used to specify the team the resource should be created in when using global tokens. You can't update this value later.
 
 ### Read-Only
 

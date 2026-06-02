@@ -11,15 +11,7 @@ import (
 )
 
 var dashboardGroupSchema = map[string]*schema.Schema{
-	"team_name": {
-		Description: "Used to specify the team the resource should be created in when using global tokens.",
-		Type:        schema.TypeString,
-		Optional:    true,
-		Default:     nil,
-		DiffSuppressFunc: func(k, old, new string, d *schema.ResourceData) bool {
-			return d.Id() != ""
-		},
-	},
+	"team_name": teamNameSchema(),
 	"id": {
 		Description: "The ID of this dashboard group.",
 		Type:        schema.TypeString,
@@ -54,8 +46,9 @@ func newDashboardGroupResource() *schema.Resource {
 		Importer: &schema.ResourceImporter{
 			StateContext: schema.ImportStatePassthroughContext,
 		},
-		Description: "This resource allows you to create, modify, and delete Dashboard Groups. Dashboard Groups help organize dashboards in Better Stack Telemetry.",
-		Schema:      dashboardGroupSchema,
+		Description:   "This resource allows you to create, modify, and delete Dashboard Groups. Dashboard Groups help organize dashboards in Better Stack Telemetry.",
+		CustomizeDiff: validateTeamNameNotChanged,
+		Schema:        dashboardGroupSchema,
 	}
 }
 

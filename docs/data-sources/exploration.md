@@ -28,7 +28,7 @@ This data source allows you to get information about an Exploration in Better St
 - `exploration_group_id` (Number) The ID of the exploration group this exploration belongs to. Use 0 to remove from group.
 - `id` (String) The ID of this exploration.
 - `query` (List of Object) The queries for this exploration. At least one query is required. (see [below for nested schema](#nestedatt--query))
-- `team_name` (String) Used to specify the team the resource should be created in when using global tokens.
+- `team_name` (String) Used to specify the team the resource should be created in when using global tokens. You can't update this value later.
 - `updated_at` (String) The time when this exploration was updated.
 - `variable` (List of Object) Variables for this exploration. Default variables (time, start_time, end_time, source) are auto-created. (see [below for nested schema](#nestedatt--variable))
 

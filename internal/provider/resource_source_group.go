@@ -11,15 +11,7 @@ import (
 )
 
 var sourceGroupSchema = map[string]*schema.Schema{
-	"team_name": {
-		Description: "Used to specify the team the resource should be created in when using global tokens.",
-		Type:        schema.TypeString,
-		Optional:    true,
-		Default:     nil,
-		DiffSuppressFunc: func(k, old, new string, d *schema.ResourceData) bool {
-			return d.Id() != ""
-		},
-	},
+	"team_name": teamNameSchema(),
 	"id": {
 		Description: "The ID of this source group.",
 		Type:        schema.TypeString,
@@ -59,8 +51,9 @@ func newSourceGroupResource() *schema.Resource {
 		Importer: &schema.ResourceImporter{
 			StateContext: schema.ImportStatePassthroughContext,
 		},
-		Description: "This resource allows you to create, modify, and delete your Source Groups. For more information about the Source Groups API check https://betterstack.com/docs/logs/api/",
-		Schema:      sourceGroupSchema,
+		Description:   "This resource allows you to create, modify, and delete your Source Groups. For more information about the Source Groups API check https://betterstack.com/docs/logs/api/",
+		CustomizeDiff: validateTeamNameNotChanged,
+		Schema:        sourceGroupSchema,
 	}
 }
 

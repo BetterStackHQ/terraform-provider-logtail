@@ -71,7 +71,7 @@ When importing an existing collector, leave `data_region` unset in your configur
 - `note` (String) A description or note about this collector.
 - `source_group_id` (Number) The ID of the source group (folder) this collector belongs to. Set to `0` to remove from a group.
 - `source_vrl_transformation` (String) Server-side VRL transformation that runs during ingestion on Better Stack. Use this for enrichment, routing, or light normalization that doesn't involve sensitive data. For PII redaction and sensitive data filtering, prefer `configuration.vrl_transformation` which runs on the collector host and ensures raw data never leaves your network. Read more about [VRL transformations](https://betterstack.com/docs/logs/using-logtail/transforming-ingested-data/logs-vrl/).
-- `team_name` (String) Used to specify the team the resource should be created in when using global tokens.
+- `team_name` (String) Used to specify the team the resource should be created in when using global tokens. You can't update this value later.
 - `user_vector_config` (String) Custom Vector YAML configuration for additional sources and transforms beyond the built-in component toggles. Must not contain `command:` directives.
 
 ### Read-Only

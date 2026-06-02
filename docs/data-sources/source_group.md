@@ -24,5 +24,5 @@ This data source allows you to get information about a Source Group. For more in
 - `created_at` (String) The time when this source group was created.
 - `id` (String) The ID of this source group.
 - `sort_index` (Number) The sort index of this source group.
-- `team_name` (String) Used to specify the team the resource should be created in when using global tokens.
+- `team_name` (String) Used to specify the team the resource should be created in when using global tokens. You can't update this value later.
 - `updated_at` (String) The time when this source group was updated.
