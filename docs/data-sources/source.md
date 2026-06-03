@@ -44,6 +44,7 @@ When importing an existing source, leave `data_region` unset in your configurati
     - `azure`
     - `azure_logs`
     - `cloudflare_logpush`
+    - `cloudflare_prometheus_exporter`
     - `cloudflare_worker`
     - `datadog_agent`
     - `digitalocean`
