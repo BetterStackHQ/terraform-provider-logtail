@@ -14,6 +14,12 @@ import (
 func newSourceDataSource() *schema.Resource {
 	s := make(map[string]*schema.Schema)
 	for k, v := range sourceSchema {
+		// The AWS account linkage params are write-only credentials the API never
+		// returns, so they don't belong on a read-only data source — exposing them
+		// would advertise an always-null (Sensitive) attribute as readable.
+		if k == "aws_account_id" || k == "aws_role_arn" || k == "aws_external_id" {
+			continue
+		}
 		cp := *v
 		switch k {
 		case "table_name":
