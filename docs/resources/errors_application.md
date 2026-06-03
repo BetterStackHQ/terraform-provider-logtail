@@ -126,7 +126,7 @@ This resource allows you to create, modify, and delete your Errors applications.
 When importing an existing application, leave `data_region` unset in your configuration - Terraform reads it from the API. Pinning it to an identifier that differs from the stored cluster name produces a spurious `data_region cannot be changed after application is created` error.
 - `errors_retention` (Number) Error data retention period in days. Default retention is 90 days.
 - `ingesting_paused` (Boolean) This property allows you to temporarily pause data ingesting for this application.
-- `team_name` (String) Used to specify the team the resource should be created in when using global tokens.
+- `team_name` (String) Used to specify the team the resource should be created in when using global tokens. You can't update this value later.
 
 ### Read-Only
 

@@ -9,6 +9,7 @@ import (
 
 	"github.com/hashicorp/go-cty/cty"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/customdiff"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 )
@@ -71,15 +72,7 @@ var platformTypes = []string{
 }
 
 var sourceSchema = map[string]*schema.Schema{
-	"team_name": {
-		Description: "Used to specify the team the resource should be created in when using global tokens.",
-		Type:        schema.TypeString,
-		Optional:    true,
-		Default:     nil,
-		DiffSuppressFunc: func(k, old, new string, d *schema.ResourceData) bool {
-			return d.Id() != ""
-		},
-	},
+	"team_name": teamNameSchema(),
 	"team_id": {
 		Description: "The team ID for this resource. Can be used with table_name in [Query API](https://betterstack.com/docs/logs/query-api/connect-remotely/).",
 		Type:        schema.TypeString,
@@ -313,7 +306,7 @@ func newSourceResource() *schema.Resource {
 		Importer: &schema.ResourceImporter{
 			StateContext: schema.ImportStatePassthroughContext,
 		},
-		CustomizeDiff: validateSource,
+		CustomizeDiff: customdiff.Sequence(validateTeamNameNotChanged, validateSource),
 		Description:   "This resource allows you to create, modify, and delete your Sources. For more information about the Sources API check https://betterstack.com/docs/logs/api/list-all-existing-sources/",
 		Schema:        sourceSchema,
 	}

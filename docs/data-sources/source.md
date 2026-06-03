@@ -97,7 +97,7 @@ When importing an existing source, leave `data_region` unset in your configurati
 - `skip_ssl_verify` (Boolean) Should the scraper skip SSL certificate verification? Enable for endpoints with self-signed or invalid certificates.
 - `source_group_id` (Number) The ID of the source group this source belongs to.
 - `team_id` (String) The team ID for this resource. Can be used with table_name in [Query API](https://betterstack.com/docs/logs/query-api/connect-remotely/).
-- `team_name` (String) Used to specify the team the resource should be created in when using global tokens.
+- `team_name` (String) Used to specify the team the resource should be created in when using global tokens. You can't update this value later.
 - `token` (String) The token of this source. This token is used to identify and route the data you will send to Better Stack.
 - `updated_at` (String) The time when this monitor group was updated.
 - `vrl_transformation` (String) VRL transformation that runs on Better Stack's servers during ingestion. Note: data has already left your infrastructure at this point. For transformations that must run before data leaves your network (e.g. PII redaction), use `logtail_collector` with `configuration.vrl_transformation` instead. Read more about [VRL transformations](https://betterstack.com/docs/logs/using-logtail/transforming-ingested-data/logs-vrl/).

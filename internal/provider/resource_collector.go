@@ -13,6 +13,7 @@ import (
 	"strings"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/customdiff"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 )
@@ -60,15 +61,7 @@ var collectorSchema = map[string]*schema.Schema{
 		Optional:    false,
 		Computed:    true,
 	},
-	"team_name": {
-		Description: "Used to specify the team the resource should be created in when using global tokens.",
-		Type:        schema.TypeString,
-		Optional:    true,
-		Default:     nil,
-		DiffSuppressFunc: func(k, old, new string, d *schema.ResourceData) bool {
-			return d.Id() != ""
-		},
-	},
+	"team_name": teamNameSchema(),
 	"team_id": {
 		Description: "The team ID for this resource.",
 		Type:        schema.TypeString,
@@ -640,7 +633,7 @@ func newCollectorResource() *schema.Resource {
 		Importer: &schema.ResourceImporter{
 			StateContext: schema.ImportStatePassthroughContext,
 		},
-		CustomizeDiff: validateCollector,
+		CustomizeDiff: customdiff.Sequence(validateTeamNameNotChanged, validateCollector),
 		Description:   "This resource allows you to create, modify, and delete Better Stack Collectors. For more information about the Collectors API check https://betterstack.com/docs/logs/api/collectors/",
 		Schema:        collectorSchema,
 	}

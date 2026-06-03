@@ -29,5 +29,5 @@ data "logtail_dashboard_group" "production" {
 
 - `created_at` (String) The time when this dashboard group was created.
 - `id` (String) The ID of this dashboard group.
-- `team_name` (String) Used to specify the team the resource should be created in when using global tokens.
+- `team_name` (String) Used to specify the team the resource should be created in when using global tokens. You can't update this value later.
 - `updated_at` (String) The time when this dashboard group was updated.

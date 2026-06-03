@@ -12,15 +12,7 @@ import (
 )
 
 var explorationSchema = map[string]*schema.Schema{
-	"team_name": {
-		Description: "Used to specify the team the resource should be created in when using global tokens.",
-		Type:        schema.TypeString,
-		Optional:    true,
-		Default:     nil,
-		DiffSuppressFunc: func(k, old, new string, d *schema.ResourceData) bool {
-			return d.Id() != ""
-		},
-	},
+	"team_name": teamNameSchema(),
 	"id": {
 		Description: "The ID of this exploration.",
 		Type:        schema.TypeString,
@@ -225,8 +217,9 @@ func newExplorationResource() *schema.Resource {
 		Importer: &schema.ResourceImporter{
 			StateContext: schema.ImportStatePassthroughContext,
 		},
-		Description: "This resource allows you to create, modify, and delete Explorations in Better Stack Telemetry. Explorations are interactive charts with queries and variables.",
-		Schema:      explorationSchema,
+		Description:   "This resource allows you to create, modify, and delete Explorations in Better Stack Telemetry. Explorations are interactive charts with queries and variables.",
+		CustomizeDiff: validateTeamNameNotChanged,
+		Schema:        explorationSchema,
 	}
 }
 

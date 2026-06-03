@@ -7,6 +7,7 @@ import (
 	"net/url"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/customdiff"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 )
@@ -30,7 +31,7 @@ var dashboardSchema = map[string]*schema.Schema{
 		ForceNew:    true,
 	},
 	"team_name": {
-		Description: "The team name to associate with the dashboard when using a global API token.",
+		Description: "The team name to associate with the dashboard when using a global API token. You can't update this value later.",
 		Type:        schema.TypeString,
 		Optional:    true,
 		Default:     nil,
@@ -183,7 +184,7 @@ func newDashboardResource() *schema.Resource {
 		Importer: &schema.ResourceImporter{
 			StateContext: schema.ImportStatePassthroughContext,
 		},
-		CustomizeDiff: validateDashboard,
+		CustomizeDiff: customdiff.Sequence(validateTeamNameNotChanged, validateDashboard),
 		Description:   "This resource allows you to create and manage dashboards. Use 'data' for import mode (JSON blob, re-created on change) or individual fields for CRUD mode (updatable). For more information about the Dashboard API check https://betterstack.com/docs/logs/api/dashboards/",
 		Schema:        dashboardSchema,
 	}

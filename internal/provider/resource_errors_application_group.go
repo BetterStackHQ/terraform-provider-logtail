@@ -14,15 +14,7 @@ import (
 )
 
 var errorsApplicationGroupSchema = map[string]*schema.Schema{
-	"team_name": {
-		Description: "Used to specify the team the resource should be created in when using global tokens.",
-		Type:        schema.TypeString,
-		Optional:    true,
-		Default:     nil,
-		DiffSuppressFunc: func(k, old, new string, d *schema.ResourceData) bool {
-			return d.Id() != ""
-		},
-	},
+	"team_name": teamNameSchema(),
 	"id": {
 		Description: "The ID of this application group.",
 		Type:        schema.TypeString,
@@ -62,8 +54,9 @@ func newErrorsApplicationGroupResource() *schema.Resource {
 		Importer: &schema.ResourceImporter{
 			StateContext: schema.ImportStatePassthroughContext,
 		},
-		Description: "This resource allows you to create, modify, and delete your Errors application groups. For more information about the Errors API check https://betterstack.com/docs/errors/api/applications-groups/create/",
-		Schema:      errorsApplicationGroupSchema,
+		Description:   "This resource allows you to create, modify, and delete your Errors application groups. For more information about the Errors API check https://betterstack.com/docs/errors/api/applications-groups/create/",
+		CustomizeDiff: validateTeamNameNotChanged,
+		Schema:        errorsApplicationGroupSchema,
 	}
 }
 
