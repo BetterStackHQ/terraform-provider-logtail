@@ -295,6 +295,22 @@ var sourceSchema = map[string]*schema.Schema{
 		Type:        schema.TypeString,
 		Optional:    true,
 	},
+	"aws_account_id": {
+		Description: "For `aws` platform sources, the ID of an existing connected AWS account to link this source to. Provide this instead of `aws_role_arn`/`aws_external_id` to reuse an account you've already connected. Write-only: the API does not return it, so it isn't refreshed from state.",
+		Type:        schema.TypeString,
+		Optional:    true,
+	},
+	"aws_role_arn": {
+		Description: "For `aws` platform sources, the IAM role ARN to connect your AWS account — the `IntegrationRoleArn` output of the Better Stack CloudFormation stack. Provide together with `aws_external_id`. Write-only: the API does not return it, so it isn't refreshed from state.",
+		Type:        schema.TypeString,
+		Optional:    true,
+	},
+	"aws_external_id": {
+		Description: "For `aws` platform sources, the external ID used for the STS assume-role trust — the `ExternalId` output of the Better Stack CloudFormation stack. Provide together with `aws_role_arn`. Write-only: the API does not return it, so it isn't refreshed from state.",
+		Type:        schema.TypeString,
+		Optional:    true,
+		Sensitive:   true,
+	},
 }
 
 func newSourceResource() *schema.Resource {
@@ -346,6 +362,9 @@ type source struct {
 	VrlTransformation              *string                   `json:"vrl_transformation,omitempty"`
 	CodeMappingStackRoot           *string                   `json:"code_mapping_stack_root,omitempty"`
 	CodeMappingSourceRoot          *string                   `json:"code_mapping_source_root,omitempty"`
+	AwsAccountID                   *string                   `json:"aws_account_id,omitempty"`
+	AwsRoleArn                     *string                   `json:"aws_role_arn,omitempty"`
+	AwsExternalID                  *string                   `json:"aws_external_id,omitempty"`
 }
 
 type sourceHTTPResponse struct {
@@ -406,6 +425,14 @@ func sourceCreate(ctx context.Context, d *schema.ResourceData, meta interface{})
 	}
 
 	load(d, "team_name", &in.TeamName)
+
+	// AWS account linkage (CloudFormation role-ARN paste-back). These are write-only:
+	// the API consumes them to connect the AWS account and never returns them as source
+	// attributes, so they're handled outside sourceRef (which also drives read-back) and
+	// only sent when explicitly configured — keeping non-aws sources from submitting them.
+	in.AwsAccountID = stringFromResourceData(d, "aws_account_id")
+	in.AwsRoleArn = stringFromResourceData(d, "aws_role_arn")
+	in.AwsExternalID = stringFromResourceData(d, "aws_external_id")
 
 	if customBucketData, ok := d.GetOk("custom_bucket"); ok {
 		customBucketList := customBucketData.([]interface{})
@@ -505,6 +532,19 @@ func sourceUpdate(ctx context.Context, d *schema.ResourceData, meta interface{})
 			}
 		}
 	}
+
+	// AWS account linkage — see sourceCreate. Sent only when the credentials change so a
+	// plain update doesn't re-trigger STS validation / account re-linking on every apply.
+	if d.HasChange("aws_account_id") {
+		in.AwsAccountID = stringFromResourceData(d, "aws_account_id")
+	}
+	if d.HasChange("aws_role_arn") {
+		in.AwsRoleArn = stringFromResourceData(d, "aws_role_arn")
+	}
+	if d.HasChange("aws_external_id") {
+		in.AwsExternalID = stringFromResourceData(d, "aws_external_id")
+	}
+
 	return resourceUpdate(ctx, meta, fmt.Sprintf("/api/v1/sources/%s", url.PathEscape(d.Id())), &in)
 }
 
@@ -525,6 +565,27 @@ func validateSource(ctx context.Context, diff *schema.ResourceDiff, v interface{
 		return err
 	}
 
+	if err := validateAWSAccountFields(ctx, diff, v); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// validateAWSAccountFields mirrors the public API guard: the aws_account_id /
+// aws_role_arn / aws_external_id linkage params are only accepted for `aws` sources.
+func validateAWSAccountFields(ctx context.Context, diff *schema.ResourceDiff, v interface{}) error {
+	if platform, _ := diff.Get("platform").(string); platform == "aws" {
+		return nil
+	}
+
+	for _, key := range []string{"aws_account_id", "aws_role_arn", "aws_external_id"} {
+		if val, ok := diff.GetOk(key); ok {
+			if s, _ := val.(string); s != "" {
+				return fmt.Errorf("%s can only be set when platform is \"aws\"", key)
+			}
+		}
+	}
 	return nil
 }
 
