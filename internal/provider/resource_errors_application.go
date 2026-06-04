@@ -246,7 +246,7 @@ var errorsApplicationSchema = map[string]*schema.Schema{
 		Optional:    true,
 	},
 	"github_repository_name": {
-		Description: "Full name of a GitHub repository (e.g. `owner/repo`) to connect to this application for source links, git blame, and AI-assisted fixes. The repository must already be connected to your team's GitHub integration.",
+		Description: "Full name of a GitHub repository (e.g. `owner/repo`) to connect to this application for source links, git blame, and AI-assisted fixes. The repository must already be connected to your team's GitHub integration. Set to an empty string to disconnect.",
 		Type:        schema.TypeString,
 		Optional:    true,
 		Computed:    true,
@@ -299,7 +299,7 @@ func newErrorsApplicationResource() *schema.Resource {
 		Importer: &schema.ResourceImporter{
 			StateContext: schema.ImportStatePassthroughContext,
 		},
-		CustomizeDiff: customdiff.Sequence(validateTeamNameNotChanged, validateErrorsApplication),
+		CustomizeDiff: customdiff.Sequence(validateTeamNameNotChanged, validateErrorsApplication, customizeDiffGithubRepositoryName),
 		Description:   "This resource allows you to create, modify, and delete your Errors applications. For more information about the Errors API check https://betterstack.com/docs/errors/api/applications/create/",
 		Schema:        errorsApplicationSchema,
 	}
@@ -470,15 +470,28 @@ func errorsApplicationCopyAttrs(d *schema.ResourceData, in *errorsApplication) d
 func errorsApplicationUpdate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	var in errorsApplication
 	for _, e := range errorsApplicationRef(&in) {
+		if e.k == "github_repository_name" {
+			// Always evaluate: stringFromResourceData returns nil when the field is null in
+			// config (UI-managed, omit from PATCH) and a pointer otherwise — including for ""
+			// (explicit disconnect). Can't gate on d.HasChange because Computed: true masks
+			// the change when switching to "".
+			in.GithubRepositoryName = stringFromResourceData(d, e.k)
+			// Mirror the config value into state directly. The SDK's auto-propagation of the
+			// planned new value into state relies on d.HasChange, which is unreliable here for
+			// the same reason — without this, state would stay on the previous value.
+			if in.GithubRepositoryName != nil {
+				if err := d.Set(e.k, *in.GithubRepositoryName); err != nil {
+					return diag.FromErr(err)
+				}
+			}
+			continue
+		}
 		if d.HasChange(e.k) {
 			if e.k == "team_id" {
 				in.TeamId = StringOrIntFromResourceData(d, e.k)
 			} else if e.k == "application_group_id" {
 				// Use intFromResourceData to properly distinguish null vs 0
 				in.ApplicationGroupID = intFromResourceData(d, e.k)
-			} else if e.k == "github_repository_name" {
-				// Use stringFromResourceData to distinguish null (UI-managed) from "" (disconnect)
-				in.GithubRepositoryName = stringFromResourceData(d, e.k)
 			} else {
 				load(d, e.k, e.v)
 			}
@@ -489,6 +502,21 @@ func errorsApplicationUpdate(ctx context.Context, d *schema.ResourceData, meta i
 
 func errorsApplicationDelete(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	return resourceDeleteWithBaseURL(ctx, meta, meta.(*client).ErrorsBaseURL(), fmt.Sprintf("/api/v1/applications/%s", url.PathEscape(d.Id())))
+}
+
+// customizeDiffGithubRepositoryName forces the planned value of github_repository_name to match
+// whatever is in the config. Without this, TypeString + Optional + Computed makes Terraform treat
+// an explicit "" the same as unset, so switching a previously-set value to "" produces no diff.
+func customizeDiffGithubRepositoryName(ctx context.Context, diff *schema.ResourceDiff, v interface{}) error {
+	rawConfig := diff.GetRawConfig()
+	if rawConfig.IsNull() || !rawConfig.IsKnown() {
+		return nil
+	}
+	val := rawConfig.GetAttr("github_repository_name")
+	if val.IsNull() || !val.IsKnown() {
+		return nil
+	}
+	return diff.SetNew("github_repository_name", val.AsString())
 }
 
 func validateErrorsApplication(ctx context.Context, diff *schema.ResourceDiff, v interface{}) error {

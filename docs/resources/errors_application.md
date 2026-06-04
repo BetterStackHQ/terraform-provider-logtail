@@ -125,7 +125,7 @@ This resource allows you to create, modify, and delete your Errors applications.
 - `data_region` (String) Data region or private cluster name to create the application in. Permitted values for most plans are: `us_east`, `germany`, `singapore`. This value can only be set at creation time and cannot be changed afterwards. The API returns the specific cluster name, which may differ from the value you provide (for example, `germany` may read back as `eu-nbg-2`).  
 When importing an existing application, leave `data_region` unset in your configuration - Terraform reads it from the API. Pinning it to an identifier that differs from the stored cluster name produces a spurious `data_region cannot be changed after application is created` error.
 - `errors_retention` (Number) Error data retention period in days. Default retention is 90 days.
-- `github_repository_name` (String) Full name of a GitHub repository (e.g. `owner/repo`) to connect to this application for source links, git blame, and AI-assisted fixes. The repository must already be connected to your team's GitHub integration.
+- `github_repository_name` (String) Full name of a GitHub repository (e.g. `owner/repo`) to connect to this application for source links, git blame, and AI-assisted fixes. The repository must already be connected to your team's GitHub integration. Set to an empty string to disconnect.
 - `ingesting_paused` (Boolean) This property allows you to temporarily pause data ingesting for this application.
 - `team_name` (String) Used to specify the team the resource should be created in when using global tokens. You can't update this value later.
 
