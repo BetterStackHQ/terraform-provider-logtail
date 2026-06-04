@@ -151,18 +151,6 @@ resource "logtail_errors_application" "correlated_with_docker_collector" {
 }
 
 # ---------------------------------------------------------------------------
-# Errors application connected to a GitHub repository for source links, git
-# blame, and AI-assisted fixes. The repository must already be connected to
-# your team's GitHub integration. github_repository_name can be changed later,
-# or set to "" to disconnect.
-# ---------------------------------------------------------------------------
-resource "logtail_errors_application" "with_github_repository" {
-  name                   = "E2E GitHub App ${random_pet.unique.id}"
-  platform               = "python_errors"
-  github_repository_name = "BetterStackHQ/test-blame-repo"
-}
-
-# ---------------------------------------------------------------------------
 # Data source to look up a collector created above
 # ---------------------------------------------------------------------------
 data "logtail_collector" "existing" {

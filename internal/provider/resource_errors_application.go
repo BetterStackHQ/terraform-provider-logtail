@@ -246,9 +246,10 @@ var errorsApplicationSchema = map[string]*schema.Schema{
 		Optional:    true,
 	},
 	"github_repository_name": {
-		Description: "Full name of a GitHub repository (e.g. `owner/repo`) to connect to this application for source links, git blame, and AI-assisted fixes. The repository must already be connected to your team's GitHub integration. Set to an empty string to disconnect the repository.",
+		Description: "Full name of a GitHub repository (e.g. `owner/repo`) to connect to this application for source links, git blame, and AI-assisted fixes. The repository must already be connected to your team's GitHub integration. Omit to leave the connection managed in the UI; set a name to connect, or an empty string to disconnect.",
 		Type:        schema.TypeString,
 		Optional:    true,
+		Computed:    true,
 	},
 	"custom_bucket": {
 		Description: "Optional custom bucket configuration for the application. When provided, all fields (name, endpoint, access_key_id, secret_access_key) are required.",
@@ -367,6 +368,9 @@ func errorsApplicationCreate(ctx context.Context, d *schema.ResourceData, meta i
 		} else if e.k == "application_group_id" {
 			// Use intFromResourceData to properly distinguish null vs 0
 			in.ApplicationGroupID = intFromResourceData(d, e.k)
+		} else if e.k == "github_repository_name" {
+			// Use stringFromResourceData to distinguish null (UI-managed) from "" (disconnect)
+			in.GithubRepositoryName = stringFromResourceData(d, e.k)
 		} else {
 			load(d, e.k, e.v)
 		}
@@ -472,6 +476,9 @@ func errorsApplicationUpdate(ctx context.Context, d *schema.ResourceData, meta i
 			} else if e.k == "application_group_id" {
 				// Use intFromResourceData to properly distinguish null vs 0
 				in.ApplicationGroupID = intFromResourceData(d, e.k)
+			} else if e.k == "github_repository_name" {
+				// Use stringFromResourceData to distinguish null (UI-managed) from "" (disconnect)
+				in.GithubRepositoryName = stringFromResourceData(d, e.k)
 			} else {
 				load(d, e.k, e.v)
 			}

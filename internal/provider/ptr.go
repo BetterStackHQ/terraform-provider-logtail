@@ -51,6 +51,21 @@ func boolFromResourceData(d *schema.ResourceData, key string) *bool {
 	return &v
 }
 
+// stringFromResourceData returns a pointer to a string if the field was explicitly set in the config.
+// This allows sending empty strings to the API while omitting unset fields.
+func stringFromResourceData(d *schema.ResourceData, key string) *string {
+	rawConfig := d.GetRawConfig()
+	if rawConfig.IsNull() || !rawConfig.IsKnown() {
+		return nil
+	}
+	val := rawConfig.GetAttr(key)
+	if val.IsNull() || !val.IsKnown() {
+		return nil
+	}
+	v := d.Get(key).(string)
+	return &v
+}
+
 // nolint
 func load(d *schema.ResourceData, key string, receiver interface{}) {
 	switch x := receiver.(type) {
