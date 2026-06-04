@@ -505,6 +505,7 @@ func sourceUpdate(ctx context.Context, d *schema.ResourceData, meta interface{})
 			}
 		}
 	}
+
 	return resourceUpdate(ctx, meta, fmt.Sprintf("/api/v1/sources/%s", url.PathEscape(d.Id())), &in)
 }
 
