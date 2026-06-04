@@ -51,6 +51,23 @@ func boolFromResourceData(d *schema.ResourceData, key string) *bool {
 	return &v
 }
 
+// stringFromResourceData returns a pointer to a string only if the field was explicitly
+// set in the config. Used for write-only fields (e.g. the AWS account linkage params) that
+// the API never returns, so "configured" must be distinguished from "unset" without relying
+// on read-back.
+func stringFromResourceData(d *schema.ResourceData, key string) *string {
+	rawConfig := d.GetRawConfig()
+	if rawConfig.IsNull() || !rawConfig.IsKnown() {
+		return nil
+	}
+	val := rawConfig.GetAttr(key)
+	if val.IsNull() || !val.IsKnown() {
+		return nil
+	}
+	v := d.Get(key).(string)
+	return &v
+}
+
 // nolint
 func load(d *schema.ResourceData, key string, receiver interface{}) {
 	switch x := receiver.(type) {
