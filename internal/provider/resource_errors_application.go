@@ -245,6 +245,11 @@ var errorsApplicationSchema = map[string]*schema.Schema{
 		Type:        schema.TypeInt,
 		Optional:    true,
 	},
+	"github_repository_name": {
+		Description: "Full name of a GitHub repository (e.g. `owner/repo`) to connect to this application for source links, git blame, and AI-assisted fixes. The repository must already be connected to your team's GitHub integration. Set to an empty string to disconnect the repository.",
+		Type:        schema.TypeString,
+		Optional:    true,
+	},
 	"custom_bucket": {
 		Description: "Optional custom bucket configuration for the application. When provided, all fields (name, endpoint, access_key_id, secret_access_key) are required.",
 		Type:        schema.TypeList,
@@ -316,6 +321,7 @@ type errorsApplication struct {
 	CodeMappingSourceRoot *string             `json:"code_mapping_source_root,omitempty"`
 	ApplicationGroupID    *int                `json:"application_group_id,omitempty"`
 	CorrelateWithSourceID *int                `json:"correlate_with_source_id,omitempty"`
+	GithubRepositoryName  *string             `json:"github_repository_name,omitempty"`
 	CustomBucket          *sourceCustomBucket `json:"custom_bucket,omitempty"`
 }
 
@@ -349,6 +355,7 @@ func errorsApplicationRef(in *errorsApplication) []struct {
 		{k: "code_mapping_source_root", v: &in.CodeMappingSourceRoot},
 		{k: "application_group_id", v: &in.ApplicationGroupID},
 		{k: "correlate_with_source_id", v: &in.CorrelateWithSourceID},
+		{k: "github_repository_name", v: &in.GithubRepositoryName},
 	}
 }
 
