@@ -88,6 +88,12 @@ data "logtail_errors_application" "lookup" {
   name = logtail_errors_application.this.name
 }
 
+resource "logtail_errors_application" "with_github_repository" {
+  name                   = "Terraform Advanced GitHub Errors Application"
+  platform               = "ruby_errors"
+  github_repository_name = "BetterStackHQ/test-blame-repo"
+}
+
 # =============================================================================
 # Dashboards
 # =============================================================================

@@ -55,6 +55,9 @@ func boolFromResourceData(d *schema.ResourceData, key string) *bool {
 // set in the config. Used for write-only fields (e.g. the AWS account linkage params) that
 // the API never returns, so "configured" must be distinguished from "unset" without relying
 // on read-back.
+//
+// The value is read directly from rawConfig because d.Get returns the (stale) state value
+// for Computed attributes when Terraform's diff logic treats an explicit "" the same as unset.
 func stringFromResourceData(d *schema.ResourceData, key string) *string {
 	rawConfig := d.GetRawConfig()
 	if rawConfig.IsNull() || !rawConfig.IsKnown() {
@@ -64,7 +67,7 @@ func stringFromResourceData(d *schema.ResourceData, key string) *string {
 	if val.IsNull() || !val.IsKnown() {
 		return nil
 	}
-	v := d.Get(key).(string)
+	v := val.AsString()
 	return &v
 }
 
