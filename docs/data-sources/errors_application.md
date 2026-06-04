@@ -30,7 +30,7 @@ This Data Source allows you to look up existing Errors applications using their 
 - `data_region` (String) Data region or private cluster name to create the application in. Permitted values for most plans are: `us_east`, `germany`, `singapore`. This value can only be set at creation time and cannot be changed afterwards. The API returns the specific cluster name, which may differ from the value you provide (for example, `germany` may read back as `eu-nbg-2`).  
 When importing an existing application, leave `data_region` unset in your configuration - Terraform reads it from the API. Pinning it to an identifier that differs from the stored cluster name produces a spurious `data_region cannot be changed after application is created` error.
 - `errors_retention` (Number) Error data retention period in days. Default retention is 90 days.
-- `github_repository_name` (String) Full name of a GitHub repository (e.g. `owner/repo`) to connect to this application for source links, git blame, and AI-assisted fixes. The repository must already be connected to your team's GitHub integration. Omit to leave the connection managed in the UI; set a name to connect, or an empty string to disconnect.
+- `github_repository_name` (String) Full name of a GitHub repository (e.g. `owner/repo`) to connect to this application for source links, git blame, and AI-assisted fixes. The repository must already be connected to your team's GitHub integration.
 - `id` (String) The ID of this application.
 - `ingesting_host` (String) The host where the errors should be sent. See documentation for your specific platform for details.
 - `ingesting_paused` (Boolean) This property allows you to temporarily pause data ingesting for this application.

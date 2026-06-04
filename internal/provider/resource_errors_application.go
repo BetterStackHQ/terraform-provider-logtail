@@ -246,7 +246,7 @@ var errorsApplicationSchema = map[string]*schema.Schema{
 		Optional:    true,
 	},
 	"github_repository_name": {
-		Description: "Full name of a GitHub repository (e.g. `owner/repo`) to connect to this application for source links, git blame, and AI-assisted fixes. The repository must already be connected to your team's GitHub integration. Omit to leave the connection managed in the UI; set a name to connect, or an empty string to disconnect.",
+		Description: "Full name of a GitHub repository (e.g. `owner/repo`) to connect to this application for source links, git blame, and AI-assisted fixes. The repository must already be connected to your team's GitHub integration.",
 		Type:        schema.TypeString,
 		Optional:    true,
 		Computed:    true,
