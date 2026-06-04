@@ -47,16 +47,10 @@ func newSourceAWSAccountResource() *schema.Resource {
 			StateContext: schema.ImportStatePassthroughContext,
 		},
 		Description: "Links an AWS account to an `aws` platform `logtail_source` by pasting back the " +
-			"CloudFormation role ARN / external ID (or reusing an already-connected account). " +
-			"Create/update runs the same account-connect manager the Better Stack UI uses " +
-			"(`PATCH /api/v1/sources/:source_id`, STS-validating new credentials). Keeping this in a " +
-			"separate resource lets Terraform's dependency graph order it after both the source and the " +
-			"CloudFormation stack, so a single `terraform apply` connects everything — see the " +
-			"`aws_cloudformation` example.\n\n" +
-			"The three credential attributes are write-only: the API never returns them, so they're not " +
-			"refreshed from state. The Sources API has no disconnect endpoint, so destroying this resource " +
-			"only removes it from Terraform state — the AWS account stays linked to the source until the " +
-			"source itself is destroyed.",
+			"CloudFormation role ARN / external ID (or reusing an already-connected account).\n\n" +
+			"The credentials are write-only — the API never returns them, so they aren't refreshed into " +
+			"Terraform state. Destroying this resource only removes it from state; the AWS account stays " +
+			"linked to the source until the source itself is destroyed.",
 		Schema: sourceAWSAccountSchema,
 	}
 }
