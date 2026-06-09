@@ -71,13 +71,13 @@ var alertSchema = map[string]*schema.Schema{
 		Computed:    true,
 	},
 	"query_period": {
-		Description: "The query evaluation window in seconds (default: 60).",
+		Description: "The query evaluation window in seconds.",
 		Type:        schema.TypeInt,
 		Optional:    true,
 		Computed:    true,
 	},
 	"confirmation_period": {
-		Description: "The confirmation delay in seconds before triggering. Optional; defaults to 60.",
+		Description: "The confirmation delay in seconds before triggering.",
 		Type:        schema.TypeInt,
 		Optional:    true,
 		Computed:    true,

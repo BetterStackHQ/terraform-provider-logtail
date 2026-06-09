@@ -195,13 +195,13 @@ var explorationSchema = map[string]*schema.Schema{
 					ValidateFunc: validation.StringInSlice([]string{"source", "string", "number", "date", "datetime", "boolean", "sql_expression", "select_value", "select_with_sql", "multi_select_with_sql"}, false),
 				},
 				"values": {
-					Description: "The values the variable can take. For a 'source' variable these are the source IDs it resolves to - the sources its queries (and any alerts derived from it) run against, e.g. logtail_source.web.id. This is the field that selects the source. For 'select_value' variables these are the predefined options.",
+					Description: "The selected values. For 'source' variables these are the source IDs the variable resolves to (e.g. `logtail_source.web.id`) — this is the field that selects the source. For other types it is the current picker selection or input.",
 					Type:        schema.TypeList,
 					Optional:    true,
 					Elem:        &schema.Schema{Type: schema.TypeString},
 				},
 				"default_values": {
-					Description: "The values selected by default in the picker. For a 'source' variable the source its queries and alerts resolve to comes from `values`; default_values only sets the initial picker selection, so it is optional (the UI sets it to match `values`).",
+					Description: "For 'string', 'number', and 'boolean' variables: fallback value used when `values` is empty. For 'select_value' variables: the predefined options shown in the picker. Unused for other types.",
 					Type:        schema.TypeList,
 					Optional:    true,
 					Elem:        &schema.Schema{Type: schema.TypeString},

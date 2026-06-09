@@ -33,14 +33,12 @@ resource "logtail_exploration" "this" {
     source_variable = "source"
   }
 
-  # Select the source the queries run against. `values` holds the source ID(s)
-  # the variable resolves to (what the queries and any alerts run against);
-  # `default_values` only sets the initial picker selection and is optional.
+  # Select the source the queries run against.
+  # `values` holds the source ID(s) the variable resolves to what the queries and any alerts run against.
   variable {
-    name           = "source"
-    variable_type  = "source"
-    values         = [logtail_source.this.id]
-    default_values = [logtail_source.this.id]
+    name          = "source"
+    variable_type = "source"
+    values        = [logtail_source.this.id]
   }
 }
 ```
@@ -115,6 +113,6 @@ Required:
 
 Optional:
 
-- `default_values` (List of String) The values selected by default in the picker. For a 'source' variable the source its queries and alerts resolve to comes from `values`; default_values only sets the initial picker selection, so it is optional (the UI sets it to match `values`).
+- `default_values` (List of String) For 'string', 'number', and 'boolean' variables: fallback value used when `values` is empty. For 'select_value' variables: the predefined options shown in the picker. Unused for other types.
 - `sql_definition` (String) SQL definition for 'select_with_sql' or 'multi_select_with_sql' type variables.
-- `values` (List of String) The values the variable can take. For a 'source' variable these are the source IDs it resolves to - the sources its queries (and any alerts derived from it) run against, e.g. logtail_source.web.id. This is the field that selects the source. For 'select_value' variables these are the predefined options.
+- `values` (List of String) The selected values. For 'source' variables these are the source IDs the variable resolves to (e.g. `logtail_source.web.id`) — this is the field that selects the source. For other types it is the current picker selection or input.

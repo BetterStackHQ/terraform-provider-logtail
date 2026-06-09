@@ -132,10 +132,9 @@ resource "logtail_dashboard" "import_json" {
           sql_definition = "level"
         },
         {
-          name           = "source"
-          variable_type  = "source"
-          values         = [logtail_source.this.id]
-          default_values = [logtail_source.this.id]
+          name          = "source"
+          variable_type = "source"
+          values        = [logtail_source.this.id]
         },
       ]
     }
@@ -205,10 +204,9 @@ resource "logtail_dashboard" "custom" {
   }
 
   variable {
-    name           = "source"
-    variable_type  = "source"
-    values         = [logtail_source.this.id]
-    default_values = [logtail_source.this.id]
+    name          = "source"
+    variable_type = "source"
+    values        = [logtail_source.this.id]
   }
 }
 
@@ -318,10 +316,9 @@ resource "logtail_exploration" "bar_chart_full" {
   }
 
   variable {
-    name           = "source"
-    variable_type  = "source"
-    values         = [logtail_source.this.id]
-    default_values = [logtail_source.this.id]
+    name          = "source"
+    variable_type = "source"
+    values        = [logtail_source.this.id]
   }
 }
 
@@ -359,17 +356,15 @@ resource "logtail_exploration" "multi_query_alerts" {
   }
 
   variable {
-    name           = "source1"
-    variable_type  = "source"
-    values         = [logtail_source.this.id]
-    default_values = [logtail_source.this.id]
+    name          = "source1"
+    variable_type = "source"
+    values        = [logtail_source.this.id]
   }
 
   variable {
-    name           = "source2"
-    variable_type  = "source"
-    values         = [logtail_source.other.id]
-    default_values = [logtail_source.other.id]
+    name          = "source2"
+    variable_type = "source"
+    values        = [logtail_source.other.id]
   }
 }
 
@@ -509,10 +504,9 @@ resource "logtail_exploration" "pie_chart_filtered" {
   }
 
   variable {
-    name           = "source"
-    variable_type  = "source"
-    values         = [logtail_source.this.id]
-    default_values = [logtail_source.this.id]
+    name          = "source"
+    variable_type = "source"
+    values        = [logtail_source.this.id]
   }
 
   variable {

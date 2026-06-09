@@ -31,14 +31,12 @@ resource "logtail_exploration" "this" {
     source_variable = "source"
   }
 
-  # `values` holds the source ID(s) the variable resolves to - the sources the
-  # exploration's queries and this exploration's alerts run against.
-  # `default_values` only sets the initial picker selection and is optional.
+  # Select the source the queries run against.
+  # `values` holds the source ID(s) the variable resolves to what the queries and any alerts run against.
   variable {
-    name           = "source"
-    variable_type  = "source"
-    values         = [logtail_source.this.id]
-    default_values = [logtail_source.this.id]
+    name          = "source"
+    variable_type = "source"
+    values        = [logtail_source.this.id]
   }
 }
 
@@ -87,7 +85,7 @@ resource "logtail_exploration_alert" "errors_spike" {
 - `anomaly_trigger` (String) Anomaly trigger mode: 'any', 'higher', or 'lower' (only for 'anomaly_rrcf' type).
 - `call` (Boolean) Enable phone call notifications.
 - `check_period` (Number) How often to check the alert condition in seconds. Required for threshold and relative alerts; ignored for anomaly alerts, which derive their cadence from query_period.
-- `confirmation_period` (Number) The confirmation delay in seconds before triggering. Optional; defaults to 60.
+- `confirmation_period` (Number) The confirmation delay in seconds before triggering.
 - `critical_alert` (Boolean) Mark as critical alert (bypasses quiet hours).
 - `email` (Boolean) Enable email notifications.
 - `escalation_target` (Block List, Max: 1) The escalation target for this alert. Specify either team_id/team_name OR policy_id/policy_name. (see [below for nested schema](#nestedblock--escalation_target))
@@ -97,7 +95,7 @@ resource "logtail_exploration_alert" "errors_spike" {
 - `operator` (String) The comparison operator. Required for threshold and relative alerts; not used for anomaly alerts. For threshold: 'equal', 'not_equal', 'higher_than', 'higher_than_or_equal', 'lower_than', 'lower_than_or_equal'. For relative: 'increases_by', 'decreases_by', 'changes_by'.
 - `paused` (Boolean) Whether the alert is paused.
 - `push` (Boolean) Enable push notifications.
-- `query_period` (Number) The query evaluation window in seconds (default: 60).
+- `query_period` (Number) The query evaluation window in seconds.
 - `recovery_period` (Number) The recovery delay in seconds.
 - `series_names` (List of String) Specific series to monitor.
 - `sms` (Boolean) Enable SMS notifications.

@@ -18,13 +18,11 @@ resource "logtail_exploration" "this" {
     source_variable = "source"
   }
 
-  # Select the source the queries run against. `values` holds the source ID(s)
-  # the variable resolves to (what the queries and any alerts run against);
-  # `default_values` only sets the initial picker selection and is optional.
+  # Select the source the queries run against.
+  # `values` holds the source ID(s) the variable resolves to what the queries and any alerts run against.
   variable {
-    name           = "source"
-    variable_type  = "source"
-    values         = [logtail_source.this.id]
-    default_values = [logtail_source.this.id]
+    name          = "source"
+    variable_type = "source"
+    values        = [logtail_source.this.id]
   }
 }

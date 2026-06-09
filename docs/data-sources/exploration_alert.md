@@ -28,7 +28,7 @@ This data source allows you to get information about an Alert on an Exploration 
 - `anomaly_trigger` (String) Anomaly trigger mode: 'any', 'higher', or 'lower' (only for 'anomaly_rrcf' type).
 - `call` (Boolean) Enable phone call notifications.
 - `check_period` (Number) How often to check the alert condition in seconds. Required for threshold and relative alerts; ignored for anomaly alerts, which derive their cadence from query_period.
-- `confirmation_period` (Number) The confirmation delay in seconds before triggering. Optional; defaults to 60.
+- `confirmation_period` (Number) The confirmation delay in seconds before triggering.
 - `created_at` (String) The time when this alert was created.
 - `critical_alert` (Boolean) Mark as critical alert (bypasses quiet hours).
 - `email` (Boolean) Enable email notifications.
@@ -41,7 +41,7 @@ This data source allows you to get information about an Alert on an Exploration 
 - `paused` (Boolean) Whether the alert is paused.
 - `paused_reason` (String) Read-only field explaining why the alert is paused (e.g., 'Manually paused', complexity issues, too many failures).
 - `push` (Boolean) Enable push notifications.
-- `query_period` (Number) The query evaluation window in seconds (default: 60).
+- `query_period` (Number) The query evaluation window in seconds.
 - `recovery_period` (Number) The recovery delay in seconds.
 - `series_names` (List of String) Specific series to monitor.
 - `sms` (Boolean) Enable SMS notifications.
