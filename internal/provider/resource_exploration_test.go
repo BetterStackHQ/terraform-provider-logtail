@@ -522,6 +522,15 @@ func TestResourceExplorationWithVariables(t *testing.T) {
 					resource.TestCheckResourceAttr("logtail_exploration.this", "variable.0.variable_type", "select_value"),
 				),
 			},
+			// Import: configured variables must survive the round-trip (they used
+			// to be dropped because the read only surfaced variables already in
+			// config), while the auto-created empty source variable stays hidden.
+			{
+				ResourceName:      "logtail_exploration.this",
+				ImportState:       true,
+				ImportStateVerify: true,
+				ImportStateId:     "2",
+			},
 		},
 	})
 }

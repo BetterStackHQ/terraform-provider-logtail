@@ -6,6 +6,7 @@ import (
 	"io"
 	"net/http"
 	"net/http/httptest"
+	"regexp"
 	"strings"
 	"sync/atomic"
 	"testing"
@@ -539,6 +540,73 @@ func TestResourceExplorationAlertWithEscalationTarget(t *testing.T) {
 					resource.TestCheckResourceAttr("logtail_exploration_alert.this", "escalation_target.0.policy_id", "123"),
 				),
 			},
+			// Import: the escalation_target must survive the round-trip. It used to be
+			// dropped because the read only mirrored fields already present in config.
+			{
+				ResourceName:      "logtail_exploration_alert.this",
+				ImportState:       true,
+				ImportStateVerify: true,
+				ImportStateId:     "2/20",
+			},
 		},
 	})
+}
+
+func TestResourceExplorationAlertRequiresOperator(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		IsUnitTest: true,
+		ProviderFactories: map[string]func() (*schema.Provider, error){
+			"logtail": func() (*schema.Provider, error) {
+				return New(WithURL("http://127.0.0.1:1")), nil
+			},
+		},
+		Steps: []resource.TestStep{
+			{
+				// A threshold alert with no operator must fail at plan time with a
+				// clear message instead of a late, opaque API error.
+				Config: `
+				provider "logtail" {
+					api_token = "foo"
+				}
+
+				resource "logtail_exploration_alert" "this" {
+					exploration_id = "1"
+					name           = "Missing operator"
+					alert_type     = "threshold"
+					value          = 100
+					check_period   = 60
+				}
+				`,
+				ExpectError: regexp.MustCompile("operator is required for threshold alerts"),
+			},
+		},
+	})
+}
+
+func TestAlertCheckPeriodDiffSuppress(t *testing.T) {
+	res := newExplorationAlertResource()
+	suppress := res.Schema["check_period"].DiffSuppressFunc
+	if suppress == nil {
+		t.Fatal("expected a DiffSuppressFunc on check_period")
+	}
+
+	existingAnomaly := res.TestResourceData()
+	existingAnomaly.SetId("1/2")
+	_ = existingAnomaly.Set("alert_type", "anomaly_rrcf")
+	if !suppress("check_period", "0", "300", existingAnomaly) {
+		t.Error("expected check_period drift to be suppressed for an existing anomaly alert")
+	}
+
+	existingThreshold := res.TestResourceData()
+	existingThreshold.SetId("1/2")
+	_ = existingThreshold.Set("alert_type", "threshold")
+	if suppress("check_period", "0", "300", existingThreshold) {
+		t.Error("expected check_period drift NOT to be suppressed for a threshold alert")
+	}
+
+	newAnomaly := res.TestResourceData()
+	_ = newAnomaly.Set("alert_type", "anomaly_rrcf")
+	if suppress("check_period", "", "300", newAnomaly) {
+		t.Error("expected check_period NOT to be suppressed on create so it is sent to the API")
+	}
 }

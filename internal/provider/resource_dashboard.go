@@ -104,14 +104,14 @@ var dashboardSchema = map[string]*schema.Schema{
 					ValidateFunc: validation.StringInSlice([]string{"source", "string", "number", "date", "datetime", "boolean", "sql_expression", "select_value", "select_with_sql", "multi_select_with_sql"}, false),
 				},
 				"values": {
-					Description: "Predefined values for 'select_value' type variables.",
+					Description: "The selected values. For 'source' variables these are the source IDs the variable resolves to (e.g. `logtail_source.web.id`) — this is the field that selects the source. For other types it is the current picker selection or input.",
 					Type:        schema.TypeList,
 					Optional:    true,
 					Computed:    true,
 					Elem:        &schema.Schema{Type: schema.TypeString},
 				},
 				"default_values": {
-					Description: "Default selected values for the variable.",
+					Description: "For 'string', 'number', and 'boolean' variables: fallback value used when `values` is empty. For 'select_value' variables: the predefined options shown in the picker. Unused for other types.",
 					Type:        schema.TypeList,
 					Optional:    true,
 					Computed:    true,

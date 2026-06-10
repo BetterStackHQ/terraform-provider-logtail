@@ -27,8 +27,8 @@ This data source allows you to get information about an Alert on an Exploration 
 - `anomaly_sensitivity` (Number) Anomaly detection sensitivity 0-100 (only for 'anomaly_rrcf' type, lower = more sensitive).
 - `anomaly_trigger` (String) Anomaly trigger mode: 'any', 'higher', or 'lower' (only for 'anomaly_rrcf' type).
 - `call` (Boolean) Enable phone call notifications.
-- `check_period` (Number) How often to check the alert condition in seconds.
-- `confirmation_period` (Number) The confirmation delay in seconds before triggering (required, >= 0).
+- `check_period` (Number) How often to check the alert condition in seconds. Required for threshold and relative alerts; ignored for anomaly alerts, which derive their cadence from query_period.
+- `confirmation_period` (Number) The confirmation delay in seconds before triggering.
 - `created_at` (String) The time when this alert was created.
 - `critical_alert` (Boolean) Mark as critical alert (bypasses quiet hours).
 - `email` (Boolean) Enable email notifications.
@@ -37,11 +37,11 @@ This data source allows you to get information about an Alert on an Exploration 
 - `incident_cause` (String) Incident description template (supports {{variable}} interpolation).
 - `incident_per_series` (Boolean) Create separate incidents per series.
 - `metadata` (Map of String) Custom metadata key-value pairs included in incident notifications. Use a plain string for a single value; for multiple values use jsonencode([...]).
-- `operator` (String) The comparison operator. For threshold: 'equal', 'not_equal', 'higher_than', 'higher_than_or_equal', 'lower_than', 'lower_than_or_equal'. For relative: 'increases_by', 'decreases_by', 'changes_by'. Not required for anomaly alerts.
+- `operator` (String) The comparison operator. Required for threshold and relative alerts; not used for anomaly alerts. For threshold: 'equal', 'not_equal', 'higher_than', 'higher_than_or_equal', 'lower_than', 'lower_than_or_equal'. For relative: 'increases_by', 'decreases_by', 'changes_by'.
 - `paused` (Boolean) Whether the alert is paused.
 - `paused_reason` (String) Read-only field explaining why the alert is paused (e.g., 'Manually paused', complexity issues, too many failures).
 - `push` (Boolean) Enable push notifications.
-- `query_period` (Number) The query evaluation window in seconds (default: 60).
+- `query_period` (Number) The query evaluation window in seconds.
 - `recovery_period` (Number) The recovery delay in seconds.
 - `series_names` (List of String) Specific series to monitor.
 - `sms` (Boolean) Enable SMS notifications.
