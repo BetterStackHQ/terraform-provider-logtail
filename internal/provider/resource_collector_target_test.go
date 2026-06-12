@@ -229,6 +229,46 @@ func TestResourceCollectorTargetElasticsearch(t *testing.T) {
 	})
 }
 
+func TestResourceCollectorTargetPgbouncer(t *testing.T) {
+	server, _ := newCollectorTargetMockServer(t, "77", "8")
+	defer server.Close()
+
+	resource.Test(t, resource.TestCase{
+		IsUnitTest: true,
+		ProviderFactories: map[string]func() (*schema.Provider, error){
+			"logtail": func() (*schema.Provider, error) {
+				return New(WithURL(server.URL)), nil
+			},
+		},
+		Steps: []resource.TestStep{
+			{
+				Config: `
+				provider "logtail" {
+					api_token = "foo"
+				}
+
+				resource "logtail_collector_target" "pooler" {
+					collector_id = "77"
+					kind         = "pgbouncer"
+					host         = "pooler.example.com"
+					port         = 6432
+					username     = "monitor"
+					password     = "secret"
+					ssl_mode     = "disable"
+				}
+				`,
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr("logtail_collector_target.pooler", "kind", "pgbouncer"),
+					resource.TestCheckResourceAttr("logtail_collector_target.pooler", "port", "6432"),
+					resource.TestCheckResourceAttr("logtail_collector_target.pooler", "ssl_mode", "disable"),
+					// Password preserved from config across the API round-trip (API does not return it).
+					resource.TestCheckResourceAttr("logtail_collector_target.pooler", "password", "secret"),
+				),
+			},
+		},
+	})
+}
+
 func TestResourceCollectorTargetProcess(t *testing.T) {
 	server, _ := newCollectorTargetMockServer(t, "77", "9")
 	defer server.Close()
@@ -491,6 +531,32 @@ func TestResourceCollectorTargetValidation(t *testing.T) {
 			}
 			`,
 			errorRe: `ssl_mode is required for kind "postgres"`,
+		},
+		{
+			name: "pgbouncer without ssl_mode",
+			config: `
+			resource "logtail_collector_target" "x" {
+				collector_id = "1"
+				kind         = "pgbouncer"
+				host         = "pooler.example.com"
+				port         = 6432
+			}
+			`,
+			errorRe: `ssl_mode is required for kind "pgbouncer"`,
+		},
+		{
+			name: "pgbouncer with mysql tls (not allowed)",
+			config: `
+			resource "logtail_collector_target" "x" {
+				collector_id = "1"
+				kind         = "pgbouncer"
+				host         = "pooler.example.com"
+				port         = 6432
+				ssl_mode     = "disable"
+				tls          = "true"
+			}
+			`,
+			errorRe: `tls is not valid for kind "pgbouncer"`,
 		},
 		{
 			name: "mysql without tls",
