@@ -1,6 +1,6 @@
 # CLAUDE.md
 
-Guidance for Claude Code (claude.ai/code) when working in this repository (the Better Uptime Terraform provider).
+Guidance for Claude Code (claude.ai/code) when working in this repository (the Better Stack Telemetry Terraform provider).
 
 ## Exercise every new feature in an example
 
