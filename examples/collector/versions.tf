@@ -3,7 +3,7 @@ terraform {
   required_providers {
     logtail = {
       source  = "BetterStackHQ/logtail"
-      version = ">= 10.12.2"
+      version = ">= 10.14.2"
     }
     random = {
       source  = "hashicorp/random"

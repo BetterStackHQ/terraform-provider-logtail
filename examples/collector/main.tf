@@ -33,6 +33,10 @@ resource "logtail_collector" "kubernetes_full" {
 
     log_line_length_limit_kb = 32
 
+    # Overflow to disk after 50k in-memory events; block producers when the disk buffer is full
+    buffer_max_events = 50000
+    when_full         = "block"
+
     components {
       ebpf_metrics      = true
       metrics_databases = true
@@ -95,6 +99,10 @@ resource "logtail_collector" "with_transformation" {
 
   # On-host VRL: PII never leaves your network
   configuration {
+    # Merge multi-line logs (e.g. stack traces); a new entry starts when a line matches the VRL condition
+    merge_logs        = true
+    merge_logs_config = "match(string!(.message), r'^\\d{4}-\\d{2}-\\d{2}')"
+
     vrl_transformation = <<-EOT
       # Redact e-mail addresses
       if is_string(.message) {
