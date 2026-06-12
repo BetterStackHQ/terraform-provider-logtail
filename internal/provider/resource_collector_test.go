@@ -1088,6 +1088,181 @@ func TestResourceCollectorNewFeatures(t *testing.T) {
 		},
 	})
 
+	// Test merge multi-line logs
+	resource.Test(t, resource.TestCase{
+		IsUnitTest: true,
+		ProviderFactories: map[string]func() (*schema.Provider, error){
+			"logtail": func() (*schema.Provider, error) {
+				return New(WithURL(server.URL)), nil
+			},
+		},
+		Steps: []resource.TestStep{
+			// Step 1 - create with merge logs enabled and a custom starts-when condition
+			{
+				Config: fmt.Sprintf(`
+				provider "logtail" {
+					api_token = "foo"
+				}
+
+				resource "logtail_collector" "this" {
+					name     = "%s"
+					platform = "%s"
+
+					configuration {
+						merge_logs        = true
+						merge_logs_config = "match(string!(.message), r'^\\d{4}-\\d{2}-\\d{2}')"
+					}
+				}
+				`, name, platform),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttrSet("logtail_collector.this", "id"),
+					resource.TestCheckResourceAttr("logtail_collector.this", "configuration.0.merge_logs", "true"),
+					resource.TestCheckResourceAttr("logtail_collector.this", "configuration.0.merge_logs_config", "match(string!(.message), r'^\\d{4}-\\d{2}-\\d{2}')"),
+				),
+			},
+			// Step 2 - update the condition
+			{
+				Config: fmt.Sprintf(`
+				provider "logtail" {
+					api_token = "foo"
+				}
+
+				resource "logtail_collector" "this" {
+					name     = "%s"
+					platform = "%s"
+
+					configuration {
+						merge_logs        = true
+						merge_logs_config = "match(string!(.message), r'^(TRACE|DEBUG|INFO|WARN|ERROR|FATAL)')"
+					}
+				}
+				`, name, platform),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr("logtail_collector.this", "configuration.0.merge_logs", "true"),
+					resource.TestCheckResourceAttr("logtail_collector.this", "configuration.0.merge_logs_config", "match(string!(.message), r'^(TRACE|DEBUG|INFO|WARN|ERROR|FATAL)')"),
+				),
+			},
+			// Step 3 - disable merging; the condition stays in state for re-enabling
+			{
+				Config: fmt.Sprintf(`
+				provider "logtail" {
+					api_token = "foo"
+				}
+
+				resource "logtail_collector" "this" {
+					name     = "%s"
+					platform = "%s"
+
+					configuration {
+						merge_logs        = false
+						merge_logs_config = "match(string!(.message), r'^(TRACE|DEBUG|INFO|WARN|ERROR|FATAL)')"
+					}
+				}
+				`, name, platform),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr("logtail_collector.this", "configuration.0.merge_logs", "false"),
+				),
+			},
+		},
+	})
+
+	// Test buffering settings (buffer_max_events, when_full)
+	resource.Test(t, resource.TestCase{
+		IsUnitTest: true,
+		ProviderFactories: map[string]func() (*schema.Provider, error){
+			"logtail": func() (*schema.Provider, error) {
+				return New(WithURL(server.URL)), nil
+			},
+		},
+		Steps: []resource.TestStep{
+			// Step 1 - create with buffering settings
+			{
+				Config: fmt.Sprintf(`
+				provider "logtail" {
+					api_token = "foo"
+				}
+
+				resource "logtail_collector" "this" {
+					name     = "%s"
+					platform = "%s"
+
+					configuration {
+						buffer_max_events = 50000
+						when_full         = "block"
+					}
+				}
+				`, name, platform),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttrSet("logtail_collector.this", "id"),
+					resource.TestCheckResourceAttr("logtail_collector.this", "configuration.0.buffer_max_events", "50000"),
+					resource.TestCheckResourceAttr("logtail_collector.this", "configuration.0.when_full", "block"),
+				),
+			},
+			// Step 2 - update buffering settings
+			{
+				Config: fmt.Sprintf(`
+				provider "logtail" {
+					api_token = "foo"
+				}
+
+				resource "logtail_collector" "this" {
+					name     = "%s"
+					platform = "%s"
+
+					configuration {
+						buffer_max_events = 25000
+						when_full         = "drop_newest"
+					}
+				}
+				`, name, platform),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr("logtail_collector.this", "configuration.0.buffer_max_events", "25000"),
+					resource.TestCheckResourceAttr("logtail_collector.this", "configuration.0.when_full", "drop_newest"),
+				),
+			},
+			// Step 3 - invalid when_full is rejected at plan time
+			{
+				Config: fmt.Sprintf(`
+				provider "logtail" {
+					api_token = "foo"
+				}
+
+				resource "logtail_collector" "this" {
+					name     = "%s"
+					platform = "%s"
+
+					configuration {
+						when_full = "explode"
+					}
+				}
+				`, name, platform),
+				PlanOnly:    true,
+				ExpectError: regexp.MustCompile(`expected configuration\.0\.when_full to be one of`),
+			},
+			// Step 4 - back to a valid config so the post-test destroy plan validates
+			{
+				Config: fmt.Sprintf(`
+				provider "logtail" {
+					api_token = "foo"
+				}
+
+				resource "logtail_collector" "this" {
+					name     = "%s"
+					platform = "%s"
+
+					configuration {
+						buffer_max_events = 25000
+						when_full         = "drop_newest"
+					}
+				}
+				`, name, platform),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr("logtail_collector.this", "configuration.0.when_full", "drop_newest"),
+				),
+			},
+		},
+	})
+
 	// Test log_line_length_limit_kb
 	resource.Test(t, resource.TestCase{
 		IsUnitTest: true,

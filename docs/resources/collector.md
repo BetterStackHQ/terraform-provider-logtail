@@ -39,6 +39,14 @@ resource "logtail_collector" "production" {
       logs_docker  = true
       ebpf_metrics = true
     }
+
+    # Merge multi-line logs (e.g. stack traces); a new entry starts when a line matches the VRL condition
+    merge_logs        = true
+    merge_logs_config = "match(string!(.message), r'^\\d{4}-\\d{2}-\\d{2}')"
+
+    # Overflow to disk after 50k in-memory events; block producers when the disk buffer is full
+    buffer_max_events = 50000
+    when_full         = "block"
   }
 
   # Server-side VRL runs during ingestion on Better Stack
@@ -93,15 +101,19 @@ When importing an existing collector, leave `data_region` unset in your configur
 
 Optional:
 
+- `buffer_max_events` (Number) Maximum number of events held in the collector's in-memory buffer before overflowing to the disk buffer. Defaults to 10000.
 - `components` (Block List, Max: 1) Enable or disable specific collector components. Maps to the Logs, Metrics, and eBPF tabs in the collector settings UI. (see [below for nested schema](#nestedblock--configuration--components))
 - `disk_batch_size_mb` (Number) Disk buffer size in MB for outgoing requests. Minimum 256 MB.
 - `log_line_length_limit_kb` (Number) Maximum log line length in kB. Lines longer than this are dropped by the collector to protect Vector from memory exhaustion. Higher values may use more memory. Must be between 4 and 128. Defaults to 8.
 - `logs_sample_rate` (Number) Sample rate for logs (0-100).
 - `memory_batch_size_mb` (Number) Memory batch size in MB for outgoing requests. Maximum 40 MB.
+- `merge_logs` (Boolean) Whether to merge multi-line logs (e.g. stack traces) into single log entries on the collector host before transmission. Matches the Merge logs tab in the collector's Transform data UI.
+- `merge_logs_config` (String) VRL condition detecting the first line of a new log entry — consecutive lines not matching it are merged into the preceding entry. Leave unset to use the built-in heuristic (lines starting with a timestamp or log level). Only used when `merge_logs` is `true`.
 - `namespace_option` (Block Set) Per-namespace overrides for log sampling rate and trace ingestion (Kubernetes only). Order-independent; entries are identified by name. (see [below for nested schema](#nestedblock--configuration--namespace_option))
 - `service_option` (Block Set) Per-service overrides for log sampling rate and trace ingestion. Only includes user-managed services; internal collector services (`better-stack-beyla`, `better-stack-collector`) are excluded. Use the `logtail_collector` data source to see all discovered services. (see [below for nested schema](#nestedblock--configuration--service_option))
 - `traces_sample_rate` (Number) Sample rate for traces (0-100).
 - `vrl_transformation` (String) VRL transformation that runs on the collector host, inside your infrastructure, before data is transmitted to Better Stack. Use this for PII redaction and sensitive data filtering — raw data never leaves your network. For server-side transformations that run during ingestion on Better Stack, use the top-level `source_vrl_transformation` attribute instead. Read more about [VRL transformations](https://betterstack.com/docs/logs/using-logtail/transforming-ingested-data/logs-vrl/).
+- `when_full` (String) What the collector does when the disk buffer is full. `drop_newest` (default) drops incoming data, preferring availability; `block` applies backpressure to producers, preferring completeness.
 
 <a id="nestedblock--configuration--components"></a>
 ### Nested Schema for `configuration.components`
