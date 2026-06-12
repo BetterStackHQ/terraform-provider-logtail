@@ -13,7 +13,7 @@ import (
 )
 
 var collectorTargetKinds = []string{
-	"postgres", "mysql", "redis", "mongodb", "memcached", "elasticsearch",
+	"postgres", "pgbouncer", "mysql", "redis", "mongodb", "memcached", "elasticsearch",
 	"nginx", "apache", "kafka", "prometheus",
 }
 
@@ -28,6 +28,7 @@ var collectorTargetProcessKinds = map[string]bool{
 // Lets plan-time validation reject fields that would no-op or 422 on apply.
 var collectorTargetAllowedFields = map[string]map[string]bool{
 	"postgres":      {"host": true, "port": true, "username": true, "password": true, "ssl_mode": true},
+	"pgbouncer":     {"host": true, "port": true, "username": true, "password": true, "ssl_mode": true},
 	"mysql":         {"host": true, "port": true, "username": true, "password": true, "tls": true},
 	"redis":         {"host": true, "port": true, "username": true, "password": true},
 	"mongodb":       {"host": true, "port": true, "username": true, "password": true},
@@ -66,7 +67,7 @@ var collectorTargetSchema = map[string]*schema.Schema{
 		ValidateFunc: validation.StringInSlice(collectorTargetKinds, false),
 	},
 	"host": {
-		Description: "Hostname or IP of the database server. Use this for database kinds (postgres, mysql, redis, mongodb, memcached, elasticsearch). For process kinds use `collector_host` instead.",
+		Description: "Hostname or IP of the database server. Use this for database kinds (postgres, pgbouncer, mysql, redis, mongodb, memcached, elasticsearch). For process kinds use `collector_host` instead.",
 		Type:        schema.TypeString,
 		Optional:    true,
 	},
@@ -195,7 +196,7 @@ func newCollectorTargetResource() *schema.Resource {
 			StateContext: collectorTargetImport,
 		},
 		CustomizeDiff: validateCollectorTarget,
-		Description:   "Manages a single 'Collect metrics' target on a Better Stack Collector — a database (postgres, mysql, redis, mongodb, memcached, elasticsearch) or process exporter (nginx, apache, kafka, prometheus) that the collector scrapes.",
+		Description:   "Manages a single 'Collect metrics' target on a Better Stack Collector — a database (postgres, pgbouncer, mysql, redis, mongodb, memcached, elasticsearch) or process exporter (nginx, apache, kafka, prometheus) that the collector scrapes.",
 		Schema:        collectorTargetSchema,
 	}
 }
@@ -239,7 +240,7 @@ func validateCollectorTarget(ctx context.Context, diff *schema.ResourceDiff, v i
 		}
 		// Mirror the API's per-kind required fields (telemetry: CollectorTarget#validate_settings_for_kind)
 		// so a missing ssl_mode/tls is caught at plan time instead of as a 422 on apply.
-		if kind == "postgres" && diff.Get("ssl_mode").(string) == "" {
+		if (kind == "postgres" || kind == "pgbouncer") && diff.Get("ssl_mode").(string) == "" {
 			return fmt.Errorf("ssl_mode is required for kind %q", kind)
 		}
 		if kind == "mysql" && diff.Get("tls").(string) == "" {

@@ -9,6 +9,17 @@ resource "logtail_collector_target" "primary_db" {
   ssl_mode     = "require"
 }
 
+# Database target — PgBouncer pooler in front of PostgreSQL.
+resource "logtail_collector_target" "pooler" {
+  collector_id = logtail_collector.production.id
+  kind         = "pgbouncer"
+  host         = "10.0.0.5"
+  port         = 6432
+  username     = "monitor"
+  password     = var.pgbouncer_monitor_password
+  ssl_mode     = "disable"
+}
+
 # Database target — Elasticsearch with API key authentication.
 resource "logtail_collector_target" "search" {
   collector_id = logtail_collector.production.id
