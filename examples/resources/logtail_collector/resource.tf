@@ -24,6 +24,14 @@ resource "logtail_collector" "production" {
       logs_docker  = true
       ebpf_metrics = true
     }
+
+    # Merge multi-line logs (e.g. stack traces); a new entry starts when a line matches the VRL condition
+    merge_logs        = true
+    merge_logs_config = "match(string!(.message), r'^\\d{4}-\\d{2}-\\d{2}')"
+
+    # Overflow to disk after 50k in-memory events; block producers when the disk buffer is full
+    buffer_max_events = 50000
+    when_full         = "block"
   }
 
   # Server-side VRL runs during ingestion on Better Stack

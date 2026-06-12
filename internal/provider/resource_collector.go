@@ -266,6 +266,18 @@ var collectorSchema = map[string]*schema.Schema{
 						return normalizeVRL(old) == normalizeVRL(new)
 					},
 				},
+				"merge_logs": {
+					Description: "Whether to merge multi-line logs (e.g. stack traces) into single log entries on the collector host before transmission. Matches the Merge logs tab in the collector's Transform data UI.",
+					Type:        schema.TypeBool,
+					Optional:    true,
+					Computed:    true,
+				},
+				"merge_logs_config": {
+					Description: "VRL condition detecting the first line of a new log entry — consecutive lines not matching it are merged into the preceding entry. Leave unset to use the built-in heuristic (lines starting with a timestamp or log level). Only used when `merge_logs` is `true`.",
+					Type:        schema.TypeString,
+					Optional:    true,
+					Computed:    true,
+				},
 				"disk_batch_size_mb": {
 					Description:  "Disk buffer size in MB for outgoing requests. Minimum 256 MB.",
 					Type:         schema.TypeInt,
@@ -279,6 +291,20 @@ var collectorSchema = map[string]*schema.Schema{
 					Optional:     true,
 					Computed:     true,
 					ValidateFunc: validation.IntAtMost(40),
+				},
+				"buffer_max_events": {
+					Description:  "Maximum number of events held in the collector's in-memory buffer before overflowing to the disk buffer. Defaults to 10000.",
+					Type:         schema.TypeInt,
+					Optional:     true,
+					Computed:     true,
+					ValidateFunc: validation.IntAtLeast(1),
+				},
+				"when_full": {
+					Description:  "What the collector does when the disk buffer is full. `drop_newest` (default) drops incoming data, preferring availability; `block` applies backpressure to producers, preferring completeness.",
+					Type:         schema.TypeString,
+					Optional:     true,
+					Computed:     true,
+					ValidateFunc: validation.StringInSlice([]string{"drop_newest", "block"}, false),
 				},
 				"log_line_length_limit_kb": {
 					Description:  "Maximum log line length in kB. Lines longer than this are dropped by the collector to protect Vector from memory exhaustion. Higher values may use more memory. Must be between 4 and 128. Defaults to 8.",
@@ -379,8 +405,12 @@ type collectorConfiguration struct {
 	TracesSampleRate     *int                             `json:"traces_sample_rate,omitempty"`
 	Components           *collectorComponents             `json:"components,omitempty"`
 	VRLTransformation    *string                          `json:"vrl_transformation,omitempty"`
+	MergeLogs            *bool                            `json:"merge_logs,omitempty"`
+	MergeLogsConfig      *string                          `json:"merge_logs_config,omitempty"`
 	DiskBatchSizeMB      *int                             `json:"disk_batch_size_mb,omitempty"`
 	MemoryBatchSizeMB    *int                             `json:"memory_batch_size_mb,omitempty"`
+	BufferMaxEvents      *int                             `json:"buffer_max_events,omitempty"`
+	WhenFull             *string                          `json:"when_full,omitempty"`
 	LogLineLengthLimitKB *int                             `json:"log_line_length_limit_kb,omitempty"`
 	ServicesOptions      map[string]collectorEntityOption `json:"services_options,omitempty"`
 	NamespacesOptions    map[string]collectorEntityOption `json:"namespaces_options,omitempty"`
@@ -681,12 +711,16 @@ func loadCollectorConfiguration(d *schema.ResourceData) *collectorConfiguration 
 	if v, ok := configMap["vrl_transformation"].(string); ok && v != "" {
 		cfg.VRLTransformation = stringPtr(v)
 	}
+	cfg.MergeLogs = boolPtrIfSet(configMap, "merge_logs")
+	cfg.MergeLogsConfig = stringPtrIfSet(configMap, "merge_logs_config")
 	if v, ok := configMap["disk_batch_size_mb"].(int); ok && v != 0 {
 		cfg.DiskBatchSizeMB = intPtr(v)
 	}
 	if v, ok := configMap["memory_batch_size_mb"].(int); ok && v != 0 {
 		cfg.MemoryBatchSizeMB = intPtr(v)
 	}
+	cfg.BufferMaxEvents = intPtrIfSet(configMap, "buffer_max_events")
+	cfg.WhenFull = stringPtrIfSet(configMap, "when_full")
 	if v, ok := configMap["log_line_length_limit_kb"].(int); ok && v != 0 {
 		cfg.LogLineLengthLimitKB = intPtr(v)
 	}
@@ -975,11 +1009,23 @@ func collectorCopyAttrs(d *schema.ResourceData, in *collector) diag.Diagnostics 
 		if in.Configuration.VRLTransformation != nil {
 			configData["vrl_transformation"] = *in.Configuration.VRLTransformation
 		}
+		if in.Configuration.MergeLogs != nil {
+			configData["merge_logs"] = *in.Configuration.MergeLogs
+		}
+		if in.Configuration.MergeLogsConfig != nil {
+			configData["merge_logs_config"] = *in.Configuration.MergeLogsConfig
+		}
 		if in.Configuration.DiskBatchSizeMB != nil {
 			configData["disk_batch_size_mb"] = *in.Configuration.DiskBatchSizeMB
 		}
 		if in.Configuration.MemoryBatchSizeMB != nil {
 			configData["memory_batch_size_mb"] = *in.Configuration.MemoryBatchSizeMB
+		}
+		if in.Configuration.BufferMaxEvents != nil {
+			configData["buffer_max_events"] = *in.Configuration.BufferMaxEvents
+		}
+		if in.Configuration.WhenFull != nil {
+			configData["when_full"] = *in.Configuration.WhenFull
 		}
 		if in.Configuration.LogLineLengthLimitKB != nil {
 			configData["log_line_length_limit_kb"] = *in.Configuration.LogLineLengthLimitKB

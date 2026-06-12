@@ -59,15 +59,19 @@ When importing an existing collector, leave `data_region` unset in your configur
 
 Read-Only:
 
+- `buffer_max_events` (Number)
 - `components` (List of Object) (see [below for nested schema](#nestedobjatt--configuration--components))
 - `disk_batch_size_mb` (Number)
 - `log_line_length_limit_kb` (Number)
 - `logs_sample_rate` (Number)
 - `memory_batch_size_mb` (Number)
+- `merge_logs` (Boolean)
+- `merge_logs_config` (String)
 - `namespace_option` (Set of Object) (see [below for nested schema](#nestedobjatt--configuration--namespace_option))
 - `service_option` (Set of Object) (see [below for nested schema](#nestedobjatt--configuration--service_option))
 - `traces_sample_rate` (Number)
 - `vrl_transformation` (String)
+- `when_full` (String)
 
 <a id="nestedobjatt--configuration--components"></a>
 ### Nested Schema for `configuration.components`
