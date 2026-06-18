@@ -38,10 +38,10 @@ var metricSchema = map[string]*schema.Schema{
 		Required:    true,
 	},
 	"aggregations": {
-		Description: "The list of aggregations to perform on the metric.",
+		Description: "The list of aggregations to perform on the metric. Optional: omit it (or set it to an empty list) to create a Label (a group-by dimension) instead of a Metric.",
 		Type:        schema.TypeList,
-		Required:    true,
-		Elem:        &schema.Schema{Type: schema.TypeString, ValidateFunc: validation.StringInSlice([]string{"avg", "count", "uniq", "max", "min", "anyLast", "sum", "p50", "p90", "p95", "p99"}, false)},
+		Optional:    true,
+		Elem:        &schema.Schema{Type: schema.TypeString, ValidateFunc: validation.StringInSlice([]string{"avg", "count", "uniq", "max", "min", "sum", "histogram"}, false)},
 	},
 	"type": {
 		Description:  "The type of the metric.",
@@ -108,11 +108,28 @@ func metricRef(in *metric) []struct {
 	}
 }
 
+// aggregations is optional. An empty list means this expression is a Label (a
+// group-by dimension) rather than a Metric. We always send the field — even when
+// empty — so that omitting it creates a Label, and clearing it on an existing
+// Metric converts it into a Label in place, instead of the field being omitted
+// from the request and the previous aggregations left untouched.
+func ensureAggregations(in *metric) {
+	// load() leaves Aggregations as a nil pointer when the field is omitted, and as
+	// a pointer to a nil slice when it is set to an empty list — both of which would
+	// marshal to a missing field or `null`. Normalise both to an empty slice so the
+	// request always carries `"aggregations": []`.
+	if in.Aggregations == nil || *in.Aggregations == nil {
+		empty := []string{}
+		in.Aggregations = &empty
+	}
+}
+
 func metricCreate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	var in metric
 	for _, e := range metricRef(&in) {
 		load(d, e.k, e.v)
 	}
+	ensureAggregations(&in)
 	sourceId := d.Get("source_id").(string)
 	var out metricHTTPResponse
 	if err := resourceCreate(ctx, meta, fmt.Sprintf("/api/v2/sources/%s/metrics", url.PathEscape(sourceId)), &in, &out); err != nil {
@@ -185,6 +202,7 @@ func metricUpdate(ctx context.Context, d *schema.ResourceData, meta interface{})
 	for _, e := range metricRef(&in) {
 		load(d, e.k, e.v)
 	}
+	ensureAggregations(&in)
 	sourceId := d.Get("source_id").(string)
 	if diags := resourceUpdate(ctx, meta, fmt.Sprintf("/api/v2/sources/%s/metrics/%s", url.PathEscape(sourceId), url.PathEscape(d.Id())), &in); diags != nil {
 		return diags

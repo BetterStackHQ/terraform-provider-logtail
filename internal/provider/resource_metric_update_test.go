@@ -94,7 +94,7 @@ func TestResourceMetricUpdateMultipleFields(t *testing.T) {
 					name           = "Completely Different"
 					sql_expression = "JSONExtract(json, 'new', 'Float')"
 					type           = "float64_delta"
-					aggregations   = ["min", "max", "p99"]
+					aggregations   = ["min", "max", "histogram"]
 				}`,
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("logtail_metric.this", "id", "1"),
@@ -104,7 +104,7 @@ func TestResourceMetricUpdateMultipleFields(t *testing.T) {
 					resource.TestCheckResourceAttr("logtail_metric.this", "aggregations.#", "3"),
 					resource.TestCheckResourceAttr("logtail_metric.this", "aggregations.0", "min"),
 					resource.TestCheckResourceAttr("logtail_metric.this", "aggregations.1", "max"),
-					resource.TestCheckResourceAttr("logtail_metric.this", "aggregations.2", "p99"),
+					resource.TestCheckResourceAttr("logtail_metric.this", "aggregations.2", "histogram"),
 					func(*terraform.State) error {
 						if got := patchCount.Load(); got != 1 {
 							return fmt.Errorf("expected exactly 1 PATCH in this step, got %d", got)
@@ -118,7 +118,7 @@ func TestResourceMetricUpdateMultipleFields(t *testing.T) {
 							Name:          strPtr("Completely Different"),
 							SQLExpression: strPtr("JSONExtract(json, 'new', 'Float')"),
 							Type:          strPtr("float64_delta"),
-							Aggregations:  strSlicePtr("min", "max", "p99"),
+							Aggregations:  strSlicePtr("min", "max", "histogram"),
 						}
 						if !reflect.DeepEqual(got, want) {
 							return fmt.Errorf("PATCH body mismatch.\n got: %+v\nwant: %+v\nraw: %s", got, want, string(raw))
@@ -320,7 +320,7 @@ func TestResourceMetricPatchErrorPropagates(t *testing.T) {
 					name           = "M"
 					sql_expression = "JSONExtract(json, 'x', 'Float')"
 					type           = "float64_delta"
-					aggregations   = ["p95"]
+					aggregations   = ["sum"]
 				}`,
 				ExpectError: regexp.MustCompile(`PATCH .*?/metrics/1 returned 422.*boom`),
 			},
