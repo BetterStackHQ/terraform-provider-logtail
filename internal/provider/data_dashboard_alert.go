@@ -63,7 +63,9 @@ type dashboardAlertsHTTPResponse struct {
 
 func dashboardAlertLookup(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	dashboardID := d.Get("dashboard_id").(string)
-	chartID := d.Get("chart_id").(string)
+	// logtail_dashboard_chart.id is a composite "dashboard_id/chart_id"; the alerts
+	// endpoint needs the bare chart ID, mirroring resource_dashboard_alert.
+	chartID := extractBareID(d.Get("chart_id").(string))
 	name := d.Get("name").(string)
 	c := meta.(*client)
 
