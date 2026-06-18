@@ -1,8 +1,3 @@
-resource "logtail_source" "this" {
-  name     = "Production logs"
-  platform = "http"
-}
-
 resource "logtail_exploration" "this" {
   name            = "Requests by status"
   date_range_from = "now-24h"

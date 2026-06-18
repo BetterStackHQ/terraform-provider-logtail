@@ -1,9 +1,11 @@
-provider "logtail" {
-  api_token = var.logtail_api_token
+resource "logtail_source" "this" {
+  name     = "Production logs"
+  platform = "http"
 }
 
-resource "logtail_source" "this" {
-  name                  = "Terraform Scrape Source"
+# A source that scrapes Prometheus metrics endpoints on a schedule.
+resource "logtail_source" "scrape" {
+  name                  = "Prometheus scrape"
   platform              = "prometheus_scrape"
   scrape_urls           = ["https://myserver.example.com/metrics"]
   scrape_frequency_secs = 30

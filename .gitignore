@@ -20,6 +20,11 @@ terraform.tfvars
 .terraform
 .terraform.lock.hcl
 
+# Combined E2E config assembled by `make combine` (see examples/all/README.md)
+examples/all/gen_*.tf
+tfplan
+tfplan.json
+
 # Local Claude code settings
 .claude/instructions.local.md
 .claude/settings.local.json

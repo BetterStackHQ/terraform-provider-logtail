@@ -37,7 +37,7 @@ jobs:
     strategy:
       matrix:
         terraform-version: ["0.13", "1.0", "1.8", "latest"]
-        config: [examples/basic, examples/advanced, examples/connection, examples/scrape, examples/collector]
+        config: [examples/basic, examples/advanced, examples/connection]
       fail-fast: false
     runs-on: ubuntu-latest
     steps:
@@ -74,9 +74,57 @@ jobs:
         env:
           LOGTAIL_API_TOKEN: ${{ matrix.config == 'examples/connection' && secrets.GLOBAL_E2E_API_TOKEN || secrets.LOGS_E2E_TEAM_TOKEN }}
 
+  # Assembles every per-resource and per-data-source example into one
+  # configuration (examples/all) and exercises it as a single apply/plan/destroy,
+  # keeping the snippets shown in the registry docs continuously verified.
+  e2e_combined:
+    strategy:
+      # Serialized: every version applies the same fixed-name resources against the
+      # one E2E team, so concurrent runs would collide (e.g. collector names).
+      max-parallel: 1
+      matrix:
+        terraform-version: ["0.13", "1.0", "1.8", "latest"]
+      fail-fast: false
+    runs-on: ubuntu-latest
+    steps:
+      - name: Install Go
+        uses: actions/setup-go@v2
+        with:
+          go-version: '1.23.x'
+      - name: Install Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: ${{ matrix.terraform-version }}
+      - name: Checkout code
+        uses: actions/checkout@v2
+      - name: Assemble combined examples
+        run: make combine
+      - name: Add resources via Terraform
+        run: make terraform CONFIGURATION="examples/all" ARGS="apply --auto-approve --input=false"
+        env:
+          LOGTAIL_API_TOKEN: ${{ secrets.LOGS_E2E_TEAM_TOKEN }}
+      - name: Plan resources via Terraform - must be empty
+        run: |
+          make terraform CONFIGURATION="examples/all" ARGS="plan --input=false --out=tfplan"
+          make terraform CONFIGURATION="examples/all" ARGS="show --json tfplan > tfplan.json"
+          CHANGES="$(jq "[.resource_changes[]? | select(.change.actions != [\"no-op\"])] | length" "examples/all/tfplan.json")"
+          if [ "$CHANGES" == "0" ]; then
+            echo "No planned changes detected after first apply. Success!"
+          else
+            echo "$CHANGES planned changes detected after first apply. Failure!"
+            exit 1
+          fi
+        env:
+          LOGTAIL_API_TOKEN: ${{ secrets.LOGS_E2E_TEAM_TOKEN }}
+      - name: Destroy resources via Terraform
+        if: always()
+        run: make terraform CONFIGURATION="examples/all" ARGS="destroy --auto-approve --input=false"
+        env:
+          LOGTAIL_API_TOKEN: ${{ secrets.LOGS_E2E_TEAM_TOKEN }}
+
   notify-linear:
     if: ${{ failure() && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master' || github.event_name == 'schedule') }}
-    needs: [e2e_test]
+    needs: [e2e_test, e2e_combined]
     runs-on: ubuntu-latest
     permissions:
       contents: read
