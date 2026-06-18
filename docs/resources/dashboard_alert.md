@@ -20,6 +20,7 @@ resource "logtail_dashboard_alert" "high_error_rate" {
   alert_type          = "threshold"
   operator            = "higher_than"
   value               = 100
+  check_period        = 60
   query_period        = 300
   confirmation_period = 60
 

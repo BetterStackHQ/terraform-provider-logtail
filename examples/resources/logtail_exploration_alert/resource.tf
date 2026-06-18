@@ -22,6 +22,6 @@ resource "logtail_exploration_alert" "errors_spike" {
   check_period   = 300
 
   escalation_target {
-    policy_name = "Engineering on-call"
+    policy_name = "My Existing Escalation Policy"
   }
 }
