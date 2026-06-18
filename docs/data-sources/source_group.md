@@ -15,8 +15,6 @@ This data source allows you to get information about a Source Group. For more in
 ```terraform
 data "logtail_source_group" "this" {
   name = "Production sources"
-
-  depends_on = [logtail_source_group.this]
 }
 ```
 

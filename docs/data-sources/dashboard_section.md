@@ -16,8 +16,6 @@ This data source allows you to get information about a Section in a Dashboard in
 data "logtail_dashboard_section" "performance" {
   dashboard_id = logtail_dashboard.production.id
   name         = "Performance"
-
-  depends_on = [logtail_dashboard_section.performance]
 }
 ```
 

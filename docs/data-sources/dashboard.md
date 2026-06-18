@@ -15,8 +15,6 @@ This data source allows you to look up existing dashboards using their ID or nam
 ```terraform
 data "logtail_dashboard" "production" {
   name = "Production overview"
-
-  depends_on = [logtail_dashboard.production]
 }
 ```
 

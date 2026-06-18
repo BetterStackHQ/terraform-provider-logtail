@@ -15,8 +15,6 @@ This data source allows you to get information about a Dashboard Group in Better
 ```terraform
 data "logtail_dashboard_group" "production" {
   name = "Production Dashboards"
-
-  depends_on = [logtail_dashboard_group.production]
 }
 ```
 

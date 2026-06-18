@@ -15,8 +15,6 @@ This data source allows you to get information about an Exploration Group in Bet
 ```terraform
 data "logtail_exploration_group" "this" {
   name = "Production explorations"
-
-  depends_on = [logtail_exploration_group.this]
 }
 ```
 

@@ -15,8 +15,6 @@ This Data Source allows you to look up existing Collectors by name.
 ```terraform
 data "logtail_collector" "production" {
   name = "Production Docker"
-
-  depends_on = [logtail_collector.production]
 }
 ```
 

@@ -1,10 +1,10 @@
 # Combined examples (end-to-end test)
 
-This directory turns every per-resource and per-data-source example under
-[`examples/resources/`](../resources) and [`examples/data-sources/`](../data-sources)
-into a **single Terraform configuration**, so the whole set is exercised by one
-`apply` → `plan` (must be empty) → `destroy` in CI. That keeps the snippets shown
-in the registry docs continuously verified against the live API.
+This directory turns every per-resource example under
+[`examples/resources/`](../resources) into a **single Terraform configuration**,
+so the whole set is exercised by one `apply` → `plan` (must be empty) → `destroy`
+in CI. That keeps the resource snippets shown in the registry docs continuously
+verified against the live API.
 
 ## How it works
 
@@ -16,8 +16,11 @@ in the registry docs continuously verified against the live API.
   without collisions.
 - The provider block, version constraints, and shared variables live in the
   committed `provider.tf`, `versions.tf`, and `variables.tf`.
-- [`skip.txt`](./skip.txt) lists directories that stay in the docs but cannot run
-  in CI (e.g. AWS credentials or a global API token are required).
+- [`skip.txt`](./skip.txt) lists resource directories that stay in the docs but
+  cannot run in CI (e.g. AWS credentials or a global API token are required).
+- Data-source examples (`examples/data-sources/`) are **not** assembled here: they
+  look resources up by name, which is ambiguous — and blocks `destroy` — once names
+  duplicate across parallel or retried runs. They stay in the docs, just not executed.
 
 ## Run it locally
 
