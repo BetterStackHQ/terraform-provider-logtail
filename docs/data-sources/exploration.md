@@ -13,8 +13,8 @@ This data source allows you to get information about an Exploration in Better St
 ## Example Usage
 
 ```terraform
-data "logtail_exploration" "this" {
-  name = "Requests by status"
+data "logtail_exploration" "existing" {
+  name = "My Existing Exploration"
 }
 ```
 

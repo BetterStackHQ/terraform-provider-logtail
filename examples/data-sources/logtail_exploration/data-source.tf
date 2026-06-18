@@ -1,3 +1,3 @@
-data "logtail_exploration" "this" {
-  name = "Requests by status"
+data "logtail_exploration" "existing" {
+  name = "My Existing Exploration"
 }

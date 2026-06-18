@@ -1,3 +1,3 @@
-data "logtail_errors_application" "this" {
-  name = "Production errors"
+data "logtail_errors_application" "existing" {
+  name = "My Existing Errors Application"
 }

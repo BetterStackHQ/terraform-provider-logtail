@@ -13,8 +13,8 @@ This data source allows you to get information about an Exploration Group in Bet
 ## Example Usage
 
 ```terraform
-data "logtail_exploration_group" "this" {
-  name = "Production explorations"
+data "logtail_exploration_group" "existing" {
+  name = "My Existing Exploration Group"
 }
 ```
 

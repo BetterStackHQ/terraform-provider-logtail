@@ -13,8 +13,8 @@ This Data Source allows you to look up existing Errors applications using their 
 ## Example Usage
 
 ```terraform
-data "logtail_errors_application" "this" {
-  name = "Production errors"
+data "logtail_errors_application" "existing" {
+  name = "My Existing Errors Application"
 }
 ```
 

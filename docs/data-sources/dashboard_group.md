@@ -13,8 +13,8 @@ This data source allows you to get information about a Dashboard Group in Better
 ## Example Usage
 
 ```terraform
-data "logtail_dashboard_group" "production" {
-  name = "Production Dashboards"
+data "logtail_dashboard_group" "existing" {
+  name = "My Existing Dashboard Group"
 }
 ```
 

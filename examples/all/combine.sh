@@ -1,14 +1,12 @@
 #!/usr/bin/env bash
-# Assemble every per-resource example (except the directories listed in
-# skip.txt) into this directory as a single Terraform configuration, so the
-# combined set can be applied/planned/destroyed as one end-to-end test. Each
-# example file holds only its own resource and may reference siblings by their
-# conventional name; the union is one valid config.
+# Assemble every per-resource and per-data-source example (except the directories
+# listed in skip.txt) into this directory as a single Terraform configuration, so
+# the combined set is applied/planned/destroyed as one end-to-end test.
 #
-# Data-source examples are intentionally NOT assembled here: they look resources
-# up by name, which is ambiguous — and blocks `terraform destroy` — whenever a
-# name duplicates across parallel or retried E2E runs. They stay documented under
-# examples/data-sources/ but are not executed.
+# Resource examples create and destroy their own resources (named "Production …").
+# Data-source examples resolve by a UNIQUE key — a config resource's id/table_name,
+# or a permanent uniquely-named fixture seeded in the team ("My Existing …") — never
+# a duplicate-prone name, so concurrent or retried runs can't collide or deadlock.
 #
 # Generated files are named gen_<dir>__<file> and are gitignored. Re-run any
 # time the examples change: `make combine`.
@@ -40,7 +38,7 @@ is_skipped() {
 
 shopt -s nullglob
 count=0
-for f in "$ROOT"/examples/resources/*/*.tf; do
+for f in "$ROOT"/examples/resources/*/*.tf "$ROOT"/examples/data-sources/*/*.tf; do
   dir="$(basename "$(dirname "$f")")"
   is_skipped "$dir" && continue
   cp "$f" "$ALL/gen_${dir}__$(basename "$f")"

@@ -13,8 +13,8 @@ This data source allows you to get information about a Source Group. For more in
 ## Example Usage
 
 ```terraform
-data "logtail_source_group" "this" {
-  name = "Production sources"
+data "logtail_source_group" "existing" {
+  name = "My Existing Source Group"
 }
 ```
 

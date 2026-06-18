@@ -1,3 +1,3 @@
-data "logtail_collector" "production" {
-  name = "Production Docker"
+data "logtail_collector" "existing" {
+  name = "My Existing Collector"
 }

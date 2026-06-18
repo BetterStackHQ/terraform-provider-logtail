@@ -13,8 +13,8 @@ This Data Source allows you to look up existing Collectors by name.
 ## Example Usage
 
 ```terraform
-data "logtail_collector" "production" {
-  name = "Production Docker"
+data "logtail_collector" "existing" {
+  name = "My Existing Collector"
 }
 ```
 
