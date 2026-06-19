@@ -20,8 +20,8 @@ terraform.tfvars
 .terraform
 .terraform.lock.hcl
 
-# Combined E2E config assembled by `make combine` (see examples/all/README.md)
-examples/all/gen_*.tf
+# Combined E2E config assembled by the e2e_combined CI job (see CLAUDE.md)
+/combined-e2e/
 tfplan
 tfplan.json
 

@@ -9,7 +9,7 @@ GOLANGCI_LINT := golangci-lint run --disable-all \
 	-E typecheck \
 	-E unused
 VERSION := 10.14.4
-.PHONY: test build combine
+.PHONY: test build
 
 help:
 	@echo Usage:
@@ -25,10 +25,7 @@ help:
 	@echo "  make test"
 	@echo "  make test-coverage"
 	@echo
-	@echo "  make terraform CONFIGURATION=examples/basic ARGS=apply"
-	@echo
-	@echo "  # Assemble the per-resource examples, then run them as one E2E config."
-	@echo "  make combine && make terraform CONFIGURATION=examples/all ARGS=apply"
+	@echo "  make terraform CONFIGURATION=examples ARGS=apply"
 	@echo
 	@echo "  # Run in \"Debug\" mode (connect debugger to port 2345)."
 	@echo "  make debug"
@@ -86,11 +83,6 @@ test-coverage:
 # https://www.terraform.io/docs/extend/testing/acceptance-tests/index.html
 testacc:
 	TF_ACC=1 go test ./... -v $(TESTARGS) -timeout 120m
-
-# Assemble all per-resource and per-data-source examples into examples/all/ as a
-# single configuration for the combined E2E test (see examples/all/README.md).
-combine:
-	bash examples/all/combine.sh
 
 terraform: install
 	cd $(CONFIGURATION) && rm -f .terraform.lock.hcl && terraform init && \

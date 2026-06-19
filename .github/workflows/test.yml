@@ -37,7 +37,7 @@ jobs:
     strategy:
       matrix:
         terraform-version: ["0.13", "1.0", "1.8", "latest"]
-        config: [examples/basic, examples/advanced, examples/connection]
+        config: [examples, examples/connection]
       fail-fast: false
     runs-on: ubuntu-latest
     steps:
@@ -74,9 +74,10 @@ jobs:
         env:
           LOGTAIL_API_TOKEN: ${{ matrix.config == 'examples/connection' && secrets.GLOBAL_E2E_API_TOKEN || secrets.LOGS_E2E_TEAM_TOKEN }}
 
-  # Assembles every per-resource and per-data-source example into one
-  # configuration (examples/all) and exercises it as a single apply/plan/destroy,
-  # keeping the snippets shown in the registry docs continuously verified.
+  # Assembles every documented example into one configuration — the basic example's
+  # scaffolding (provider/versions/variables) without its own main.tf/outputs.tf, plus
+  # every resources/* and data-sources/* example bar the denylisted ones — and runs it
+  # as a single apply/plan/destroy, keeping the registry docs' snippets verified.
   e2e_combined:
     strategy:
       # Serialized: every version applies the same fixed-name resources against the
@@ -98,16 +99,30 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v2
       - name: Assemble combined examples
-        run: make combine
+        run: |
+          mkdir -p combined-e2e
+          # Reuse the basic example's scaffolding, but not its own resources/outputs.
+          for f in examples/*.tf; do
+            case "$(basename "$f")" in main.tf | outputs.tf) continue ;; esac
+            cp "$f" "combined-e2e/$(basename "$f")"
+          done
+          # Flatten in every documented example, except: source_aws_account (needs AWS
+          # credentials) and connection (needs a global token; see examples/connection).
+          deny=" logtail_source_aws_account logtail_connection "
+          for f in examples/resources/*/*.tf examples/data-sources/*/*.tf; do
+            dir="$(basename "$(dirname "$f")")"
+            case "$deny" in *" $dir "*) continue ;; esac
+            cp "$f" "combined-e2e/${dir}__$(basename "$f")"
+          done
       - name: Add resources via Terraform
-        run: make terraform CONFIGURATION="examples/all" ARGS="apply --auto-approve --input=false"
+        run: make terraform CONFIGURATION="combined-e2e" ARGS="apply --auto-approve --input=false"
         env:
           LOGTAIL_API_TOKEN: ${{ secrets.LOGS_E2E_TEAM_TOKEN }}
       - name: Plan resources via Terraform - must be empty
         run: |
-          make terraform CONFIGURATION="examples/all" ARGS="plan --input=false --out=tfplan"
-          make terraform CONFIGURATION="examples/all" ARGS="show --json tfplan > tfplan.json"
-          CHANGES="$(jq "[.resource_changes[]? | select(.change.actions != [\"no-op\"])] | length" "examples/all/tfplan.json")"
+          make terraform CONFIGURATION="combined-e2e" ARGS="plan --input=false --out=tfplan"
+          make terraform CONFIGURATION="combined-e2e" ARGS="show --json tfplan > tfplan.json"
+          CHANGES="$(jq "[.resource_changes[]? | select(.change.actions != [\"no-op\"])] | length" "combined-e2e/tfplan.json")"
           if [ "$CHANGES" == "0" ]; then
             echo "No planned changes detected after first apply. Success!"
           else
@@ -118,7 +133,7 @@ jobs:
           LOGTAIL_API_TOKEN: ${{ secrets.LOGS_E2E_TEAM_TOKEN }}
       - name: Destroy resources via Terraform
         if: always()
-        run: make terraform CONFIGURATION="examples/all" ARGS="destroy --auto-approve --input=false"
+        run: make terraform CONFIGURATION="combined-e2e" ARGS="destroy --auto-approve --input=false"
         env:
           LOGTAIL_API_TOKEN: ${{ secrets.LOGS_E2E_TEAM_TOKEN }}
 

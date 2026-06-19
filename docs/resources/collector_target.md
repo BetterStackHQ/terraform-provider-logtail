@@ -20,7 +20,7 @@ resource "logtail_collector_target" "primary_db" {
   host         = "10.0.0.5"
   port         = 5432
   username     = "monitor"
-  password     = var.pg_monitor_password
+  password     = "example-rotate-me"
   ssl_mode     = "require"
 }
 
@@ -31,7 +31,7 @@ resource "logtail_collector_target" "pooler" {
   host         = "10.0.0.5"
   port         = 6432
   username     = "monitor"
-  password     = var.pgbouncer_monitor_password
+  password     = "example-rotate-me"
   ssl_mode     = "disable"
 }
 
@@ -42,7 +42,7 @@ resource "logtail_collector_target" "search" {
   host         = "10.0.0.6"
   port         = 9200
   scheme       = "https"
-  api_key      = var.es_api_key
+  api_key      = "example-rotate-me"
 }
 
 # Process target — Nginx exporter on a known collector host.
@@ -71,7 +71,7 @@ resource "logtail_collector_target" "paused_replica" {
   host         = "replica.example.com"
   port         = 5432
   username     = "monitor"
-  password     = var.pg_monitor_password
+  password     = "example-rotate-me"
   ssl_mode     = "disable"
   enabled      = false
 }

@@ -1,9 +1,0 @@
-# Example directories excluded from the combined E2E run (they remain in the
-# docs). One directory basename per line; blank lines and # comments ignored.
-
-# AWS account linkage needs AWS credentials + a CloudFormation stack (not in CI).
-logtail_source_aws_account
-
-# Connections need a global API token, not a team token; covered separately by
-# the examples/connection standalone configuration.
-logtail_connection
