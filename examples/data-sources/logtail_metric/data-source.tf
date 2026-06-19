@@ -3,3 +3,7 @@ data "logtail_metric" "level" {
   source_id = logtail_source.this.id
   name      = "level"
 }
+
+output "existing_metric_sql_expression" {
+  value = data.logtail_metric.level.sql_expression
+}

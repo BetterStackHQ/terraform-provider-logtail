@@ -2,3 +2,8 @@
 data "logtail_dashboard_template" "hosts" {
   name = "Hosts"
 }
+
+# The template data can be passed to a logtail_dashboard to clone it.
+output "existing_template_size" {
+  value = length(data.logtail_dashboard_template.hosts.data)
+}
