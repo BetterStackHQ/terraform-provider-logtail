@@ -79,7 +79,7 @@ func TestResourceMetric(t *testing.T) {
 					name           = "%s"
 					sql_expression = "%s"
 					type           = "%s"
-					aggregations   = ["avg", "p50"]
+					aggregations   = ["avg", "histogram"]
 				}
 				`, sourceID, name, sqlExpression, metricType),
 				Check: resource.ComposeTestCheckFunc(
@@ -90,7 +90,7 @@ func TestResourceMetric(t *testing.T) {
 					resource.TestCheckResourceAttr("logtail_metric.this", "type", metricType),
 					resource.TestCheckResourceAttr("logtail_metric.this", "aggregations.#", "2"),
 					resource.TestCheckResourceAttr("logtail_metric.this", "aggregations.0", "avg"),
-					resource.TestCheckResourceAttr("logtail_metric.this", "aggregations.1", "p50"),
+					resource.TestCheckResourceAttr("logtail_metric.this", "aggregations.1", "histogram"),
 				),
 				PreConfig: func() {
 					t.Log("step 1")
@@ -112,7 +112,7 @@ func TestResourceMetric(t *testing.T) {
 				}
 				`, sourceID, name, sqlExpression),
 				Check:       resource.ComposeTestCheckFunc(),
-				ExpectError: regexp.MustCompile(`expected type to be one of \["string_low_cardinality" "int64_delta" "float64_delta" "datetime64_delta" "boolean"], got mystery_column(.|\n)*expected aggregations\.2 to be one of \["avg" "count" "uniq" "max" "min" "anyLast" "sum" "p50" "p90" "p95" "p99"], got best`),
+				ExpectError: regexp.MustCompile(`expected type to be one of \["string_low_cardinality" "int64_delta" "float64_delta" "datetime64_delta" "boolean"], got mystery_column(.|\n)*expected aggregations\.2 to be one of \["avg" "count" "uniq" "max" "min" "sum" "histogram"], got best`),
 				PreConfig: func() {
 					t.Log("step 2")
 				},

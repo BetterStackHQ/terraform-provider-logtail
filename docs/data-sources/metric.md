@@ -30,7 +30,7 @@ data "logtail_metric" "level" {
 
 ### Read-Only
 
-- `aggregations` (List of String) The list of aggregations to perform on the metric.
+- `aggregations` (List of String) The list of aggregations to perform on the metric. Optional: omit it (or set it to an empty list) to create a Label (a group-by dimension) instead of a Metric.
 - `id` (String) The ID of this metric.
 - `sql_expression` (String) The SQL expression used to extract the metric value.
 - `type` (String) The type of the metric.
