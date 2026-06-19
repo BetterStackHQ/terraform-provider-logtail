@@ -17,11 +17,14 @@ This resource allows you to create, update and delete Metrics.
 
 ### Required
 
-- `aggregations` (List of String) The list of aggregations to perform on the metric.
 - `name` (String) The name of this metric.
 - `source_id` (String) The ID of the source this metric belongs to.
 - `sql_expression` (String) The SQL expression used to extract the metric value.
 - `type` (String) The type of the metric.
+
+### Optional
+
+- `aggregations` (List of String) The list of aggregations to perform on the metric. Optional: omit it (or set it to an empty list) to create a Label (a group-by dimension) instead of a Metric.
 
 ### Read-Only
 
