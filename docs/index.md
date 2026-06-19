@@ -25,7 +25,7 @@ terraform {
 
 ## Example usage
 
-In our GitHub repository, you can [see multiple executable examples](https://github.com/BetterStackHQ/terraform-provider-logtail/tree/master/examples).
+In our GitHub repository, you can [see multiple executable examples](https://github.com/BetterStackHQ/terraform-provider-logtail/tree/main/examples).
 Here's a simple one to get you started:
 
 ```terraform

@@ -3,10 +3,12 @@
 [![tests](https://github.com/BetterStackHQ/terraform-provider-logtail/actions/workflows/test.yml/badge.svg?branch=main)](https://github.com/BetterStackHQ/terraform-provider-logtail/actions/workflows/test.yml)
 [![documentation](https://img.shields.io/badge/-documentation-blue)](https://registry.terraform.io/providers/BetterStackHQ/logtail/latest/docs)
 
-These examples demonstrate how to provision and manage resources such as sources and metrics in Better Stack using Terraform.
+These examples demonstrate how to provision and manage Better Stack Telemetry resources with Terraform.
 
-For instructions how to try the examples for yourself, see the subdirectories.
-You can start with the [basic example](./basic).
+The files in this directory are a ready-to-run **basic** example. Detailed, per-resource
+examples live in [`resources/`](./resources) and [`data-sources/`](./data-sources) — these are
+embedded in the registry docs and exercised end-to-end in CI. [`connection/`](./connection)
+shows a connection, which requires a global API token.
 
 ## Documentation
 
