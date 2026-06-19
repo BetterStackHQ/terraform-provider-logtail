@@ -21,6 +21,9 @@ This Data Source allows you to look up existing Sources using their table name. 
 
 ### Read-Only
 
+- `aws_account_id` (String) Only for `platform = "aws"`. The ID of an existing connected AWS account to link this source to. Provide this instead of `aws_role_arn`/`aws_external_id` to reuse an account you've already connected. Write-only: the API never returns it, so it isn't refreshed from state.
+- `aws_external_id` (String, Sensitive) Only for `platform = "aws"`. The external ID used for the STS assume-role trust — the `ExternalId` output of the Better Stack CloudFormation stack. Provide together with `aws_role_arn`. Write-only: the API never returns it, so it isn't refreshed from state.
+- `aws_role_arn` (String) Only for `platform = "aws"`. The IAM role ARN to connect your AWS account — the `IntegrationRoleArn` output of the Better Stack CloudFormation stack. Provide together with `aws_external_id` (e.g. wired from a `cloudformation_stack` resource's outputs) to connect the account at create time. Write-only: the API never returns it, so it isn't refreshed from state.
 - `code_mapping_source_root` (String) Source code root path that replaces the stack trace root prefix. Used to map container or build paths to the corresponding repository paths for git blame.
 - `code_mapping_stack_root` (String) Stack trace root path prefix to match. When a stack trace file starts with this prefix, it will be replaced with the source code root to map to the correct repository path.
 - `created_at` (String) The time when this monitor group was created.
