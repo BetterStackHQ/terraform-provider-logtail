@@ -80,9 +80,9 @@ jobs:
   # as a single apply/plan/destroy, keeping the registry docs' snippets verified.
   e2e_combined:
     strategy:
-      # Serialized: every version applies the same fixed-name resources against the
-      # one E2E team, so concurrent runs would collide (e.g. collector names).
-      max-parallel: 1
+      # Safe to run in parallel: every resource takes its ID from the create response
+      # (duplicate names are allowed), and the data sources only read uniquely-named
+      # seeded fixtures or this run's own resource IDs — so concurrent runs never collide.
       matrix:
         terraform-version: ["0.13", "1.0", "1.8", "latest"]
       fail-fast: false
