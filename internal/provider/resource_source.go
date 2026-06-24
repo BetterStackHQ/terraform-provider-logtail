@@ -278,12 +278,25 @@ var sourceSchema = map[string]*schema.Schema{
 		},
 	},
 	"vrl_transformation": {
-		Description: "VRL transformation that runs on Better Stack's servers during ingestion. Note: data has already left your infrastructure at this point. For transformations that must run before data leaves your network (e.g. PII redaction), use `logtail_collector` with `configuration.vrl_transformation` instead. Read more about [VRL transformations](https://betterstack.com/docs/logs/using-logtail/transforming-ingested-data/logs-vrl/).",
-		Type:        schema.TypeString,
-		Optional:    true,
-		DiffSuppressFunc: func(k, old, new string, d *schema.ResourceData) bool {
-			return normalizeVRL(old) == normalizeVRL(new)
-		},
+		Description:      "Deprecated alias for `vrl_transformation_logs`. VRL transformation applied to logs on Better Stack's servers during ingestion. Note: data has already left your infrastructure at this point. For transformations that must run before data leaves your network (e.g. PII redaction), use `logtail_collector` with `configuration.vrl_transformation` instead. Read more about [VRL transformations](https://betterstack.com/docs/logs/using-logtail/transforming-ingested-data/logs-vrl/).",
+		Type:             schema.TypeString,
+		Optional:         true,
+		Deprecated:       "Use vrl_transformation_logs instead.",
+		ConflictsWith:    []string{"vrl_transformation_logs"},
+		DiffSuppressFunc: suppressUnmanagedVRL,
+	},
+	"vrl_transformation_logs": {
+		Description:      "VRL transformation applied to logs on Better Stack's servers during ingestion. Note: data has already left your infrastructure at this point. For transformations that must run before data leaves your network (e.g. PII redaction), use `logtail_collector` with `configuration.vrl_transformation` instead. Read more about [VRL transformations](https://betterstack.com/docs/logs/using-logtail/transforming-ingested-data/logs-vrl/).",
+		Type:             schema.TypeString,
+		Optional:         true,
+		ConflictsWith:    []string{"vrl_transformation"},
+		DiffSuppressFunc: suppressUnmanagedVRL,
+	},
+	"vrl_transformation_spans": {
+		Description:      "VRL transformation applied to traces (spans) on Better Stack's servers during ingestion. Read more about [VRL transformations](https://betterstack.com/docs/logs/using-logtail/transforming-ingested-data/logs-vrl/).",
+		Type:             schema.TypeString,
+		Optional:         true,
+		DiffSuppressFunc: suppressUnmanagedVRL,
 	},
 	"code_mapping_stack_root": {
 		Description: "Stack trace root path prefix to match. When a stack trace file starts with this prefix, it will be replaced with the source code root to map to the correct repository path.",
@@ -295,6 +308,22 @@ var sourceSchema = map[string]*schema.Schema{
 		Type:        schema.TypeString,
 		Optional:    true,
 	},
+}
+
+// suppressUnmanagedVRL suppresses spurious diffs on the per-type VRL fields. The API echoes the
+// deprecated vrl_transformation alias and vrl_transformation_logs with the same value, so an
+// attribute the configuration doesn't set comes back populated — that mirror must not register as
+// drift. A real change (including clearing with "") keeps the attribute present in the config.
+func suppressUnmanagedVRL(k, old, new string, d *schema.ResourceData) bool {
+	if normalizeVRL(old) == normalizeVRL(new) {
+		return true
+	}
+
+	raw := d.GetRawConfig()
+	if raw.IsNull() || !raw.Type().IsObjectType() || !raw.Type().HasAttribute(k) {
+		return false
+	}
+	return raw.GetAttr(k).IsNull()
 }
 
 func newSourceResource() *schema.Resource {
@@ -344,6 +373,8 @@ type source struct {
 	SourceGroupID                  *int                      `json:"source_group_id,omitempty"`
 	CustomBucket                   *sourceCustomBucket       `json:"custom_bucket,omitempty"`
 	VrlTransformation              *string                   `json:"vrl_transformation,omitempty"`
+	VrlTransformationLogs          *string                   `json:"vrl_transformation_logs,omitempty"`
+	VrlTransformationSpans         *string                   `json:"vrl_transformation_spans,omitempty"`
 	CodeMappingStackRoot           *string                   `json:"code_mapping_stack_root,omitempty"`
 	CodeMappingSourceRoot          *string                   `json:"code_mapping_source_root,omitempty"`
 }
@@ -384,6 +415,8 @@ func sourceRef(in *source) []struct {
 		{k: "data_region", v: &in.DataRegion},
 		{k: "source_group_id", v: &in.SourceGroupID},
 		{k: "vrl_transformation", v: &in.VrlTransformation},
+		{k: "vrl_transformation_logs", v: &in.VrlTransformationLogs},
+		{k: "vrl_transformation_spans", v: &in.VrlTransformationSpans},
 		{k: "code_mapping_stack_root", v: &in.CodeMappingStackRoot},
 		{k: "code_mapping_source_root", v: &in.CodeMappingSourceRoot},
 	}

@@ -910,6 +910,141 @@ func TestResourceSource(t *testing.T) {
 	})
 }
 
+func TestResourceSourcePerTypeVrl(t *testing.T) {
+	var data atomic.Value
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Header.Get("Authorization") != "Bearer foo" {
+			t.Fatal("Not authorized: " + r.Header.Get("Authorization"))
+		}
+
+		prefix := "/api/v1/sources"
+		id := "1"
+
+		switch {
+		case r.Method == http.MethodPost && r.RequestURI == prefix:
+			body, err := io.ReadAll(r.Body)
+			if err != nil {
+				t.Fatal(err)
+			}
+			body = inject(t, body, "token", "generated_by_logtail")
+			body = inject(t, body, "ingesting_host", "in.logs.betterstack.com")
+			body = inject(t, body, "table_name", "test_source")
+			body = inject(t, body, "team_id", 123456)
+			// Mirror the real serializer: vrl_transformation is the deprecated alias for
+			// vrl_transformation_logs, so the API returns both populated with the logs value.
+			var attrs map[string]interface{}
+			if err := json.Unmarshal(body, &attrs); err != nil {
+				t.Fatal(err)
+			}
+			if logs, ok := attrs["vrl_transformation_logs"]; ok {
+				body = inject(t, body, "vrl_transformation", logs)
+			} else if alias, ok := attrs["vrl_transformation"]; ok {
+				body = inject(t, body, "vrl_transformation_logs", alias)
+			}
+			data.Store(body)
+			w.WriteHeader(http.StatusCreated)
+			_, _ = w.Write([]byte(fmt.Sprintf(`{"data":{"id":%q,"attributes":%s}}`, id, body)))
+		case r.Method == http.MethodGet && r.RequestURI == prefix+"/"+id:
+			_, _ = w.Write([]byte(fmt.Sprintf(`{"data":{"id":%q,"attributes":%s}}`, id, data.Load().([]byte))))
+		case r.Method == http.MethodPatch && r.RequestURI == prefix+"/"+id:
+			body, err := io.ReadAll(r.Body)
+			if err != nil {
+				t.Fatal(err)
+			}
+			merged := make(map[string]interface{})
+			if err := json.Unmarshal(data.Load().([]byte), &merged); err != nil {
+				t.Fatal(err)
+			}
+			if err := json.Unmarshal(body, &merged); err != nil {
+				t.Fatal(err)
+			}
+			if logs, ok := merged["vrl_transformation_logs"]; ok {
+				merged["vrl_transformation"] = logs
+			}
+			patched, err := json.Marshal(merged)
+			if err != nil {
+				t.Fatal(err)
+			}
+			data.Store(patched)
+			_, _ = w.Write([]byte(fmt.Sprintf(`{"data":{"id":%q,"attributes":%s}}`, id, patched)))
+		case r.Method == http.MethodDelete && r.RequestURI == prefix+"/"+id:
+			w.WriteHeader(http.StatusNoContent)
+			data.Store([]byte(nil))
+		default:
+			t.Fatal("Unexpected " + r.Method + " " + r.RequestURI)
+		}
+	}))
+	defer server.Close()
+
+	name := "Test Source"
+	platform := "ubuntu"
+
+	resource.Test(t, resource.TestCase{
+		IsUnitTest: true,
+		ProviderFactories: map[string]func() (*schema.Provider, error){
+			"logtail": func() (*schema.Provider, error) {
+				return New(WithURL(server.URL)), nil
+			},
+		},
+		Steps: []resource.TestStep{
+			// vrl_transformation and vrl_transformation_logs are mutually exclusive (deprecated alias).
+			{
+				Config: fmt.Sprintf(`
+				provider "logtail" {
+					api_token = "foo"
+				}
+
+				resource "logtail_source" "this" {
+					name                    = "%s"
+					platform                = "%s"
+					vrl_transformation      = ".a = 1\n."
+					vrl_transformation_logs = ".b = 2\n."
+				}
+				`, name, platform),
+				ExpectError: regexp.MustCompile(`(?s)conflicts with`),
+			},
+			// Per-type logs + spans VRL round-trips independently.
+			{
+				Config: fmt.Sprintf(`
+				provider "logtail" {
+					api_token = "foo"
+				}
+
+				resource "logtail_source" "this" {
+					name                     = "%s"
+					platform                 = "%s"
+					vrl_transformation_logs  = ".message = upcase!(.message)\n."
+					vrl_transformation_spans = ".name = downcase!(.name)\n."
+				}
+				`, name, platform),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttrSet("logtail_source.this", "vrl_transformation_logs"),
+					resource.TestCheckResourceAttrSet("logtail_source.this", "vrl_transformation_spans"),
+				),
+			},
+			// Clearing a per-type VRL with "" takes effect (the config-aware suppressor lets the
+			// empty value through; Computed would have kept the old value).
+			{
+				Config: fmt.Sprintf(`
+				provider "logtail" {
+					api_token = "foo"
+				}
+
+				resource "logtail_source" "this" {
+					name                     = "%s"
+					platform                 = "%s"
+					vrl_transformation_logs  = ""
+					vrl_transformation_spans = ".name = downcase!(.name)\n."
+				}
+				`, name, platform),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr("logtail_source.this", "vrl_transformation_logs", ""),
+				),
+			},
+		},
+	})
+}
+
 func TestResourceSourceCodeMapping(t *testing.T) {
 	var data atomic.Value
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
