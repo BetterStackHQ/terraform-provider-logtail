@@ -1045,6 +1045,136 @@ func TestResourceSourcePerTypeVrl(t *testing.T) {
 	})
 }
 
+func TestResourceSourceBlockedMetrics(t *testing.T) {
+	var data atomic.Value
+	// The real serializer always returns blocked_metrics (an empty list when unset).
+	ensureBlockedMetrics := func(body json.RawMessage) json.RawMessage {
+		var attrs map[string]interface{}
+		if err := json.Unmarshal(body, &attrs); err != nil {
+			t.Fatal(err)
+		}
+		if _, ok := attrs["blocked_metrics"]; !ok {
+			body = inject(t, body, "blocked_metrics", []string{})
+		}
+		return body
+	}
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Header.Get("Authorization") != "Bearer foo" {
+			t.Fatal("Not authorized: " + r.Header.Get("Authorization"))
+		}
+
+		prefix := "/api/v1/sources"
+		id := "1"
+
+		switch {
+		case r.Method == http.MethodPost && r.RequestURI == prefix:
+			body, err := io.ReadAll(r.Body)
+			if err != nil {
+				t.Fatal(err)
+			}
+			body = inject(t, body, "token", "generated_by_logtail")
+			body = inject(t, body, "ingesting_host", "in.logs.betterstack.com")
+			body = inject(t, body, "table_name", "test_source")
+			body = inject(t, body, "team_id", 123456)
+			body = ensureBlockedMetrics(body)
+			data.Store(body)
+			w.WriteHeader(http.StatusCreated)
+			_, _ = w.Write([]byte(fmt.Sprintf(`{"data":{"id":%q,"attributes":%s}}`, id, body)))
+		case r.Method == http.MethodGet && r.RequestURI == prefix+"/"+id:
+			_, _ = w.Write([]byte(fmt.Sprintf(`{"data":{"id":%q,"attributes":%s}}`, id, data.Load().([]byte))))
+		case r.Method == http.MethodPatch && r.RequestURI == prefix+"/"+id:
+			body, err := io.ReadAll(r.Body)
+			if err != nil {
+				t.Fatal(err)
+			}
+			merged := make(map[string]interface{})
+			if err := json.Unmarshal(data.Load().([]byte), &merged); err != nil {
+				t.Fatal(err)
+			}
+			if err := json.Unmarshal(body, &merged); err != nil {
+				t.Fatal(err)
+			}
+			patched, err := json.Marshal(merged)
+			if err != nil {
+				t.Fatal(err)
+			}
+			data.Store(patched)
+			_, _ = w.Write([]byte(fmt.Sprintf(`{"data":{"id":%q,"attributes":%s}}`, id, patched)))
+		case r.Method == http.MethodDelete && r.RequestURI == prefix+"/"+id:
+			w.WriteHeader(http.StatusNoContent)
+			data.Store([]byte(nil))
+		default:
+			t.Fatal("Unexpected " + r.Method + " " + r.RequestURI)
+		}
+	}))
+	defer server.Close()
+
+	name := "Test Source"
+	platform := "ubuntu"
+
+	resource.Test(t, resource.TestCase{
+		IsUnitTest: true,
+		ProviderFactories: map[string]func() (*schema.Provider, error){
+			"logtail": func() (*schema.Provider, error) {
+				return New(WithURL(server.URL)), nil
+			},
+		},
+		Steps: []resource.TestStep{
+			// No blocked_metrics in config; the API echoes an empty list, which must not drift.
+			{
+				Config: fmt.Sprintf(`
+				provider "logtail" {
+					api_token = "foo"
+				}
+
+				resource "logtail_source" "this" {
+					name     = "%s"
+					platform = "%s"
+				}
+				`, name, platform),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr("logtail_source.this", "blocked_metrics.#", "0"),
+				),
+			},
+			// Set blocked metrics.
+			{
+				Config: fmt.Sprintf(`
+				provider "logtail" {
+					api_token = "foo"
+				}
+
+				resource "logtail_source" "this" {
+					name            = "%s"
+					platform        = "%s"
+					blocked_metrics = ["node_cpu_seconds_total", "process_open_fds"]
+				}
+				`, name, platform),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr("logtail_source.this", "blocked_metrics.#", "2"),
+					resource.TestCheckResourceAttr("logtail_source.this", "blocked_metrics.0", "node_cpu_seconds_total"),
+				),
+			},
+			// Clear with an empty list.
+			{
+				Config: fmt.Sprintf(`
+				provider "logtail" {
+					api_token = "foo"
+				}
+
+				resource "logtail_source" "this" {
+					name            = "%s"
+					platform        = "%s"
+					blocked_metrics = []
+				}
+				`, name, platform),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr("logtail_source.this", "blocked_metrics.#", "0"),
+				),
+			},
+		},
+	})
+}
+
 func TestResourceSourceCodeMapping(t *testing.T) {
 	var data atomic.Value
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

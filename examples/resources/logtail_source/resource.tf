@@ -11,7 +11,10 @@ resource "logtail_source" "this" {
   vrl_transformation_spans = <<-EOT
     # Drop noisy health-check spans
     if .name == "GET /api/health" {
-        abort
+        del(.)
     }
   EOT
+
+  # Metric names to drop as spam: rejected during ingestion, never billed.
+  blocked_metrics = ["go_gc_duration_seconds", "go_memstats_heap_idle_bytes"]
 }

@@ -21,6 +21,7 @@ This Data Source allows you to look up existing Sources using their table name. 
 
 ### Read-Only
 
+- `blocked_metrics` (List of String) Metric names to mark as spam (one entry per metric). Listed metrics are rejected during ingestion and not billed.
 - `code_mapping_source_root` (String) Source code root path that replaces the stack trace root prefix. Used to map container or build paths to the corresponding repository paths for git blame.
 - `code_mapping_stack_root` (String) Stack trace root path prefix to match. When a stack trace file starts with this prefix, it will be replaced with the source code root to map to the correct repository path.
 - `created_at` (String) The time when this monitor group was created.
@@ -100,8 +101,8 @@ When importing an existing source, leave `data_region` unset in your configurati
 - `team_name` (String) Used to specify the team the resource should be created in when using global tokens. You can't update this value later.
 - `token` (String) The token of this source. This token is used to identify and route the data you will send to Better Stack.
 - `updated_at` (String) The time when this monitor group was updated.
-- `vrl_transformation` (String, Deprecated) Deprecated alias for `vrl_transformation_logs`. VRL transformation applied to logs on Better Stack's servers during ingestion. Note: data has already left your infrastructure at this point. For transformations that must run before data leaves your network (e.g. PII redaction), use `logtail_collector` with `configuration.vrl_transformation` instead. Read more about [VRL transformations](https://betterstack.com/docs/logs/using-logtail/transforming-ingested-data/logs-vrl/).
-- `vrl_transformation_logs` (String) VRL transformation applied to logs on Better Stack's servers during ingestion. Note: data has already left your infrastructure at this point. For transformations that must run before data leaves your network (e.g. PII redaction), use `logtail_collector` with `configuration.vrl_transformation` instead. Read more about [VRL transformations](https://betterstack.com/docs/logs/using-logtail/transforming-ingested-data/logs-vrl/).
+- `vrl_transformation` (String, Deprecated) Deprecated alias for `vrl_transformation_logs`. VRL transformation applied to logs on Better Stack's servers during ingestion. Read more about [VRL transformations](https://betterstack.com/docs/logs/using-logtail/transforming-ingested-data/logs-vrl/).
+- `vrl_transformation_logs` (String) VRL transformation applied to logs on Better Stack's servers during ingestion. Read more about [VRL transformations](https://betterstack.com/docs/logs/using-logtail/transforming-ingested-data/logs-vrl/).
 - `vrl_transformation_spans` (String) VRL transformation applied to traces (spans) on Better Stack's servers during ingestion. Read more about [VRL transformations](https://betterstack.com/docs/logs/using-logtail/transforming-ingested-data/logs-vrl/).
 
 <a id="nestedatt--custom_bucket"></a>
