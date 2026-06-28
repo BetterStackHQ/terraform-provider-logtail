@@ -103,6 +103,12 @@ resource "logtail_errors_application" "with_github_repository" {
   github_repository_name = "BetterStackHQ/test-blame-repo"
 }
 
+resource "logtail_errors_application" "with_gitlab_repository" {
+  name                   = "Terraform Advanced GitLab Errors Application"
+  platform               = "ruby_errors"
+  gitlab_repository_name = "better-stack/test-blame-repo"
+}
+
 # =============================================================================
 # Dashboards
 # =============================================================================

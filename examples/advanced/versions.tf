@@ -3,7 +3,7 @@ terraform {
   required_providers {
     logtail = {
       source  = "BetterStackHQ/logtail"
-      version = ">= 10.14.3"
+      version = ">= 10.14.4"
     }
   }
 }
