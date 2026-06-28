@@ -793,7 +793,7 @@ func TestResourceErrorsApplicationRepositoryMutuallyExclusive(t *testing.T) {
 					gitlab_repository_name = "group/project"
 				}
 				`, name, platform),
-				ExpectError: regexp.MustCompile(`mutually exclusive`),
+				ExpectError: regexp.MustCompile(`conflicts with`),
 			},
 		},
 	})

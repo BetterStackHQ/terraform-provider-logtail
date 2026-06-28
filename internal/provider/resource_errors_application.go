@@ -246,16 +246,18 @@ var errorsApplicationSchema = map[string]*schema.Schema{
 		Optional:    true,
 	},
 	"github_repository_name": {
-		Description: "Full name of a GitHub repository (e.g. `owner/repo`) to connect to this application for source links, git blame, and AI-assisted fixes. The repository must already be connected to your team's GitHub integration. Set to an empty string to disconnect. Mutually exclusive with `gitlab_repository_name`.",
-		Type:        schema.TypeString,
-		Optional:    true,
-		Computed:    true,
+		Description:   "Full name of a GitHub repository (e.g. `owner/repo`) to connect to this application for source links, git blame, and AI-assisted fixes. The repository must already be connected to your team's GitHub integration. Set to an empty string to disconnect. Mutually exclusive with `gitlab_repository_name`.",
+		Type:          schema.TypeString,
+		Optional:      true,
+		Computed:      true,
+		ConflictsWith: []string{"gitlab_repository_name"},
 	},
 	"gitlab_repository_name": {
-		Description: "Full name of a GitLab repository (e.g. `group/project`) to connect to this application for source links, git blame, and AI-assisted fixes. The repository must already be connected to your team's GitLab integration. Set to an empty string to disconnect. Mutually exclusive with `github_repository_name`.",
-		Type:        schema.TypeString,
-		Optional:    true,
-		Computed:    true,
+		Description:   "Full name of a GitLab repository (e.g. `group/project`) to connect to this application for source links, git blame, and AI-assisted fixes. The repository must already be connected to your team's GitLab integration. Set to an empty string to disconnect. Mutually exclusive with `github_repository_name`.",
+		Type:          schema.TypeString,
+		Optional:      true,
+		Computed:      true,
+		ConflictsWith: []string{"github_repository_name"},
 	},
 	"custom_bucket": {
 		Description: "Optional custom bucket configuration for the application. When provided, all fields (name, endpoint, access_key_id, secret_access_key) are required.",
@@ -547,18 +549,6 @@ func validateErrorsApplication(ctx context.Context, diff *schema.ResourceDiff, v
 		return fmt.Errorf("data_region cannot be changed after application is created")
 	}
 
-	// github_repository_name and gitlab_repository_name are mutually exclusive (the API rejects
-	// setting both with a 422); catch it at plan time for a clearer error.
-	if rawConfig := diff.GetRawConfig(); !rawConfig.IsNull() && rawConfig.IsKnown() {
-		repoNameSet := func(key string) bool {
-			val := rawConfig.GetAttr(key)
-			return !val.IsNull() && val.IsKnown() && val.AsString() != ""
-		}
-		if repoNameSet("github_repository_name") && repoNameSet("gitlab_repository_name") {
-			return fmt.Errorf("github_repository_name and gitlab_repository_name are mutually exclusive; set only one")
-		}
-	}
-
 	if err := validateCustomBucketRemoval(ctx, diff, v); err != nil {
 		return err
 	}
@@ -594,6 +584,8 @@ func newErrorsApplicationDataSource() *schema.Resource {
 			cp.Default = nil
 			cp.DefaultFunc = nil
 			cp.DiffSuppressFunc = nil
+			// ConflictsWith is invalid on computed-only attributes (data source fields), so drop it.
+			cp.ConflictsWith = nil
 		}
 		s[k] = &cp
 	}
