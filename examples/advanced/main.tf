@@ -42,7 +42,6 @@ resource "logtail_metric" "duration_ms" {
   name           = "duration_ms"
   sql_expression = "getJSON(raw, 'duration_ms')"
   aggregations   = ["avg", "max", "min", "histogram"]
-  type           = "float64_delta"
 }
 
 resource "logtail_metric" "service_name" {
@@ -50,16 +49,13 @@ resource "logtail_metric" "service_name" {
   name           = "service_name"
   sql_expression = "getJSON(raw, 'service_name')"
   aggregations   = []
-  type           = "string_low_cardinality"
 }
 
-# aggregations is optional — omitting it creates a Label (a group-by dimension)
-# rather than a Metric.
+# aggregations field is optional — omitting it creates a Label (a group-by dimension) rather than a Metric.
 resource "logtail_metric" "service_version" {
   source_id      = logtail_source.this.id
   name           = "service_version"
   sql_expression = "getJSON(raw, 'service_version')"
-  type           = "string_low_cardinality"
 }
 
 data "logtail_metric" "level" {
