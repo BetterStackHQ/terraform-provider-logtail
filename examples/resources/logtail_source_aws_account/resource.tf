@@ -1,7 +1,7 @@
 # Connect an AWS account to an aws-platform source in a single `terraform apply`.
 # Terraform orders logtail_source_aws_account after both the source and the
 # CloudFormation stack because it references their outputs, so everything
-# provisions in one pass — no toggle, no second apply.
+# provisions in one pass - no toggle, no second apply.
 
 resource "logtail_source" "aws" {
   name     = "AWS production"

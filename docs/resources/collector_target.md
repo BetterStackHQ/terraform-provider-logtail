@@ -3,17 +3,17 @@
 page_title: "logtail_collector_target Resource - terraform-provider-logtail"
 subcategory: ""
 description: |-
-  Manages a single 'Collect metrics' target on a Better Stack Collector — a database (postgres, pgbouncer, mysql, redis, mongodb, memcached, elasticsearch) or process exporter (nginx, apache, kafka, prometheus) that the collector scrapes.
+  Manages a single 'Collect metrics' target on a Better Stack Collector - a database (postgres, pgbouncer, mysql, redis, mongodb, memcached, elasticsearch) or process exporter (nginx, apache, kafka, prometheus) that the collector scrapes.
 ---
 
 # logtail_collector_target (Resource)
 
-Manages a single 'Collect metrics' target on a Better Stack Collector — a database (postgres, pgbouncer, mysql, redis, mongodb, memcached, elasticsearch) or process exporter (nginx, apache, kafka, prometheus) that the collector scrapes.
+Manages a single 'Collect metrics' target on a Better Stack Collector - a database (postgres, pgbouncer, mysql, redis, mongodb, memcached, elasticsearch) or process exporter (nginx, apache, kafka, prometheus) that the collector scrapes.
 
 ## Example Usage
 
 ```terraform
-# Database target — PostgreSQL with SSL.
+# Database target - PostgreSQL with SSL.
 resource "logtail_collector_target" "primary_db" {
   collector_id = logtail_collector.production.id
   kind         = "postgres"
@@ -24,7 +24,7 @@ resource "logtail_collector_target" "primary_db" {
   ssl_mode     = "require"
 }
 
-# Database target — PgBouncer pooler in front of PostgreSQL.
+# Database target - PgBouncer pooler in front of PostgreSQL.
 resource "logtail_collector_target" "pooler" {
   collector_id = logtail_collector.production.id
   kind         = "pgbouncer"
@@ -35,7 +35,7 @@ resource "logtail_collector_target" "pooler" {
   ssl_mode     = "disable"
 }
 
-# Database target — Elasticsearch with API key authentication.
+# Database target - Elasticsearch with API key authentication.
 resource "logtail_collector_target" "search" {
   collector_id = logtail_collector.production.id
   kind         = "elasticsearch"
@@ -45,7 +45,7 @@ resource "logtail_collector_target" "search" {
   api_key      = "example-rotate-me"
 }
 
-# Process target — Nginx exporter on a known collector host.
+# Process target - Nginx exporter on a known collector host.
 resource "logtail_collector_target" "edge_nginx" {
   collector_id   = logtail_collector.production.id
   kind           = "nginx"
@@ -55,7 +55,7 @@ resource "logtail_collector_target" "edge_nginx" {
   port           = 80
 }
 
-# Process target — custom Prometheus exporter at a full scrape URL.
+# Process target - custom Prometheus exporter at a full scrape URL.
 resource "logtail_collector_target" "app_metrics" {
   collector_id   = logtail_collector.production.id
   kind           = "prometheus"
@@ -89,7 +89,7 @@ resource "logtail_collector_target" "paused_replica" {
 
 - `api_key` (String, Sensitive) API key for authentication. Used by elasticsearch.
 - `collector_host` (String) Hostname of the collector host running this process. Use this for process kinds (nginx, apache, kafka, prometheus). Must match the hostname of a `collector_host` reporting to this collector. For database kinds use `host` instead.
-- `enabled` (Boolean) Whether the collector should scrape this target. Defaults to `true` server-side. Setting to `false` puts the target into `disabled` status — it remains configured but is not scraped.
+- `enabled` (Boolean) Whether the collector should scrape this target. Defaults to `true` server-side. Setting to `false` puts the target into `disabled` status - it remains configured but is not scraped.
 - `endpoint` (String) Full scrape URL. Required for prometheus.
 - `host` (String) Hostname or IP of the database server. Use this for database kinds (postgres, pgbouncer, mysql, redis, mongodb, memcached, elasticsearch). For process kinds use `collector_host` instead.
 - `listen_ip` (String) IP address the process listens on, as seen from the collector host. Used for nginx, apache, kafka.

@@ -8,7 +8,7 @@ resource "logtail_collector" "production" {
   logs_retention    = 30
   metrics_retention = 90
 
-  # On-host VRL runs inside your infrastructure — raw data never leaves your network
+  # On-host VRL runs inside your infrastructure - raw data never leaves your network
   configuration {
     vrl_transformation = <<-EOT
       # Redact e-mail addresses

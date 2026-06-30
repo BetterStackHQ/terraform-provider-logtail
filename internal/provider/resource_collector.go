@@ -258,7 +258,7 @@ var collectorSchema = map[string]*schema.Schema{
 					},
 				},
 				"vrl_transformation": {
-					Description: "VRL transformation that runs on the collector host, inside your infrastructure, before data is transmitted to Better Stack. Use this for PII redaction and sensitive data filtering — raw data never leaves your network. For server-side transformations that run during ingestion on Better Stack, use the top-level `source_vrl_transformation` attribute instead. Read more about [VRL transformations](https://betterstack.com/docs/logs/using-logtail/transforming-ingested-data/logs-vrl/).",
+					Description: "VRL transformation that runs on the collector host, inside your infrastructure, before data is transmitted to Better Stack. Use this for PII redaction and sensitive data filtering - raw data never leaves your network. For server-side transformations that run during ingestion on Better Stack, use the top-level `source_vrl_transformation` attribute instead. Read more about [VRL transformations](https://betterstack.com/docs/logs/using-logtail/transforming-ingested-data/logs-vrl/).",
 					Type:        schema.TypeString,
 					Optional:    true,
 					Computed:    true,
@@ -273,7 +273,7 @@ var collectorSchema = map[string]*schema.Schema{
 					Computed:    true,
 				},
 				"merge_logs_config": {
-					Description: "VRL condition detecting the first line of a new log entry — consecutive lines not matching it are merged into the preceding entry. Leave unset to use the built-in heuristic (lines starting with a timestamp or log level). Only used when `merge_logs` is `true`.",
+					Description: "VRL condition detecting the first line of a new log entry - consecutive lines not matching it are merged into the preceding entry. Leave unset to use the built-in heuristic (lines starting with a timestamp or log level). Only used when `merge_logs` is `true`.",
 					Type:        schema.TypeString,
 					Optional:    true,
 					Computed:    true,
@@ -358,7 +358,7 @@ var collectorSchema = map[string]*schema.Schema{
 		},
 	},
 	"databases": {
-		Description: "Database connections for the collector. Deprecated — use the `logtail_collector_target` resource instead.",
+		Description: "Database connections for the collector. Deprecated - use the `logtail_collector_target` resource instead.",
 		Deprecated:  "Use the `logtail_collector_target` resource instead.",
 		Type:        schema.TypeList,
 		Optional:    true,
@@ -889,7 +889,7 @@ func collectorUpdate(ctx context.Context, d *schema.ResourceData, meta interface
 		}
 	}
 
-	// Load configuration if changed — merge with server state to preserve
+	// Load configuration if changed - merge with server state to preserve
 	// unmanaged services/namespaces that were auto-discovered by the collector.
 	if d.HasChange("configuration") {
 		in.Configuration = loadCollectorConfiguration(d)
@@ -949,7 +949,7 @@ func collectorCopyAttrs(d *schema.ResourceData, in *collector) diag.Diagnostics 
 		}
 	}
 
-	// Copy configuration — only set the block if there are meaningful (non-default) fields.
+	// Copy configuration - only set the block if there are meaningful (non-default) fields.
 	// Capture user-managed option names BEFORE d.Set overwrites the state.
 	managedServices := getUserManagedOptionNames(d, "service_option")
 	managedNamespaces := getUserManagedOptionNames(d, "namespace_option")

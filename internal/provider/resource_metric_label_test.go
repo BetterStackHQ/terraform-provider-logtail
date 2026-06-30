@@ -63,7 +63,7 @@ func TestResourceMetricAsLabel(t *testing.T) {
 
 	// aggregationsInBody returns a check that decodes the most recent request body
 	// (POST or PATCH) and asserts the aggregations field equals want. A non-nil
-	// empty slice (a Label) is required — a missing/null field would let the
+	// empty slice (a Label) is required - a missing/null field would let the
 	// backend keep the previous aggregations.
 	aggregationsInBody := func(store *atomic.Value, want []string) resource.TestCheckFunc {
 		return func(*terraform.State) error {

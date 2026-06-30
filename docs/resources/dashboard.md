@@ -63,4 +63,4 @@ Optional:
 
 - `default_values` (List of String) For 'string', 'number', and 'boolean' variables: fallback value used when `values` is empty. For 'select_value' variables: the predefined options shown in the picker. Unused for other types.
 - `sql_definition` (String) SQL definition for 'select_with_sql' or 'multi_select_with_sql' type variables.
-- `values` (List of String) The selected values. For 'source' variables these are the source IDs the variable resolves to (e.g. `logtail_source.web.id`) — this is the field that selects the source. For other types it is the current picker selection or input.
+- `values` (List of String) The selected values. For 'source' variables these are the source IDs the variable resolves to (e.g. `logtail_source.web.id`) - this is the field that selects the source. For other types it is the current picker selection or input.

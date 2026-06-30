@@ -23,13 +23,13 @@ var sourceAWSAccountSchema = map[string]*schema.Schema{
 		AtLeastOneOf: []string{"aws_account_id", "aws_role_arn"},
 	},
 	"aws_role_arn": {
-		Description:  "The IAM role ARN to connect your AWS account — the `IntegrationRoleArn` output of the Better Stack CloudFormation stack. Provide together with `aws_external_id`. Write-only: the API does not return it, so it isn't refreshed from state.",
+		Description:  "The IAM role ARN to connect your AWS account - the `IntegrationRoleArn` output of the Better Stack CloudFormation stack. Provide together with `aws_external_id`. Write-only: the API does not return it, so it isn't refreshed from state.",
 		Type:         schema.TypeString,
 		Optional:     true,
 		RequiredWith: []string{"aws_external_id"},
 	},
 	"aws_external_id": {
-		Description:  "The external ID used for the STS assume-role trust — the `ExternalId` output of the Better Stack CloudFormation stack. Provide together with `aws_role_arn`. Write-only: the API does not return it, so it isn't refreshed from state.",
+		Description:  "The external ID used for the STS assume-role trust - the `ExternalId` output of the Better Stack CloudFormation stack. Provide together with `aws_role_arn`. Write-only: the API does not return it, so it isn't refreshed from state.",
 		Type:         schema.TypeString,
 		Optional:     true,
 		Sensitive:    true,
@@ -48,7 +48,7 @@ func newSourceAWSAccountResource() *schema.Resource {
 		},
 		Description: "Links an AWS account to an `aws` platform `logtail_source` by pasting back the " +
 			"CloudFormation role ARN / external ID (or reusing an already-connected account).\n\n" +
-			"The credentials are write-only — the API never returns them, so they aren't refreshed into " +
+			"The credentials are write-only - the API never returns them, so they aren't refreshed into " +
 			"Terraform state. Destroying this resource only removes it from state; the AWS account stays " +
 			"linked to the source until the source itself is destroyed.",
 		Schema: sourceAWSAccountSchema,
@@ -66,7 +66,7 @@ type sourceAWSAccountPayload struct {
 
 // patchSourceAWSAccount PATCHes the configured AWS credentials onto the source. The full
 // configured set is always sent (not just changed keys) because the connect manager needs
-// the role ARN / external ID together — a partial PATCH would be rejected server-side.
+// the role ARN / external ID together - a partial PATCH would be rejected server-side.
 func patchSourceAWSAccount(ctx context.Context, d *schema.ResourceData, meta interface{}, sourceID string) diag.Diagnostics {
 	in := sourceAWSAccountPayload{
 		AwsAccountID:  stringFromResourceData(d, "aws_account_id"),
@@ -94,7 +94,7 @@ func sourceAWSAccountRead(ctx context.Context, d *schema.ResourceData, meta inte
 		return nil
 	}
 	// The credentials are write-only (never returned by the API), so there's nothing to
-	// refresh — we only confirm the underlying source still exists and keep source_id in sync.
+	// refresh - we only confirm the underlying source still exists and keep source_id in sync.
 	return diag.FromErr(d.Set("source_id", d.Id()))
 }
 

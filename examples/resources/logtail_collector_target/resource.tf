@@ -1,4 +1,4 @@
-# Database target — PostgreSQL with SSL.
+# Database target - PostgreSQL with SSL.
 resource "logtail_collector_target" "primary_db" {
   collector_id = logtail_collector.production.id
   kind         = "postgres"
@@ -9,7 +9,7 @@ resource "logtail_collector_target" "primary_db" {
   ssl_mode     = "require"
 }
 
-# Database target — PgBouncer pooler in front of PostgreSQL.
+# Database target - PgBouncer pooler in front of PostgreSQL.
 resource "logtail_collector_target" "pooler" {
   collector_id = logtail_collector.production.id
   kind         = "pgbouncer"
@@ -20,7 +20,7 @@ resource "logtail_collector_target" "pooler" {
   ssl_mode     = "disable"
 }
 
-# Database target — Elasticsearch with API key authentication.
+# Database target - Elasticsearch with API key authentication.
 resource "logtail_collector_target" "search" {
   collector_id = logtail_collector.production.id
   kind         = "elasticsearch"
@@ -30,7 +30,7 @@ resource "logtail_collector_target" "search" {
   api_key      = "example-rotate-me"
 }
 
-# Process target — Nginx exporter on a known collector host.
+# Process target - Nginx exporter on a known collector host.
 resource "logtail_collector_target" "edge_nginx" {
   collector_id   = logtail_collector.production.id
   kind           = "nginx"
@@ -40,7 +40,7 @@ resource "logtail_collector_target" "edge_nginx" {
   port           = 80
 }
 
-# Process target — custom Prometheus exporter at a full scrape URL.
+# Process target - custom Prometheus exporter at a full scrape URL.
 resource "logtail_collector_target" "app_metrics" {
   collector_id   = logtail_collector.production.id
   kind           = "prometheus"

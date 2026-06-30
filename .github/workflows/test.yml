@@ -74,15 +74,15 @@ jobs:
         env:
           LOGTAIL_API_TOKEN: ${{ matrix.config == 'examples/connection' && secrets.GLOBAL_E2E_API_TOKEN || secrets.LOGS_E2E_TEAM_TOKEN }}
 
-  # Assembles every documented example into one configuration — the basic example's
+  # Assembles every documented example into one configuration - the basic example's
   # scaffolding (provider/versions/variables) without its own main.tf/outputs.tf, plus
-  # every resources/* and data-sources/* example bar the denylisted ones — and runs it
+  # every resources/* and data-sources/* example bar the denylisted ones - and runs it
   # as a single apply/plan/destroy, keeping the registry docs' snippets verified.
   e2e_combined:
     strategy:
       # Safe to run in parallel: every resource takes its ID from the create response
       # (duplicate names are allowed), and the data sources only read uniquely-named
-      # seeded fixtures or this run's own resource IDs — so concurrent runs never collide.
+      # seeded fixtures or this run's own resource IDs - so concurrent runs never collide.
       matrix:
         terraform-version: ["0.13", "1.0", "1.8", "latest"]
       fail-fast: false
