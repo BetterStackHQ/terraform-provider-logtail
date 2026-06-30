@@ -173,6 +173,5 @@ resource "logtail_metric" "docker_error_rate" {
   source_id      = logtail_collector.docker_basic.source_id
   name           = "duration_ms"
   sql_expression = "getJSON(raw, 'duration_ms')"
-  type           = "float64_delta"
   aggregations   = ["avg", "max", "min"]
 }
