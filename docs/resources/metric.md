@@ -3,12 +3,12 @@
 page_title: "logtail_metric Resource - terraform-provider-logtail"
 subcategory: ""
 description: |-
-  This resource allows you to create, update and delete Metrics.
+  This resource allows you to create, update and delete Metrics and Labels.
 ---
 
 # logtail_metric (Resource)
 
-This resource allows you to create, update and delete Metrics.
+This resource allows you to create, update and delete Metrics and Labels.
 
 ## Example Usage
 
@@ -18,7 +18,6 @@ resource "logtail_metric" "this" {
   source_id      = logtail_source.this.id
   name           = "duration_ms"
   sql_expression = "getJSON(raw, 'duration_ms')"
-  type           = "float64_delta"
   aggregations   = ["avg", "max", "min"]
 }
 ```
@@ -31,11 +30,11 @@ resource "logtail_metric" "this" {
 - `name` (String) The name of this metric.
 - `source_id` (String) The ID of the source this metric belongs to.
 - `sql_expression` (String) The SQL expression used to extract the metric value.
-- `type` (String) The type of the metric.
 
 ### Optional
 
 - `aggregations` (List of String) The list of aggregations to perform on the metric. Optional: omit it (or set it to an empty list) to create a Label (a group-by dimension) instead of a Metric.
+- `type` (String, Deprecated) The type of the metric.
 
 ### Read-Only
 

@@ -37,4 +37,4 @@ output "existing_metric_sql_expression" {
 - `aggregations` (List of String) The list of aggregations to perform on the metric. Optional: omit it (or set it to an empty list) to create a Label (a group-by dimension) instead of a Metric.
 - `id` (String) The ID of this metric.
 - `sql_expression` (String) The SQL expression used to extract the metric value.
-- `type` (String) The type of the metric.
+- `type` (String, Deprecated) The type of the metric.

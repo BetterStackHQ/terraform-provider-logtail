@@ -8,7 +8,7 @@ GOLANGCI_LINT := golangci-lint run --disable-all \
 	-E staticcheck \
 	-E typecheck \
 	-E unused
-VERSION := 10.14.4
+VERSION := 10.15.2
 .PHONY: test build
 
 help:

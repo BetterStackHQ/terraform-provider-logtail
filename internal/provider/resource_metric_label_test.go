@@ -100,7 +100,6 @@ func TestResourceMetricAsLabel(t *testing.T) {
 					source_id      = "source123"
 					name           = "service_name"
 					sql_expression = "getJSON(raw, 'service_name')"
-					type           = "string_low_cardinality"
 				}`,
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("logtail_metric.this", "id", "1"),
@@ -120,7 +119,6 @@ func TestResourceMetricAsLabel(t *testing.T) {
 					source_id      = "source123"
 					name           = "service_name"
 					sql_expression = "getJSON(raw, 'service_name')"
-					type           = "string_low_cardinality"
 				}`,
 				PlanOnly: true,
 			},
@@ -134,7 +132,6 @@ func TestResourceMetricAsLabel(t *testing.T) {
 					source_id      = "source123"
 					name           = "service_name"
 					sql_expression = "getJSON(raw, 'service_name')"
-					type           = "string_low_cardinality"
 					aggregations   = ["uniq"]
 				}`,
 				Check: resource.ComposeTestCheckFunc(
@@ -155,7 +152,6 @@ func TestResourceMetricAsLabel(t *testing.T) {
 					source_id      = "source123"
 					name           = "service_name"
 					sql_expression = "getJSON(raw, 'service_name')"
-					type           = "string_low_cardinality"
 					aggregations   = []
 				}`,
 				Check: resource.ComposeTestCheckFunc(
