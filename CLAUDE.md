@@ -10,7 +10,7 @@ Each example holds only its own resource and may reference siblings by their con
 
 `examples/` itself is the runnable **basic** example. `examples/connection/` runs as its own E2E config because it needs a global API token; the combined run denylists it and `logtail_source_aws_account` (needs AWS credentials).
 
-**Seeded fixtures** the data-source examples look up (create once in the E2E team, never delete): collector `My Existing Collector`, `My Existing Source Group`, errors application `My Existing Errors Application` and group `My Existing Errors Application Group`, `My Existing Dashboard Group`, `My Existing Exploration`, `My Existing Exploration Group`; plus escalation policy `My Existing Escalation Policy` (used by the `exploration_alert` resource).
+**Seeded fixtures** the examples reference (create once in the E2E team, never delete): collector `My Existing Collector`, `My Existing Source Group`, errors application `My Existing Errors Application` and group `My Existing Errors Application Group`, `My Existing Dashboard Group`, `My Existing Exploration`, `My Existing Exploration Group`; escalation policy `My Existing Escalation Policy` (used by the alert resources); and the connected source-code repositories `BetterStackHQ/test-blame-repo` (GitHub integration) and `better-stack/test-blame-repo` (GitLab integration), linked by the `errors_application` examples.
 
 ## Versioning: bump `VERSION` to the intended release version
 

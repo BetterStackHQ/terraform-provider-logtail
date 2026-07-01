@@ -16,11 +16,20 @@ The credentials are write-only - the API never returns them, so they aren't refr
 ## Example Usage
 
 ```terraform
-# Connect an AWS account to an aws-platform source in a single `terraform apply`.
-# Terraform orders logtail_source_aws_account after both the source and the
-# CloudFormation stack because it references their outputs, so everything
-# provisions in one pass - no toggle, no second apply.
+# Link a source to an AWS account you've already connected, by account ID
+# aws_account_id is write-only - the API never returns it, so it isn't refreshed
+resource "logtail_source" "aws_existing" {
+  name     = "AWS staging"
+  platform = "aws"
+}
 
+resource "logtail_source_aws_account" "existing" {
+  source_id      = logtail_source.aws_existing.id
+  aws_account_id = "123456789012"
+}
+
+# Full setup in one terraform apply, creating the source and the IAM role
+# a CloudFormation stack provisions the role and the link reads its outputs
 resource "logtail_source" "aws" {
   name     = "AWS production"
   platform = "aws"

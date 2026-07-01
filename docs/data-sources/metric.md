@@ -13,7 +13,7 @@ This Data Source allows you to look up existing Metrics using their name. You ca
 ## Example Usage
 
 ```terraform
-# Look up a metric on a source - e.g. the built-in "level" metric.
+# Look up a metric on a source - e.g. the built-in "level" metric
 data "logtail_metric" "level" {
   source_id = logtail_source.this.id
   name      = "level"

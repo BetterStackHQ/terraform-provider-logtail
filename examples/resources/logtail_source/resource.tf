@@ -1,9 +1,15 @@
+# Minimal HTTP source config
 resource "logtail_source" "this" {
   name     = "Production"
   platform = "http"
+}
 
-  # Server-side VRL transformations are applied per telemetry type during ingestion.
-  # vrl_transformation_logs runs on logs; vrl_transformation_spans runs on traces.
+# Server-side VRL transforms run per telemetry type during ingestion
+# blocked_metrics drops spam metrics before they are billed
+resource "logtail_source" "transformed" {
+  name     = "Production (transformed)"
+  platform = "http"
+
   vrl_transformation_logs = <<-EOT
     .level = downcase(to_string!(.level))
   EOT
@@ -15,11 +21,10 @@ resource "logtail_source" "this" {
     }
   EOT
 
-  # Metric names to drop as spam: rejected during ingestion, never billed.
   blocked_metrics = ["go_gc_duration_seconds", "go_memstats_heap_idle_bytes"]
 }
 
-# A source that scrapes Prometheus metrics endpoints on a schedule.
+# Scrape Prometheus metrics endpoints on a schedule
 resource "logtail_source" "scrape" {
   name                  = "Prometheus scrape"
   platform              = "prometheus_scrape"
@@ -34,4 +39,20 @@ resource "logtail_source" "scrape" {
   scrape_request_basic_auth_user     = "foo"
   scrape_request_basic_auth_password = "bar"
   skip_ssl_verify                    = true
+}
+
+# Pin the region, set retention and file the source under a group
+resource "logtail_source" "configured" {
+  name              = "Production (EU)"
+  platform          = "http"
+  data_region       = "germany"
+  logs_retention    = 60
+  metrics_retention = 90
+  source_group_id   = logtail_source_group.this.id
+
+  # Created paused, ingestion will not start unless you flip this
+  ingesting_paused = true
+
+  # Format Live tail output with columns wrapped in {braces}
+  live_tail_pattern = "{level} {message}"
 }
