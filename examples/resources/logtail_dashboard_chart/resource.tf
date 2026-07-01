@@ -71,6 +71,22 @@ resource "logtail_dashboard_chart" "notes" {
   }
 }
 
+# Latest service status as a single value - read by the service_down alert
+resource "logtail_dashboard_chart" "service_status" {
+  dashboard_id = logtail_dashboard.production.id
+  chart_type   = "number_chart"
+  name         = "Service status"
+  x            = 6
+  y            = 4
+  w            = 3
+  h            = 4
+
+  query {
+    query_type = "sql_expression"
+    sql_query  = "SELECT anyLast(label('service_status')) AS value FROM {{source}} WHERE {{time}} BETWEEN {{start_time}} AND {{end_time}}"
+  }
+}
+
 # Chart on the tuned dashboard driven by its variables - the [[ ]] blocks apply
 # a filter only when the environment / level variable has a value selected
 resource "logtail_dashboard_chart" "tuned_events" {

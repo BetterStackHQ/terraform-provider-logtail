@@ -77,14 +77,13 @@ resource "logtail_exploration_alert" "volume_anomaly" {
   critical_alert = true
 }
 
-# String match across every HTTP source rather than a single source variable
-# string_value pairs with the equal/not_equal operators
-resource "logtail_exploration_alert" "status_watch" {
+# Fan the alert out across every HTTP source instead of this exploration's source variable
+resource "logtail_exploration_alert" "all_http_errors" {
   exploration_id   = logtail_exploration.this.id
-  name             = "Unexpected status value"
+  name             = "Errors on any HTTP source"
   alert_type       = "threshold"
-  operator         = "not_equal"
-  string_value     = "200"
+  operator         = "higher_than"
+  value            = 1000
   check_period     = 300
   source_mode      = "platforms_all_sources"
   source_platforms = ["http"]

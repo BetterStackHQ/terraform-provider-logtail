@@ -65,21 +65,20 @@ resource "logtail_dashboard_alert" "volume_anomaly" {
   critical_alert = true
 }
 
-# String match across every HTTP source rather than a single source variable
-# string_value pairs with the equal/not_equal operators
-resource "logtail_dashboard_alert" "status_watch" {
-  dashboard_id     = logtail_dashboard.production.id
-  chart_id         = logtail_dashboard_chart.request_rate.id
-  name             = "Unexpected status value"
-  alert_type       = "threshold"
-  operator         = "not_equal"
-  string_value     = "200"
-  check_period     = 300
-  source_mode      = "platforms_all_sources"
-  source_platforms = ["http"]
+# String match on a status field - fires when the chart's latest value equals a string.
+# string_value pairs with the equal/not_equal operators (no numeric value)
+resource "logtail_dashboard_alert" "service_down" {
+  dashboard_id = logtail_dashboard.production.id
+  chart_id     = logtail_dashboard_chart.service_status.id
+  name         = "Service down"
+  alert_type   = "threshold"
+  operator     = "equal"
+  string_value = "down"
+  check_period = 60
 
   # Created paused, alerting will not start unless you flip this
   paused = true
 
   email = true
+  push  = true
 }
