@@ -765,7 +765,7 @@ func TestResourceErrorsApplicationGitlabRepository(t *testing.T) {
 
 func TestResourceErrorsApplicationRepositoryMutuallyExclusive(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		t.Fatal("Unexpected request — plan should fail before any API call: " + r.Method + " " + r.RequestURI)
+		t.Fatal("Unexpected request - plan should fail before any API call: " + r.Method + " " + r.RequestURI)
 	}))
 	defer server.Close()
 

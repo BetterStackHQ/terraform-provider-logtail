@@ -30,7 +30,7 @@ func newCollectorTargetMockServer(t *testing.T, collectorID, id string) (*httpte
 			if err != nil {
 				t.Fatal(err)
 			}
-			// The real API does not return password/api_key — strip them on the create response.
+			// The real API does not return password/api_key - strip them on the create response.
 			stripped := stripSecretsFromBody(t, body)
 			stripped = inject(t, stripped, "status", "pending")
 			stripped = inject(t, stripped, "enabled", true)
@@ -132,7 +132,7 @@ func TestResourceCollectorTargetDatabase(t *testing.T) {
 					resource.TestCheckResourceAttr("logtail_collector_target.db", "collector_host", ""),
 				),
 			},
-			// Step 2: update host — triggers PATCH; credentials untouched.
+			// Step 2: update host - triggers PATCH; credentials untouched.
 			{
 				Config: `
 				provider "logtail" {
@@ -154,7 +154,7 @@ func TestResourceCollectorTargetDatabase(t *testing.T) {
 					resource.TestCheckResourceAttr("logtail_collector_target.db", "password", "secret"),
 				),
 			},
-			// Step 3: flip enabled false — PATCH-only.
+			// Step 3: flip enabled false - PATCH-only.
 			{
 				Config: `
 				provider "logtail" {
@@ -184,7 +184,7 @@ func TestResourceCollectorTargetDatabase(t *testing.T) {
 				ImportStateIdFunc: func(s *terraform.State) (string, error) {
 					return "77:5", nil
 				},
-				// API never returns the password — TF state has it from config, imported state does not.
+				// API never returns the password - TF state has it from config, imported state does not.
 				ImportStateVerifyIgnore: []string{"password"},
 			},
 		},
@@ -368,7 +368,7 @@ func TestResourceCollectorTargetDrift(t *testing.T) {
 }
 
 func TestResourceCollectorTargetMissingFromAPI(t *testing.T) {
-	// API returns 404 on subsequent reads — resource should be reaped from state.
+	// API returns 404 on subsequent reads - resource should be reaped from state.
 	created := false
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.Header.Get("Authorization") != "Bearer foo" {

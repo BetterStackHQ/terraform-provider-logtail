@@ -320,7 +320,7 @@ var sourceSchema = map[string]*schema.Schema{
 
 // suppressUnmanagedVRL suppresses spurious diffs on the per-type VRL fields. The API echoes the
 // deprecated vrl_transformation alias and vrl_transformation_logs with the same value, so an
-// attribute the configuration doesn't set comes back populated — that mirror must not register as
+// attribute the configuration doesn't set comes back populated - that mirror must not register as
 // drift. A real change (including clearing with "") keeps the attribute present in the config.
 func suppressUnmanagedVRL(k, old, new string, d *schema.ResourceData) bool {
 	if normalizeVRL(old) == normalizeVRL(new) {

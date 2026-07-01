@@ -485,7 +485,7 @@ func errorsApplicationUpdate(ctx context.Context, d *schema.ResourceData, meta i
 	for _, e := range errorsApplicationRef(&in) {
 		if e.k == "github_repository_name" || e.k == "gitlab_repository_name" {
 			// Always evaluate: stringFromResourceData returns nil when the field is null in
-			// config (UI-managed, omit from PATCH) and a pointer otherwise — including for ""
+			// config (UI-managed, omit from PATCH) and a pointer otherwise - including for ""
 			// (explicit disconnect). Can't gate on d.HasChange because Computed: true masks
 			// the change when switching to "".
 			ptr := stringFromResourceData(d, e.k)
@@ -496,7 +496,7 @@ func errorsApplicationUpdate(ctx context.Context, d *schema.ResourceData, meta i
 			}
 			// Mirror the config value into state directly. The SDK's auto-propagation of the
 			// planned new value into state relies on d.HasChange, which is unreliable here for
-			// the same reason — without this, state would stay on the previous value.
+			// the same reason - without this, state would stay on the previous value.
 			if ptr != nil {
 				if err := d.Set(e.k, *ptr); err != nil {
 					return diag.FromErr(err)

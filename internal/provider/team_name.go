@@ -32,7 +32,7 @@ func teamNameSchema() *schema.Schema {
 // DiffSuppressFunc removes team_name from the computed diff before CustomizeDiff runs.
 func validateTeamNameNotChanged(ctx context.Context, diff *schema.ResourceDiff, v interface{}) error {
 	if diff.Id() == "" {
-		// The resource is being created — team_name is honored.
+		// The resource is being created - team_name is honored.
 		return nil
 	}
 

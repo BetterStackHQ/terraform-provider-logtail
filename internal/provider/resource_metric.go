@@ -112,7 +112,7 @@ func metricRef(in *metric) []struct {
 
 // loadMetric populates in from d. `type` is deprecated and Computed, so reading it
 // via GetOkExists would echo the API-returned value back even after the user removed
-// it from config — sourcing it from rawConfig instead means we only send it when it
+// it from config - sourcing it from rawConfig instead means we only send it when it
 // is actually set in the user's HCL.
 func loadMetric(d *schema.ResourceData, in *metric) {
 	for _, e := range metricRef(in) {
@@ -125,13 +125,13 @@ func loadMetric(d *schema.ResourceData, in *metric) {
 }
 
 // aggregations is optional. An empty list means this expression is a Label (a
-// group-by dimension) rather than a Metric. We always send the field — even when
-// empty — so that omitting it creates a Label, and clearing it on an existing
+// group-by dimension) rather than a Metric. We always send the field - even when
+// empty - so that omitting it creates a Label, and clearing it on an existing
 // Metric converts it into a Label in place, instead of the field being omitted
 // from the request and the previous aggregations left untouched.
 func ensureAggregations(in *metric) {
 	// load() leaves Aggregations as a nil pointer when the field is omitted, and as
-	// a pointer to a nil slice when it is set to an empty list — both of which would
+	// a pointer to a nil slice when it is set to an empty list - both of which would
 	// marshal to a missing field or `null`. Normalise both to an empty slice so the
 	// request always carries `"aggregations": []`.
 	if in.Aggregations == nil || *in.Aggregations == nil {

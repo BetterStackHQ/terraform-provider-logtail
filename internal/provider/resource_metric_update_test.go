@@ -218,7 +218,7 @@ func TestResourceMetricSourceIdForcesRecreation(t *testing.T) {
 				),
 			},
 			{
-				// Same attributes, but a different source_id — ForceNew must kick in
+				// Same attributes, but a different source_id - ForceNew must kick in
 				// and the metric must be recreated in the new source (id resets to 1 there).
 				Config: `
 				provider "logtail" {

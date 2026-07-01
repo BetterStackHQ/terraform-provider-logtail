@@ -41,7 +41,7 @@ var collectorTargetAllowedFields = map[string]map[string]bool{
 }
 
 // Fields that participate in the "forbidden for this kind" check. host and collector_host
-// are excluded — they're handled by the dedicated swap checks for clearer error messages.
+// are excluded - they're handled by the dedicated swap checks for clearer error messages.
 var collectorTargetCheckableFields = []string{
 	"port", "username", "password", "api_key",
 	"scheme", "ssl_mode", "tls", "service", "listen_ip", "endpoint",
@@ -132,7 +132,7 @@ var collectorTargetSchema = map[string]*schema.Schema{
 		ValidateFunc: validation.StringInSlice([]string{"false", "true", "skip-verify", "preferred"}, false),
 	},
 	"enabled": {
-		Description: "Whether the collector should scrape this target. Defaults to `true` server-side. Setting to `false` puts the target into `disabled` status — it remains configured but is not scraped.",
+		Description: "Whether the collector should scrape this target. Defaults to `true` server-side. Setting to `false` puts the target into `disabled` status - it remains configured but is not scraped.",
 		Type:        schema.TypeBool,
 		Optional:    true,
 		Computed:    true,
@@ -196,7 +196,7 @@ func newCollectorTargetResource() *schema.Resource {
 			StateContext: collectorTargetImport,
 		},
 		CustomizeDiff: validateCollectorTarget,
-		Description:   "Manages a single 'Collect metrics' target on a Better Stack Collector — a database (postgres, pgbouncer, mysql, redis, mongodb, memcached, elasticsearch) or process exporter (nginx, apache, kafka, prometheus) that the collector scrapes.",
+		Description:   "Manages a single 'Collect metrics' target on a Better Stack Collector - a database (postgres, pgbouncer, mysql, redis, mongodb, memcached, elasticsearch) or process exporter (nginx, apache, kafka, prometheus) that the collector scrapes.",
 		Schema:        collectorTargetSchema,
 	}
 }

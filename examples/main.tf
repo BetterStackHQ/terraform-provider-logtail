@@ -1,7 +1,3 @@
-provider "logtail" {
-  api_token = var.logtail_api_token
-}
-
 # =============================================================================
 # Sources
 # =============================================================================
@@ -12,8 +8,9 @@ resource "logtail_source" "this" {
 }
 
 resource "logtail_errors_application" "this" {
-  name     = "Terraform Basic Errors Application"
-  platform = "ruby_errors"
+  name                     = "Terraform Basic Errors Application"
+  platform                 = "ruby_errors"
+  correlate_with_source_id = logtail_source.this.id
 }
 
 # =============================================================================

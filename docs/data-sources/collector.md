@@ -13,8 +13,12 @@ This Data Source allows you to look up existing Collectors by name.
 ## Example Usage
 
 ```terraform
-data "logtail_collector" "production" {
-  name = "Production Docker"
+data "logtail_collector" "existing" {
+  name = "My Existing Collector"
+}
+
+output "existing_collector_hosts_up" {
+  value = data.logtail_collector.existing.hosts_up_count
 }
 ```
 
@@ -32,7 +36,7 @@ data "logtail_collector" "production" {
 - `custom_bucket` (List of Object) Optional custom bucket configuration for the collector. Once set, it cannot be removed. (see [below for nested schema](#nestedatt--custom_bucket))
 - `data_region` (String) Data region or private cluster name to create the collector in. Permitted values for most plans are: `us_east`, `germany`, `singapore`. This value can only be set at creation time and cannot be changed afterwards. The API returns the specific cluster name, which may differ from the value you provide (for example, `germany` may read back as `eu-nbg-2`).  
 When importing an existing collector, leave `data_region` unset in your configuration - Terraform reads it from the API. Pinning it to an identifier that differs from the stored cluster name produces a spurious `data_region cannot be changed after collector is created` error.
-- `databases` (List of Object, Deprecated) Database connections for the collector. Deprecated — use the `logtail_collector_target` resource instead. (see [below for nested schema](#nestedatt--databases))
+- `databases` (List of Object, Deprecated) Database connections for the collector. Deprecated - use the `logtail_collector_target` resource instead. (see [below for nested schema](#nestedatt--databases))
 - `databases_count` (Number) The number of database connections configured for this collector.
 - `hosts_count` (Number) The number of hosts connected to this collector.
 - `hosts_up_count` (Number) The number of hosts currently online.

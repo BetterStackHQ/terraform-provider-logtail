@@ -1,36 +1,47 @@
-# Database target — PostgreSQL with SSL.
+# Database target - PostgreSQL with SSL
 resource "logtail_collector_target" "primary_db" {
   collector_id = logtail_collector.production.id
   kind         = "postgres"
   host         = "10.0.0.5"
   port         = 5432
   username     = "monitor"
-  password     = var.pg_monitor_password
+  password     = "example-rotate-me"
   ssl_mode     = "require"
 }
 
-# Database target — PgBouncer pooler in front of PostgreSQL.
+# Database target - PgBouncer pooler in front of PostgreSQL
 resource "logtail_collector_target" "pooler" {
   collector_id = logtail_collector.production.id
   kind         = "pgbouncer"
   host         = "10.0.0.5"
   port         = 6432
   username     = "monitor"
-  password     = var.pgbouncer_monitor_password
+  password     = "example-rotate-me"
   ssl_mode     = "disable"
 }
 
-# Database target — Elasticsearch with API key authentication.
+# Database target - MySQL with TLS (tls is required for the mysql kind)
+resource "logtail_collector_target" "analytics_db" {
+  collector_id = logtail_collector.production.id
+  kind         = "mysql"
+  host         = "10.0.0.7"
+  port         = 3306
+  username     = "monitor"
+  password     = "example-rotate-me"
+  tls          = "skip-verify"
+}
+
+# Database target - Elasticsearch with API key authentication
 resource "logtail_collector_target" "search" {
   collector_id = logtail_collector.production.id
   kind         = "elasticsearch"
   host         = "10.0.0.6"
   port         = 9200
   scheme       = "https"
-  api_key      = var.es_api_key
+  api_key      = "example-rotate-me"
 }
 
-# Process target — Nginx exporter on a known collector host.
+# Process target - Nginx exporter on a known collector host
 resource "logtail_collector_target" "edge_nginx" {
   collector_id   = logtail_collector.production.id
   kind           = "nginx"
@@ -40,7 +51,7 @@ resource "logtail_collector_target" "edge_nginx" {
   port           = 80
 }
 
-# Process target — custom Prometheus exporter at a full scrape URL.
+# Process target - custom Prometheus exporter at a full scrape URL
 resource "logtail_collector_target" "app_metrics" {
   collector_id   = logtail_collector.production.id
   kind           = "prometheus"
@@ -49,14 +60,14 @@ resource "logtail_collector_target" "app_metrics" {
   endpoint       = "http://10.0.0.5:9090/metrics"
 }
 
-# Temporarily disable a target without removing it.
+# Temporarily disable a target without removing it
 resource "logtail_collector_target" "paused_replica" {
   collector_id = logtail_collector.production.id
   kind         = "postgres"
   host         = "replica.example.com"
   port         = 5432
   username     = "monitor"
-  password     = var.pg_monitor_password
+  password     = "example-rotate-me"
   ssl_mode     = "disable"
   enabled      = false
 }
