@@ -5,10 +5,29 @@
 
 These examples demonstrate how to provision and manage Better Stack Telemetry resources with Terraform.
 
-The files in this directory are a ready-to-run **basic** example. Detailed, per-resource
-examples live in [`resources/`](./resources) and [`data-sources/`](./data-sources) - these are
-embedded in the registry docs and exercised end-to-end in CI. [`connection/`](./connection)
-shows a connection, which requires a global API token.
+The files in this directory are a ready-to-run **basic** example - a source, an errors application, a couple of explorations and an alert.
+
+The [`connection/`](./connection) directory shows a connection, which requires a global API token.
+
+Detailed, per-resource examples live in [`resources/`](./resources) and [`data-sources/`](./data-sources) - these are embedded in the registry docs and exercised end-to-end in CI.
+
+## Usage
+
+```shell script
+git clone https://github.com/BetterStackHQ/terraform-provider-logtail && \
+  cd terraform-provider-logtail/examples
+
+echo '# See variables.tf for more.
+logtail_api_token = "XXXXXXXXXXXXXXXXXXXXXXXX"
+' > terraform.tfvars
+
+terraform init
+terraform apply
+
+# The source token to start shipping logs, and the host to send them to:
+terraform output logtail_source_token
+terraform output logtail_ingesting_host
+```
 
 ## Documentation
 
