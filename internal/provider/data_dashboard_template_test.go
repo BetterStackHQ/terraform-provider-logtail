@@ -164,6 +164,8 @@ func TestDataSourceDashboardTemplate(t *testing.T) {
 				Config: `
 				provider "logtail" {
 					api_token = "foo"
+					# Don't sit through the 150s retry backoff for the simulated 500.
+					api_retry_max = 0
 				}
 
 				data "logtail_dashboard_template" "broken_export" {
