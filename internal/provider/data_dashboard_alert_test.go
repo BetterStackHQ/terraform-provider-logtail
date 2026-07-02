@@ -48,11 +48,33 @@ func TestDataSourceDashboardAlert(t *testing.T) {
 				`,
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("data.logtail_dashboard_alert.this", "id", "1/10/100"),
+					resource.TestCheckResourceAttr("data.logtail_dashboard_alert.this", "chart_id", "10"),
 					resource.TestCheckResourceAttr("data.logtail_dashboard_alert.this", "name", "High Error Rate"),
 					resource.TestCheckResourceAttr("data.logtail_dashboard_alert.this", "alert_type", "threshold"),
 					resource.TestCheckResourceAttr("data.logtail_dashboard_alert.this", "operator", "higher_than"),
 					resource.TestCheckResourceAttr("data.logtail_dashboard_alert.this", "value", "100"),
 					resource.TestCheckResourceAttr("data.logtail_dashboard_alert.this", "email", "true"),
+				),
+			},
+			{
+				// A composite "dashboard_id/chart_id" (what logtail_dashboard_chart.id
+				// yields) must survive in state as configured - normalizing it to the
+				// bare ID would make every plan re-read the data source on Terraform 0.13.
+				Config: `
+				provider "logtail" {
+					api_token = "foo"
+				}
+
+				data "logtail_dashboard_alert" "this" {
+					dashboard_id = "1"
+					chart_id     = "1/10"
+					name         = "High Error Rate"
+				}
+				`,
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr("data.logtail_dashboard_alert.this", "id", "1/10/100"),
+					resource.TestCheckResourceAttr("data.logtail_dashboard_alert.this", "chart_id", "1/10"),
+					resource.TestCheckResourceAttr("data.logtail_dashboard_alert.this", "name", "High Error Rate"),
 				),
 			},
 		},
