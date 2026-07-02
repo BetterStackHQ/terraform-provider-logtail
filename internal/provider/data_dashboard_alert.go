@@ -99,9 +99,12 @@ func dashboardAlertLookup(ctx context.Context, d *schema.ResourceData, meta inte
 			if err := d.Set("dashboard_id", dashboardID); err != nil {
 				return diag.FromErr(err)
 			}
-			if err := d.Set("chart_id", chartID); err != nil {
-				return diag.FromErr(err)
-			}
+			// chart_id deliberately keeps the user-configured value (possibly the
+			// composite "dashboard_id/chart_id"). Overwriting it with the bare ID
+			// makes state disagree with config on every plan, and data sources have
+			// no DiffSuppressFunc to hide that - Terraform 0.13 then re-reads the
+			// data source during the plan walk and reports a "read" change whenever
+			// the alert was touched in between.
 
 			return alertCopyAttrs(d, &item.Attributes)
 		}
