@@ -452,7 +452,39 @@ func sourceCreate(ctx context.Context, d *schema.ResourceData, meta interface{})
 		return err
 	}
 	d.SetId(out.Data.ID)
-	return sourceCopyAttrs(d, &out.Data.Attributes)
+	diags := sourceCopyAttrs(d, &out.Data.Attributes)
+	if awsSourceNeedsAccountHint(d.Get("platform").(string), sourceHasInlineAWSCreds(d)) {
+		diags = append(diags, diag.Diagnostic{
+			Severity: diag.Warning,
+			Summary:  "AWS source created without a connected AWS account",
+			Detail: "This source will ingest logs and metrics via its token, but no AWS account is linked, " +
+				"so Better Stack shows the \"Connect your AWS account\" setup step and no role ARN " +
+				"(and CloudWatch log groups can't be enumerated). To connect it in the same terraform apply, add a " +
+				"logtail_source_aws_account resource that pastes back the CloudFormation IntegrationRoleArn / ExternalId, " +
+				"or set aws_role_arn + aws_external_id on this source when the ARN comes from a variable. " +
+				"See https://registry.terraform.io/providers/BetterStackHQ/logtail/latest/docs/resources/source_aws_account. " +
+				"If you already connected the account another way, you can ignore this.",
+		})
+	}
+	return diags
+}
+
+// awsSourceNeedsAccountHint reports whether a freshly-created source warrants the "no AWS account
+// linked" hint: an aws-platform source that isn't connecting an account inline. It can't see a
+// sibling logtail_source_aws_account resource, so the hint is worded to be safely ignorable when
+// the account is connected separately.
+func awsSourceNeedsAccountHint(platform string, hasInlineAWSCreds bool) bool {
+	return platform == "aws" && !hasInlineAWSCreds
+}
+
+// sourceHasInlineAWSCreds reports whether any inline AWS account linkage param is set in config.
+func sourceHasInlineAWSCreds(d *schema.ResourceData) bool {
+	for _, k := range []string{"aws_role_arn", "aws_external_id", "aws_account_id"} {
+		if v, ok := d.GetOk(k); ok && v.(string) != "" {
+			return true
+		}
+	}
+	return false
 }
 
 // loadSourceAWSAccount copies the write-only AWS account linkage params from config into the
