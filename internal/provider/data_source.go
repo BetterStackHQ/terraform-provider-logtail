@@ -29,6 +29,7 @@ func newSourceDataSource() *schema.Resource {
 			cp.Default = nil
 			cp.DefaultFunc = nil
 			cp.DiffSuppressFunc = nil
+			cp.ConflictsWith = nil
 			cp.MaxItems = 0
 		default:
 			cp.Computed = true
@@ -39,6 +40,7 @@ func newSourceDataSource() *schema.Resource {
 			cp.Default = nil
 			cp.DefaultFunc = nil
 			cp.DiffSuppressFunc = nil
+			cp.ConflictsWith = nil
 		}
 		s[k] = &cp
 	}

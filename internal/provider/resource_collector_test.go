@@ -1498,7 +1498,7 @@ func TestResourceCollectorNewFeatures(t *testing.T) {
 		},
 	})
 
-	// Test source_vrl_transformation (server-side VRL) — create, update, remove
+	// Test source_vrl_transformation (server-side VRL) - create, update, remove
 	resource.Test(t, resource.TestCase{
 		IsUnitTest: true,
 		ProviderFactories: map[string]func() (*schema.Provider, error){

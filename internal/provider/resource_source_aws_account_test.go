@@ -37,7 +37,7 @@ func TestResourceSourceAWSAccount(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			// The AWS linkage creds must NOT ride along on the source create — they only
+			// The AWS linkage creds must NOT ride along on the source create - they only
 			// reach the API via the separate logtail_source_aws_account PATCH.
 			if strings.Contains(string(body), "aws_role_arn") || strings.Contains(string(body), "aws_external_id") || strings.Contains(string(body), "aws_account_id") {
 				t.Fatalf("source create body should not carry AWS linkage params, got: %s", string(body))
@@ -255,7 +255,7 @@ func TestResourceSourceAWSAccountExistingAccount(t *testing.T) {
 
 func TestResourceSourceAWSAccountRequiresCredential(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		t.Fatal("Unexpected request " + r.Method + " " + r.RequestURI + " — config should fail validation before any API call")
+		t.Fatal("Unexpected request " + r.Method + " " + r.RequestURI + " - config should fail validation before any API call")
 	}))
 	defer server.Close()
 

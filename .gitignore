@@ -20,6 +20,11 @@ terraform.tfvars
 .terraform
 .terraform.lock.hcl
 
+# Combined E2E config assembled by the e2e_combined CI job (see CLAUDE.md)
+/combined-e2e/
+tfplan
+tfplan.json
+
 # Local Claude code settings
 .claude/instructions.local.md
 .claude/settings.local.json

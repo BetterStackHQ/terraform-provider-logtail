@@ -4,23 +4,32 @@ page_title: "logtail_source_aws_account Resource - terraform-provider-logtail"
 subcategory: ""
 description: |-
   Links an AWS account to an aws platform logtail_source by pasting back the CloudFormation role ARN / external ID (or reusing an already-connected account).
-  The credentials are write-only — the API never returns them, so they aren't refreshed into Terraform state. Destroying this resource only removes it from state; the AWS account stays linked to the source until the source itself is destroyed.
+  The credentials are write-only - the API never returns them, so they aren't refreshed into Terraform state. Destroying this resource only removes it from state; the AWS account stays linked to the source until the source itself is destroyed.
 ---
 
 # logtail_source_aws_account (Resource)
 
 Links an AWS account to an `aws` platform `logtail_source` by pasting back the CloudFormation role ARN / external ID (or reusing an already-connected account).
 
-The credentials are write-only — the API never returns them, so they aren't refreshed into Terraform state. Destroying this resource only removes it from state; the AWS account stays linked to the source until the source itself is destroyed.
+The credentials are write-only - the API never returns them, so they aren't refreshed into Terraform state. Destroying this resource only removes it from state; the AWS account stays linked to the source until the source itself is destroyed.
 
 ## Example Usage
 
 ```terraform
-# Connect an AWS account to an aws-platform source in a single `terraform apply`.
-# Terraform orders logtail_source_aws_account after both the source and the
-# CloudFormation stack because it references their outputs, so everything
-# provisions in one pass — no toggle, no second apply.
+# Link a source to an AWS account you've already connected, by account ID
+# aws_account_id is write-only - the API never returns it, so it isn't refreshed
+resource "logtail_source" "aws_existing" {
+  name     = "AWS staging"
+  platform = "aws"
+}
 
+resource "logtail_source_aws_account" "existing" {
+  source_id      = logtail_source.aws_existing.id
+  aws_account_id = "123456789012"
+}
+
+# Full setup in one terraform apply, creating the source and the IAM role
+# a CloudFormation stack provisions the role and the link reads its outputs
 resource "logtail_source" "aws" {
   name     = "AWS production"
   platform = "aws"
@@ -55,8 +64,8 @@ resource "logtail_source_aws_account" "aws" {
 ### Optional
 
 - `aws_account_id` (String) The ID of an existing connected AWS account to link this source to. Provide this instead of `aws_role_arn`/`aws_external_id` to reuse an account you've already connected. Write-only: the API does not return it, so it isn't refreshed from state.
-- `aws_external_id` (String, Sensitive) The external ID used for the STS assume-role trust — the `ExternalId` output of the Better Stack CloudFormation stack. Provide together with `aws_role_arn`. Write-only: the API does not return it, so it isn't refreshed from state.
-- `aws_role_arn` (String) The IAM role ARN to connect your AWS account — the `IntegrationRoleArn` output of the Better Stack CloudFormation stack. Provide together with `aws_external_id`. Write-only: the API does not return it, so it isn't refreshed from state.
+- `aws_external_id` (String, Sensitive) The external ID used for the STS assume-role trust - the `ExternalId` output of the Better Stack CloudFormation stack. Provide together with `aws_role_arn`. Write-only: the API does not return it, so it isn't refreshed from state.
+- `aws_role_arn` (String) The IAM role ARN to connect your AWS account - the `IntegrationRoleArn` output of the Better Stack CloudFormation stack. Provide together with `aws_external_id`. Write-only: the API does not return it, so it isn't refreshed from state.
 
 ### Read-Only
 

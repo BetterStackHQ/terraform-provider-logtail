@@ -25,7 +25,7 @@ terraform {
 
 ## Example usage
 
-In our GitHub repository, you can [see multiple executable examples](https://github.com/BetterStackHQ/terraform-provider-logtail/tree/master/examples).
+In our GitHub repository, you can [see multiple executable examples](https://github.com/BetterStackHQ/terraform-provider-logtail/tree/main/examples).
 Here's a simple one to get you started:
 
 ```terraform
@@ -41,6 +41,23 @@ resource "logtail_source" "this" {
 
 output "logtail_source_token" {
   value = logtail_source.this.token
+}
+```
+
+The API client is preconfigured with sensible defaults. To tune retries, timeouts or rate limiting, set the options explicitly - the values below are the defaults:
+
+```terraform
+provider "logtail" {
+  api_token = "XXXXXXXXXXXXXXXXXXXXXXXX"
+
+  # Defaults are already set to work nicely with Telemetry API
+  # If needed, you can customize the configuration to better suit your use case
+  api_retry_max      = 4
+  api_retry_wait_min = 10
+  api_retry_wait_max = 300
+  api_timeout        = 60
+  api_rate_limit     = 8
+  api_rate_burst     = 0
 }
 ```
 

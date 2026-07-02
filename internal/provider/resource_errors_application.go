@@ -246,10 +246,18 @@ var errorsApplicationSchema = map[string]*schema.Schema{
 		Optional:    true,
 	},
 	"github_repository_name": {
-		Description: "Full name of a GitHub repository (e.g. `owner/repo`) to connect to this application for source links, git blame, and AI-assisted fixes. The repository must already be connected to your team's GitHub integration. Set to an empty string to disconnect.",
-		Type:        schema.TypeString,
-		Optional:    true,
-		Computed:    true,
+		Description:   "Full name of a GitHub repository (e.g. `owner/repo`) to connect to this application for source links, git blame, and AI-assisted fixes. The repository must already be connected to your team's GitHub integration. Set to an empty string to disconnect. Mutually exclusive with `gitlab_repository_name`.",
+		Type:          schema.TypeString,
+		Optional:      true,
+		Computed:      true,
+		ConflictsWith: []string{"gitlab_repository_name"},
+	},
+	"gitlab_repository_name": {
+		Description:   "Full name of a GitLab repository (e.g. `group/project`) to connect to this application for source links, git blame, and AI-assisted fixes. The repository must already be connected to your team's GitLab integration. Set to an empty string to disconnect. Mutually exclusive with `github_repository_name`.",
+		Type:          schema.TypeString,
+		Optional:      true,
+		Computed:      true,
+		ConflictsWith: []string{"github_repository_name"},
 	},
 	"custom_bucket": {
 		Description: "Optional custom bucket configuration for the application. When provided, all fields (name, endpoint, access_key_id, secret_access_key) are required.",
@@ -299,7 +307,7 @@ func newErrorsApplicationResource() *schema.Resource {
 		Importer: &schema.ResourceImporter{
 			StateContext: schema.ImportStatePassthroughContext,
 		},
-		CustomizeDiff: customdiff.Sequence(validateTeamNameNotChanged, validateErrorsApplication, customizeDiffGithubRepositoryName),
+		CustomizeDiff: customdiff.Sequence(validateTeamNameNotChanged, validateErrorsApplication, customizeDiffRepositoryName("github_repository_name"), customizeDiffRepositoryName("gitlab_repository_name")),
 		Description:   "This resource allows you to create, modify, and delete your Errors applications. For more information about the Errors API check https://betterstack.com/docs/errors/api/applications/create/",
 		Schema:        errorsApplicationSchema,
 	}
@@ -323,6 +331,7 @@ type errorsApplication struct {
 	ApplicationGroupID    *int                `json:"application_group_id,omitempty"`
 	CorrelateWithSourceID *int                `json:"correlate_with_source_id,omitempty"`
 	GithubRepositoryName  *string             `json:"github_repository_name,omitempty"`
+	GitlabRepositoryName  *string             `json:"gitlab_repository_name,omitempty"`
 	CustomBucket          *sourceCustomBucket `json:"custom_bucket,omitempty"`
 }
 
@@ -357,6 +366,7 @@ func errorsApplicationRef(in *errorsApplication) []struct {
 		{k: "application_group_id", v: &in.ApplicationGroupID},
 		{k: "correlate_with_source_id", v: &in.CorrelateWithSourceID},
 		{k: "github_repository_name", v: &in.GithubRepositoryName},
+		{k: "gitlab_repository_name", v: &in.GitlabRepositoryName},
 	}
 }
 
@@ -371,6 +381,9 @@ func errorsApplicationCreate(ctx context.Context, d *schema.ResourceData, meta i
 		} else if e.k == "github_repository_name" {
 			// Use stringFromResourceData to distinguish null (UI-managed) from "" (disconnect)
 			in.GithubRepositoryName = stringFromResourceData(d, e.k)
+		} else if e.k == "gitlab_repository_name" {
+			// Use stringFromResourceData to distinguish null (UI-managed) from "" (disconnect)
+			in.GitlabRepositoryName = stringFromResourceData(d, e.k)
 		} else {
 			load(d, e.k, e.v)
 		}
@@ -470,17 +483,22 @@ func errorsApplicationCopyAttrs(d *schema.ResourceData, in *errorsApplication) d
 func errorsApplicationUpdate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	var in errorsApplication
 	for _, e := range errorsApplicationRef(&in) {
-		if e.k == "github_repository_name" {
+		if e.k == "github_repository_name" || e.k == "gitlab_repository_name" {
 			// Always evaluate: stringFromResourceData returns nil when the field is null in
-			// config (UI-managed, omit from PATCH) and a pointer otherwise — including for ""
+			// config (UI-managed, omit from PATCH) and a pointer otherwise - including for ""
 			// (explicit disconnect). Can't gate on d.HasChange because Computed: true masks
 			// the change when switching to "".
-			in.GithubRepositoryName = stringFromResourceData(d, e.k)
+			ptr := stringFromResourceData(d, e.k)
+			if e.k == "github_repository_name" {
+				in.GithubRepositoryName = ptr
+			} else {
+				in.GitlabRepositoryName = ptr
+			}
 			// Mirror the config value into state directly. The SDK's auto-propagation of the
 			// planned new value into state relies on d.HasChange, which is unreliable here for
-			// the same reason — without this, state would stay on the previous value.
-			if in.GithubRepositoryName != nil {
-				if err := d.Set(e.k, *in.GithubRepositoryName); err != nil {
+			// the same reason - without this, state would stay on the previous value.
+			if ptr != nil {
+				if err := d.Set(e.k, *ptr); err != nil {
 					return diag.FromErr(err)
 				}
 			}
@@ -504,19 +522,22 @@ func errorsApplicationDelete(ctx context.Context, d *schema.ResourceData, meta i
 	return resourceDeleteWithBaseURL(ctx, meta, meta.(*client).ErrorsBaseURL(), fmt.Sprintf("/api/v1/applications/%s", url.PathEscape(d.Id())))
 }
 
-// customizeDiffGithubRepositoryName forces the planned value of github_repository_name to match
-// whatever is in the config. Without this, TypeString + Optional + Computed makes Terraform treat
-// an explicit "" the same as unset, so switching a previously-set value to "" produces no diff.
-func customizeDiffGithubRepositoryName(ctx context.Context, diff *schema.ResourceDiff, v interface{}) error {
-	rawConfig := diff.GetRawConfig()
-	if rawConfig.IsNull() || !rawConfig.IsKnown() {
-		return nil
+// customizeDiffRepositoryName forces the planned value of a repository-name attribute (e.g.
+// github_repository_name or gitlab_repository_name) to match whatever is in the config. Without
+// this, TypeString + Optional + Computed makes Terraform treat an explicit "" the same as unset,
+// so switching a previously-set value to "" produces no diff.
+func customizeDiffRepositoryName(key string) schema.CustomizeDiffFunc {
+	return func(ctx context.Context, diff *schema.ResourceDiff, v interface{}) error {
+		rawConfig := diff.GetRawConfig()
+		if rawConfig.IsNull() || !rawConfig.IsKnown() {
+			return nil
+		}
+		val := rawConfig.GetAttr(key)
+		if val.IsNull() || !val.IsKnown() {
+			return nil
+		}
+		return diff.SetNew(key, val.AsString())
 	}
-	val := rawConfig.GetAttr("github_repository_name")
-	if val.IsNull() || !val.IsKnown() {
-		return nil
-	}
-	return diff.SetNew("github_repository_name", val.AsString())
 }
 
 func validateErrorsApplication(ctx context.Context, diff *schema.ResourceDiff, v interface{}) error {
@@ -563,6 +584,8 @@ func newErrorsApplicationDataSource() *schema.Resource {
 			cp.Default = nil
 			cp.DefaultFunc = nil
 			cp.DiffSuppressFunc = nil
+			// ConflictsWith is invalid on computed-only attributes (data source fields), so drop it.
+			cp.ConflictsWith = nil
 		}
 		s[k] = &cp
 	}

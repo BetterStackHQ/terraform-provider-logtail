@@ -13,21 +13,34 @@ This resource allows you to create, modify, and delete Better Stack Collectors. 
 ## Example Usage
 
 ```terraform
-# Collector with dual-layer VRL: on-host PII redaction + server-side enrichment
+# Minimal Docker collector config
 resource "logtail_collector" "production" {
   name     = "Production Docker"
   platform = "docker"
-  note     = "Docker hosts with PII redaction for GDPR compliance"
+}
 
+# Dual-layer VRL with on-host PII redaction and server-side enrichment
+# plus log merging, disk buffering, retention, region and folder placement
+resource "logtail_collector" "compliance" {
+  name              = "Compliance Docker"
+  platform          = "docker"
+  note              = "Docker hosts with PII redaction for GDPR compliance"
+  data_region       = "germany"
   logs_retention    = 30
   metrics_retention = 90
+  source_group_id   = logtail_source_group.this.id
+  live_tail_pattern = "{level} {message}"
 
-  # On-host VRL runs inside your infrastructure — raw data never leaves your network
+  # On-host VRL runs inside your infrastructure - raw data never leaves your network
   configuration {
     vrl_transformation = <<-EOT
       # Redact e-mail addresses
       if is_string(.message) {
         .message = replace!(.message, r'[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}', "[REDACTED_EMAIL]")
+      }
+      # Redact IPv4 addresses
+      if is_string(.message) {
+        .message = replace!(.message, r'\b\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}\b', "[REDACTED_IP]")
       }
       # Redact known PII fields
       if exists(.user_email) { .user_email = "[REDACTED]" }
@@ -35,24 +48,114 @@ resource "logtail_collector" "production" {
     EOT
 
     components {
-      logs_host    = true
-      logs_docker  = true
-      ebpf_metrics = true
+      logs_host          = true
+      logs_docker        = true
+      ebpf_metrics       = true
+      ebpf_tracing_basic = true
     }
 
-    # Merge multi-line logs (e.g. stack traces); a new entry starts when a line matches the VRL condition
+    # Merge multi-line logs such as stack traces
+    # a new entry starts when a line matches the condition
     merge_logs        = true
     merge_logs_config = "match(string!(.message), r'^\\d{4}-\\d{2}-\\d{2}')"
 
-    # Overflow to disk after 50k in-memory events; block producers when the disk buffer is full
+    # Overflow to disk after 50k in-memory events
+    # block producers when the disk buffer is full
     buffer_max_events = 50000
     when_full         = "block"
+
+    # Outgoing request batches: disk buffer >= 256 MB, memory batch <= 40 MB
+    disk_batch_size_mb   = 256
+    memory_batch_size_mb = 10
   }
 
   # Server-side VRL runs during ingestion on Better Stack
   source_vrl_transformation = <<-EOT
     .environment = "production"
     .compliance_redacted = true
+  EOT
+}
+
+# Kubernetes collector with per-namespace and per-service sampling
+resource "logtail_collector" "kubernetes" {
+  name     = "Production Kubernetes"
+  platform = "kubernetes"
+
+  logs_retention    = 30
+  metrics_retention = 60
+
+  configuration {
+    logs_sample_rate         = 100
+    traces_sample_rate       = 50
+    log_line_length_limit_kb = 32
+
+    buffer_max_events = 50000
+    when_full         = "block"
+
+    components {
+      ebpf_metrics             = true
+      ebpf_red_metrics         = true
+      ebpf_tracing_full        = true
+      metrics_databases        = true
+      metrics_nginx            = true
+      metrics_apache           = true
+      logs_host                = false
+      logs_kubernetes          = true
+      logs_collector_internals = false
+      traces_opentelemetry     = true
+    }
+
+    # Per-namespace log sampling and trace ingestion
+    namespace_option {
+      name         = "production"
+      log_sampling = 100
+    }
+
+    namespace_option {
+      name          = "staging"
+      log_sampling  = 50
+      ingest_traces = true
+    }
+
+    # Per-service trace control
+    service_option {
+      name          = "payment-api"
+      log_sampling  = 100
+      ingest_traces = true
+    }
+  }
+}
+
+# Docker Swarm collector
+resource "logtail_collector" "swarm" {
+  name     = "Production Swarm"
+  platform = "swarm"
+
+  # Created paused, collecting data will not start unless you flip this
+  ingesting_paused = true
+
+  configuration {
+    logs_sample_rate = 100
+
+    components {
+      logs_docker = true
+      logs_host   = true
+    }
+  }
+}
+
+# Extra Docker collector forwarding a custom log file via a Vector source
+# sources named better_stack_logs_* are picked up by the logs sink automatically
+resource "logtail_collector" "custom_sources" {
+  name     = "Custom sources Docker"
+  platform = "docker"
+
+  user_vector_config = <<-EOT
+    sources:
+      better_stack_logs_custom_file:
+        type: file
+        include:
+          - /host/var/log/custom.log
   EOT
 }
 ```
@@ -71,7 +174,7 @@ resource "logtail_collector" "production" {
 - `custom_bucket` (Block List, Max: 1) Optional custom bucket configuration for the collector. Once set, it cannot be removed. (see [below for nested schema](#nestedblock--custom_bucket))
 - `data_region` (String) Data region or private cluster name to create the collector in. Permitted values for most plans are: `us_east`, `germany`, `singapore`. This value can only be set at creation time and cannot be changed afterwards. The API returns the specific cluster name, which may differ from the value you provide (for example, `germany` may read back as `eu-nbg-2`).  
 When importing an existing collector, leave `data_region` unset in your configuration - Terraform reads it from the API. Pinning it to an identifier that differs from the stored cluster name produces a spurious `data_region cannot be changed after collector is created` error.
-- `databases` (Block List, Deprecated) Database connections for the collector. Deprecated — use the `logtail_collector_target` resource instead. (see [below for nested schema](#nestedblock--databases))
+- `databases` (Block List, Deprecated) Database connections for the collector. Deprecated - use the `logtail_collector_target` resource instead. (see [below for nested schema](#nestedblock--databases))
 - `ingesting_paused` (Boolean) Whether ingestion is paused for this collector.
 - `live_tail_pattern` (String) Freeform text template for formatting Live tail output with columns wrapped in {column} brackets. Example: "PID: {message_json.pid} {level} {message}"
 - `logs_retention` (Number) Data retention for logs in days. Allowed values: 7, 30, 60, 90, 180, 365, 730, 1095, 1460, 1825. There might be additional charges for longer retention.
@@ -108,11 +211,11 @@ Optional:
 - `logs_sample_rate` (Number) Sample rate for logs (0-100).
 - `memory_batch_size_mb` (Number) Memory batch size in MB for outgoing requests. Maximum 40 MB.
 - `merge_logs` (Boolean) Whether to merge multi-line logs (e.g. stack traces) into single log entries on the collector host before transmission. Matches the Merge logs tab in the collector's Transform data UI.
-- `merge_logs_config` (String) VRL condition detecting the first line of a new log entry — consecutive lines not matching it are merged into the preceding entry. Leave unset to use the built-in heuristic (lines starting with a timestamp or log level). Only used when `merge_logs` is `true`.
+- `merge_logs_config` (String) VRL condition detecting the first line of a new log entry - consecutive lines not matching it are merged into the preceding entry. Leave unset to use the built-in heuristic (lines starting with a timestamp or log level). Only used when `merge_logs` is `true`.
 - `namespace_option` (Block Set) Per-namespace overrides for log sampling rate and trace ingestion (Kubernetes only). Order-independent; entries are identified by name. (see [below for nested schema](#nestedblock--configuration--namespace_option))
 - `service_option` (Block Set) Per-service overrides for log sampling rate and trace ingestion. Only includes user-managed services; internal collector services (`better-stack-beyla`, `better-stack-collector`) are excluded. Use the `logtail_collector` data source to see all discovered services. (see [below for nested schema](#nestedblock--configuration--service_option))
 - `traces_sample_rate` (Number) Sample rate for traces (0-100).
-- `vrl_transformation` (String) VRL transformation that runs on the collector host, inside your infrastructure, before data is transmitted to Better Stack. Use this for PII redaction and sensitive data filtering — raw data never leaves your network. For server-side transformations that run during ingestion on Better Stack, use the top-level `source_vrl_transformation` attribute instead. Read more about [VRL transformations](https://betterstack.com/docs/logs/using-logtail/transforming-ingested-data/logs-vrl/).
+- `vrl_transformation` (String) VRL transformation that runs on the collector host, inside your infrastructure, before data is transmitted to Better Stack. Use this for PII redaction and sensitive data filtering - raw data never leaves your network. For server-side transformations that run during ingestion on Better Stack, use the top-level `source_vrl_transformation` attribute instead. Read more about [VRL transformations](https://betterstack.com/docs/logs/using-logtail/transforming-ingested-data/logs-vrl/).
 - `when_full` (String) What the collector does when the disk buffer is full. `drop_newest` (default) drops incoming data, preferring availability; `block` applies backpressure to producers, preferring completeness.
 
 <a id="nestedblock--configuration--components"></a>

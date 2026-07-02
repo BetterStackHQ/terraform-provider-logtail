@@ -46,7 +46,9 @@ var metricSchema = map[string]*schema.Schema{
 	"type": {
 		Description:  "The type of the metric.",
 		Type:         schema.TypeString,
-		Required:     true,
+		Optional:     true,
+		Computed:     true,
+		Deprecated:   "This property is deprecated, and safe to omit. Labels are represented by strings and Metric values by floats.",
 		ValidateFunc: validation.StringInSlice([]string{"string_low_cardinality", "int64_delta", "float64_delta", "datetime64_delta", "boolean"}, false),
 	},
 }
@@ -60,7 +62,7 @@ func newMetricResource() *schema.Resource {
 		Importer: &schema.ResourceImporter{
 			StateContext: schema.ImportStatePassthroughContext,
 		},
-		Description: "This resource allows you to create, update and delete Metrics.",
+		Description: "This resource allows you to create, update and delete Metrics and Labels.",
 		Schema:      metricSchema,
 	}
 }
@@ -108,14 +110,28 @@ func metricRef(in *metric) []struct {
 	}
 }
 
+// loadMetric populates in from d. `type` is deprecated and Computed, so reading it
+// via GetOkExists would echo the API-returned value back even after the user removed
+// it from config - sourcing it from rawConfig instead means we only send it when it
+// is actually set in the user's HCL.
+func loadMetric(d *schema.ResourceData, in *metric) {
+	for _, e := range metricRef(in) {
+		if e.k == "type" {
+			continue
+		}
+		load(d, e.k, e.v)
+	}
+	in.Type = stringFromResourceData(d, "type")
+}
+
 // aggregations is optional. An empty list means this expression is a Label (a
-// group-by dimension) rather than a Metric. We always send the field — even when
-// empty — so that omitting it creates a Label, and clearing it on an existing
+// group-by dimension) rather than a Metric. We always send the field - even when
+// empty - so that omitting it creates a Label, and clearing it on an existing
 // Metric converts it into a Label in place, instead of the field being omitted
 // from the request and the previous aggregations left untouched.
 func ensureAggregations(in *metric) {
 	// load() leaves Aggregations as a nil pointer when the field is omitted, and as
-	// a pointer to a nil slice when it is set to an empty list — both of which would
+	// a pointer to a nil slice when it is set to an empty list - both of which would
 	// marshal to a missing field or `null`. Normalise both to an empty slice so the
 	// request always carries `"aggregations": []`.
 	if in.Aggregations == nil || *in.Aggregations == nil {
@@ -126,9 +142,7 @@ func ensureAggregations(in *metric) {
 
 func metricCreate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	var in metric
-	for _, e := range metricRef(&in) {
-		load(d, e.k, e.v)
-	}
+	loadMetric(d, &in)
 	ensureAggregations(&in)
 	sourceId := d.Get("source_id").(string)
 	var out metricHTTPResponse
@@ -199,9 +213,7 @@ func metricCopyAttrs(d *schema.ResourceData, in *metric) diag.Diagnostics {
 
 func metricUpdate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	var in metric
-	for _, e := range metricRef(&in) {
-		load(d, e.k, e.v)
-	}
+	loadMetric(d, &in)
 	ensureAggregations(&in)
 	sourceId := d.Get("source_id").(string)
 	if diags := resourceUpdate(ctx, meta, fmt.Sprintf("/api/v2/sources/%s/metrics/%s", url.PathEscape(sourceId), url.PathEscape(d.Id())), &in); diags != nil {
