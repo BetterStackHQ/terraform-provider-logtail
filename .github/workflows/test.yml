@@ -9,15 +9,6 @@ on:
     - cron: '0 3 * * *'
 jobs:
   test:
-    strategy:
-      # The suite is dominated by acceptance tests that each spin up a real
-      # `terraform init` + `apply` (~5s per test), so one job takes 7+ minutes.
-      # Round-robin the top-level test functions into 4 batches to finish in
-      # about the same time as the E2E jobs. Update the batch list and the
-      # `4` in the Test step together when changing the batch count.
-      matrix:
-        batch: [0, 1, 2, 3]
-      fail-fast: false
     runs-on: ubuntu-latest
     steps:
       # Checkout must precede setup-go so its cache can be keyed on go.sum.
@@ -38,15 +29,7 @@ jobs:
         env:
           # Skip terraform's checkpoint version-check call in every init the tests run.
           CHECKPOINT_DISABLE: "1"
-        run: |
-          ALL_TESTS="$(go test -list '.*' ./... | grep '^Test' | sort -u)"
-          BATCH_TESTS="$(echo "$ALL_TESTS" | awk 'NR % 4 == ${{ matrix.batch }}' | paste -sd '|' -)"
-          if [ -z "$BATCH_TESTS" ]; then
-            echo "Batch ${{ matrix.batch }} selected no tests - is the test listing broken?"
-            exit 1
-          fi
-          echo "Batch ${{ matrix.batch }} runs $(echo "$BATCH_TESTS" | tr '|' '\n' | wc -l) of $(echo "$ALL_TESTS" | wc -l) tests"
-          go test -timeout 10m -run "^($BATCH_TESTS)$" ./...
+        run: go test -timeout 10m ./...
 
   e2e_test:
     strategy:
