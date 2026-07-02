@@ -54,6 +54,32 @@ jobs:
         run: make terraform CONFIGURATION="${{ matrix.config }}" ARGS="apply --auto-approve --input=false"
         env:
           LOGTAIL_API_TOKEN: ${{ matrix.config == 'examples/connection' && secrets.GLOBAL_E2E_API_TOKEN || secrets.LOGS_E2E_TEAM_TOKEN }}
+      # A data-source lookup that finds nothing yields a null output - and Terraform
+      # drops null outputs from state entirely, so also check every output declared
+      # in the configuration is actually present. Empty strings and collections
+      # hide a data problem too.
+      - name: Verify no output is missing, null, or empty
+        run: |
+          make terraform CONFIGURATION="${{ matrix.config }}" ARGS="output -json > outputs.json"
+          echo "Terraform outputs:"
+          jq 'map_values(.value)' "${{ matrix.config }}/outputs.json"
+          DECLARED="$(grep -hoE '^output "[^"]+"' "${{ matrix.config }}"/*.tf | sed -E 's/^output "([^"]+)"/\1/' | sort -u)"
+          MISSING="$(comm -23 <(echo "$DECLARED") <(jq -r 'keys[]' "${{ matrix.config }}/outputs.json" | sort -u))"
+          EMPTY="$(jq -r 'to_entries[] | select(.value.value == null or .value.value == "" or .value.value == [] or .value.value == {}) | .key' "${{ matrix.config }}/outputs.json")"
+          if [ -n "$MISSING" ] || [ -n "$EMPTY" ]; then
+            if [ -n "$MISSING" ]; then
+              echo "Declared outputs missing a value:"
+              echo "$MISSING"
+            fi
+            if [ -n "$EMPTY" ]; then
+              echo "Outputs with null or empty values:"
+              echo "$EMPTY"
+            fi
+            exit 1
+          fi
+          echo "All $(echo "$DECLARED" | wc -l) declared outputs have values."
+        env:
+          LOGTAIL_API_TOKEN: ${{ matrix.config == 'examples/connection' && secrets.GLOBAL_E2E_API_TOKEN || secrets.LOGS_E2E_TEAM_TOKEN }}
       - name: Plan resources via Terraform - must be empty
         run: |
           make terraform CONFIGURATION="${{ matrix.config }}" ARGS="plan --input=false --out=tfplan"
@@ -116,6 +142,32 @@ jobs:
           done
       - name: Add resources via Terraform
         run: make terraform CONFIGURATION="combined-e2e" ARGS="apply --auto-approve --input=false"
+        env:
+          LOGTAIL_API_TOKEN: ${{ secrets.LOGS_E2E_TEAM_TOKEN }}
+      # A data-source lookup that finds nothing yields a null output - and Terraform
+      # drops null outputs from state entirely, so also check every output declared
+      # in the configuration is actually present. Empty strings and collections
+      # hide a data problem too.
+      - name: Verify no output is missing, null, or empty
+        run: |
+          make terraform CONFIGURATION="combined-e2e" ARGS="output -json > outputs.json"
+          echo "Terraform outputs:"
+          jq 'map_values(.value)' "combined-e2e/outputs.json"
+          DECLARED="$(grep -hoE '^output "[^"]+"' combined-e2e/*.tf | sed -E 's/^output "([^"]+)"/\1/' | sort -u)"
+          MISSING="$(comm -23 <(echo "$DECLARED") <(jq -r 'keys[]' "combined-e2e/outputs.json" | sort -u))"
+          EMPTY="$(jq -r 'to_entries[] | select(.value.value == null or .value.value == "" or .value.value == [] or .value.value == {}) | .key' "combined-e2e/outputs.json")"
+          if [ -n "$MISSING" ] || [ -n "$EMPTY" ]; then
+            if [ -n "$MISSING" ]; then
+              echo "Declared outputs missing a value:"
+              echo "$MISSING"
+            fi
+            if [ -n "$EMPTY" ]; then
+              echo "Outputs with null or empty values:"
+              echo "$EMPTY"
+            fi
+            exit 1
+          fi
+          echo "All $(echo "$DECLARED" | wc -l) declared outputs have values."
         env:
           LOGTAIL_API_TOKEN: ${{ secrets.LOGS_E2E_TEAM_TOKEN }}
       - name: Plan resources via Terraform - must be empty
