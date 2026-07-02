@@ -316,24 +316,6 @@ var sourceSchema = map[string]*schema.Schema{
 		Type:        schema.TypeString,
 		Optional:    true,
 	},
-	"aws_account_id": {
-		Description: "Only for `platform = \"aws\"`. The ID of an existing connected AWS account to link this source to. Provide this instead of `aws_role_arn`/`aws_external_id` to reuse an account you've already connected. Write-only: the API never returns it, so it isn't refreshed from state.",
-		Type:        schema.TypeString,
-		Optional:    true,
-	},
-	"aws_role_arn": {
-		Description:  "Only for `platform = \"aws\"`. The IAM role ARN to connect your AWS account - the `IntegrationRoleArn` output of the Better Stack CloudFormation stack. Provide together with `aws_external_id` when the ARN comes from a variable or an out-of-band stack. If an `aws_cloudformation_stack` in the same configuration produces the ARN, use a `logtail_source_aws_account` resource instead - wiring its output back into this source would create a dependency cycle. Write-only: the API never returns it, so it isn't refreshed from state.",
-		Type:         schema.TypeString,
-		Optional:     true,
-		RequiredWith: []string{"aws_external_id"},
-	},
-	"aws_external_id": {
-		Description:  "Only for `platform = \"aws\"`. The external ID used for the STS assume-role trust - the `ExternalId` output of the Better Stack CloudFormation stack. Provide together with `aws_role_arn`. Write-only: the API never returns it, so it isn't refreshed from state.",
-		Type:         schema.TypeString,
-		Optional:     true,
-		Sensitive:    true,
-		RequiredWith: []string{"aws_role_arn"},
-	},
 }
 
 // suppressUnmanagedVRL suppresses spurious diffs on the per-type VRL fields. The API echoes the
@@ -404,12 +386,6 @@ type source struct {
 	BlockedMetrics                 *[]string                 `json:"blocked_metrics,omitempty"`
 	CodeMappingStackRoot           *string                   `json:"code_mapping_stack_root,omitempty"`
 	CodeMappingSourceRoot          *string                   `json:"code_mapping_source_root,omitempty"`
-	// Write-only AWS account linkage params. The API consumes these to run the connect
-	// manager but never returns them, so they're kept out of sourceRef (which drives
-	// read-back) and loaded manually on create/update.
-	AwsAccountID  *string `json:"aws_account_id,omitempty"`
-	AwsRoleArn    *string `json:"aws_role_arn,omitempty"`
-	AwsExternalID *string `json:"aws_external_id,omitempty"`
 }
 
 type sourceHTTPResponse struct {
@@ -488,56 +464,32 @@ func sourceCreate(ctx context.Context, d *schema.ResourceData, meta interface{})
 		}
 	}
 
-	loadSourceAWSAccount(d, &in)
-
 	var out sourceHTTPResponse
 	if err := resourceCreate(ctx, meta, "/api/v1/sources", &in, &out); err != nil {
 		return err
 	}
 	d.SetId(out.Data.ID)
 	diags := sourceCopyAttrs(d, &out.Data.Attributes)
-	if awsSourceNeedsAccountHint(d.Get("platform").(string), sourceHasInlineAWSCreds(d)) {
+	if awsSourceNeedsAccountHint(d.Get("platform").(string)) {
 		diags = append(diags, diag.Diagnostic{
 			Severity: diag.Warning,
 			Summary:  "AWS source created without a connected AWS account",
 			Detail: "This source will ingest logs and metrics via its token, but no AWS account is linked, " +
 				"so Better Stack shows the \"Connect your AWS account\" setup step and no role ARN " +
-				"(and CloudWatch log groups can't be enumerated). To connect it in the same terraform apply, add a " +
-				"logtail_source_aws_account resource that pastes back the CloudFormation IntegrationRoleArn / ExternalId, " +
-				"or set aws_role_arn + aws_external_id on this source when the ARN comes from a variable. " +
-				"See https://registry.terraform.io/providers/BetterStackHQ/logtail/latest/docs/resources/source_aws_account. " +
-				"If you already connected the account another way, you can ignore this.",
+				"(and CloudWatch log groups can't be enumerated). Add a logtail_source_aws_account resource that " +
+				"pastes back the CloudFormation IntegrationRoleArn / ExternalId to connect the account in the same terraform apply. " +
+				"See https://registry.terraform.io/providers/BetterStackHQ/logtail/latest/docs/guides/connect-aws-account. " +
+				"If you already added one, you can ignore this.",
 		})
 	}
 	return diags
 }
 
 // awsSourceNeedsAccountHint reports whether a freshly-created source warrants the "no AWS account
-// linked" hint: an aws-platform source that isn't connecting an account inline. It can't see a
-// sibling logtail_source_aws_account resource, so the hint is worded to be safely ignorable when
-// the account is connected separately.
-func awsSourceNeedsAccountHint(platform string, hasInlineAWSCreds bool) bool {
-	return platform == "aws" && !hasInlineAWSCreds
-}
-
-// sourceHasInlineAWSCreds reports whether any inline AWS account linkage param is set in config.
-func sourceHasInlineAWSCreds(d *schema.ResourceData) bool {
-	for _, k := range []string{"aws_role_arn", "aws_external_id", "aws_account_id"} {
-		if v, ok := d.GetOk(k); ok && v.(string) != "" {
-			return true
-		}
-	}
-	return false
-}
-
-// loadSourceAWSAccount copies the write-only AWS account linkage params from config into the
-// request body. They're read straight from rawConfig (stringFromResourceData) so an unset field
-// stays nil and is dropped by omitempty. The connect manager needs role ARN + external ID
-// together, so the full configured set is always sent when present, never a partial subset.
-func loadSourceAWSAccount(d *schema.ResourceData, in *source) {
-	in.AwsAccountID = stringFromResourceData(d, "aws_account_id")
-	in.AwsRoleArn = stringFromResourceData(d, "aws_role_arn")
-	in.AwsExternalID = stringFromResourceData(d, "aws_external_id")
+// linked" hint. It can't see a sibling logtail_source_aws_account resource, so the hint is worded
+// to be safely ignorable when the account is connected separately.
+func awsSourceNeedsAccountHint(platform string) bool {
+	return platform == "aws"
 }
 
 func sourceRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
@@ -617,12 +569,6 @@ func sourceUpdate(ctx context.Context, d *schema.ResourceData, meta interface{})
 		}
 	}
 
-	// Re-send the full AWS account linkage set whenever any of its write-only params changed,
-	// so the server re-runs the connect manager with role ARN + external ID together.
-	if d.HasChange("aws_account_id") || d.HasChange("aws_role_arn") || d.HasChange("aws_external_id") {
-		loadSourceAWSAccount(d, &in)
-	}
-
 	return resourceUpdate(ctx, meta, fmt.Sprintf("/api/v1/sources/%s", url.PathEscape(d.Id())), &in)
 }
 
@@ -643,25 +589,6 @@ func validateSource(ctx context.Context, diff *schema.ResourceDiff, v interface{
 		return err
 	}
 
-	if err := validateSourceAWSAccount(ctx, diff, v); err != nil {
-		return err
-	}
-
-	return nil
-}
-
-// validateSourceAWSAccount rejects the AWS account linkage params on non-`aws` sources, where
-// the API would ignore them, surfacing the mistake at plan time instead of silently no-op'ing.
-func validateSourceAWSAccount(ctx context.Context, diff *schema.ResourceDiff, v interface{}) error {
-	platform, _ := diff.Get("platform").(string)
-	if platform == "aws" {
-		return nil
-	}
-	for _, k := range []string{"aws_account_id", "aws_role_arn", "aws_external_id"} {
-		if val, ok := diff.GetOk(k); ok && val.(string) != "" {
-			return fmt.Errorf("%s can only be set when platform is \"aws\"", k)
-		}
-	}
 	return nil
 }
 

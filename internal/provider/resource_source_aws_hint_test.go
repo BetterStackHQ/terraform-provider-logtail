@@ -17,25 +17,22 @@ func TestAWSSourceNeedsAccountHint(t *testing.T) {
 	cases := []struct {
 		name     string
 		platform string
-		inline   bool
 		want     bool
 	}{
-		{"aws, no inline creds -> hint", "aws", false, true},
-		{"aws, inline creds set -> no hint", "aws", true, false},
-		{"non-aws platform -> no hint", "docker", false, false},
-		{"aws_cloudwatch is a different integration -> no hint", "aws_cloudwatch", false, false},
-		{"http -> no hint", "http", false, false},
+		{"aws -> hint", "aws", true},
+		{"non-aws platform -> no hint", "docker", false},
+		{"aws_cloudwatch is a different integration -> no hint", "aws_cloudwatch", false},
+		{"http -> no hint", "http", false},
 	}
 	for _, c := range cases {
-		if got := awsSourceNeedsAccountHint(c.platform, c.inline); got != c.want {
-			t.Errorf("%s: awsSourceNeedsAccountHint(%q, %v) = %v, want %v", c.name, c.platform, c.inline, got, c.want)
+		if got := awsSourceNeedsAccountHint(c.platform); got != c.want {
+			t.Errorf("%s: awsSourceNeedsAccountHint(%q) = %v, want %v", c.name, c.platform, got, c.want)
 		}
 	}
 }
 
 // End-to-end (white-box): drive the real sourceCreate against a mock Sources API and assert the
-// "connect your AWS account" hint is emitted on apply for an aws source with no linkage, and
-// suppressed when creds are provided inline or the platform isn't aws.
+// "connect your AWS account" hint is emitted on apply for an aws source, and not for other platforms.
 func TestSourceCreateEmitsAWSHint(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		body, err := io.ReadAll(r.Body)
@@ -73,13 +70,7 @@ func TestSourceCreateEmitsAWSHint(t *testing.T) {
 	}
 
 	if !warned(map[string]interface{}{"name": "x", "platform": "aws"}) {
-		t.Error("aws source without linkage should emit the connect-account hint")
-	}
-	if warned(map[string]interface{}{"name": "x", "platform": "aws", "aws_role_arn": "arn:aws:iam::1:role/x", "aws_external_id": "ext"}) {
-		t.Error("aws source connecting inline should NOT emit the hint")
-	}
-	if warned(map[string]interface{}{"name": "x", "platform": "aws", "aws_account_id": "42"}) {
-		t.Error("aws source reusing an account id should NOT emit the hint")
+		t.Error("aws source should emit the connect-account hint")
 	}
 	if warned(map[string]interface{}{"name": "x", "platform": "docker"}) {
 		t.Error("non-aws source should NOT emit the hint")

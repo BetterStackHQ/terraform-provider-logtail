@@ -9,11 +9,11 @@ description: |-
 
 An `aws` platform `logtail_source` ingests logs and metrics as soon as data is forwarded to its token. Enumerating CloudWatch log groups and enriching resources additionally needs a linked AWS account (an STS-validated IAM role). Until an account is linked, Better Stack shows the "Connect your AWS account" step and no role ARN, even while ingestion works.
 
-You can do the whole flow (create the source, provision the IAM role with CloudFormation, and link the account) in a single `terraform apply`.
+Link the account with a `logtail_source_aws_account` resource. The role ARN and external ID live on that resource rather than on `logtail_source` itself: the CloudFormation stack consumes the source token and the link consumes the stack output, so keeping them separate keeps the dependency graph acyclic and lets the whole flow apply in one run.
 
 ## Single apply with CloudFormation
 
-Use a separate `logtail_source_aws_account` resource to paste the CloudFormation outputs back to the source. This keeps the dependency graph acyclic (`logtail_source` then `aws_cloudformation_stack` then `logtail_source_aws_account`), so it all applies in one run:
+Create the source, let a CloudFormation stack provision the IAM role, then link the account from its outputs (`logtail_source` then `aws_cloudformation_stack` then `logtail_source_aws_account`):
 
 ```terraform
 resource "logtail_source" "aws" {
@@ -40,16 +40,18 @@ resource "logtail_source_aws_account" "aws" {
 }
 ```
 
-Do not set `aws_role_arn` / `aws_external_id` on the `logtail_source` when the ARN comes from an `aws_cloudformation_stack` in the same configuration: the stack consumes the source token and the source would consume the stack output, which is a dependency cycle. The separate `logtail_source_aws_account` resource breaks it.
+## When the ARN comes from a variable
 
-## Inline, when the ARN comes from a variable
-
-If the role ARN is supplied out-of-band (a variable, or a stack applied separately), set it directly on the source. There is no cycle because the ARN is a static input, and no extra resource is needed:
+If the role ARN is supplied out-of-band (a variable, or a stack applied separately), pass it to the link resource directly. There is no cycle because the ARN is a static input:
 
 ```terraform
 resource "logtail_source" "aws" {
-  name            = "AWS production"
-  platform        = "aws"
+  name     = "AWS production"
+  platform = "aws"
+}
+
+resource "logtail_source_aws_account" "aws" {
+  source_id       = logtail_source.aws.id
   aws_role_arn    = var.betterstack_role_arn
   aws_external_id = var.betterstack_external_id
 }
