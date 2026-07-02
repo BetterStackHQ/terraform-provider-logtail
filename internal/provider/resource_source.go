@@ -322,13 +322,13 @@ var sourceSchema = map[string]*schema.Schema{
 		Optional:    true,
 	},
 	"aws_role_arn": {
-		Description:  "Only for `platform = \"aws\"`. The IAM role ARN to connect your AWS account — the `IntegrationRoleArn` output of the Better Stack CloudFormation stack. Provide together with `aws_external_id` (e.g. wired from a `cloudformation_stack` resource's outputs) to connect the account at create time. Write-only: the API never returns it, so it isn't refreshed from state.",
+		Description:  "Only for `platform = \"aws\"`. The IAM role ARN to connect your AWS account - the `IntegrationRoleArn` output of the Better Stack CloudFormation stack. Provide together with `aws_external_id` when the ARN comes from a variable or an out-of-band stack. If an `aws_cloudformation_stack` in the same configuration produces the ARN, use a `logtail_source_aws_account` resource instead - wiring its output back into this source would create a dependency cycle. Write-only: the API never returns it, so it isn't refreshed from state.",
 		Type:         schema.TypeString,
 		Optional:     true,
 		RequiredWith: []string{"aws_external_id"},
 	},
 	"aws_external_id": {
-		Description:  "Only for `platform = \"aws\"`. The external ID used for the STS assume-role trust — the `ExternalId` output of the Better Stack CloudFormation stack. Provide together with `aws_role_arn`. Write-only: the API never returns it, so it isn't refreshed from state.",
+		Description:  "Only for `platform = \"aws\"`. The external ID used for the STS assume-role trust - the `ExternalId` output of the Better Stack CloudFormation stack. Provide together with `aws_role_arn`. Write-only: the API never returns it, so it isn't refreshed from state.",
 		Type:         schema.TypeString,
 		Optional:     true,
 		Sensitive:    true,
@@ -533,7 +533,7 @@ func sourceHasInlineAWSCreds(d *schema.ResourceData) bool {
 // loadSourceAWSAccount copies the write-only AWS account linkage params from config into the
 // request body. They're read straight from rawConfig (stringFromResourceData) so an unset field
 // stays nil and is dropped by omitempty. The connect manager needs role ARN + external ID
-// together, so the full configured set is always sent when present — never a partial subset.
+// together, so the full configured set is always sent when present, never a partial subset.
 func loadSourceAWSAccount(d *schema.ResourceData, in *source) {
 	in.AwsAccountID = stringFromResourceData(d, "aws_account_id")
 	in.AwsRoleArn = stringFromResourceData(d, "aws_role_arn")
@@ -651,7 +651,7 @@ func validateSource(ctx context.Context, diff *schema.ResourceDiff, v interface{
 }
 
 // validateSourceAWSAccount rejects the AWS account linkage params on non-`aws` sources, where
-// the API would ignore them — surfacing the mistake at plan time instead of silently no-op'ing.
+// the API would ignore them, surfacing the mistake at plan time instead of silently no-op'ing.
 func validateSourceAWSAccount(ctx context.Context, diff *schema.ResourceDiff, v interface{}) error {
 	platform, _ := diff.Get("platform").(string)
 	if platform == "aws" {
