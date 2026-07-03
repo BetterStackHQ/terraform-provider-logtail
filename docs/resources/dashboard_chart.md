@@ -136,12 +136,13 @@ resource "logtail_dashboard_chart" "tuned_errors" {
 }
 
 # Live tail chart - where_condition filters the stream
+# y = 9 places it right below the "Performance" section divider at y = 8
 resource "logtail_dashboard_chart" "live_errors" {
   dashboard_id = logtail_dashboard.production.id
   chart_type   = "tail_chart"
   name         = "Live errors"
   x            = 0
-  y            = 8
+  y            = 9
   w            = 12
   h            = 6
 

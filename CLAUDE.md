@@ -10,6 +10,8 @@ Each example holds only its own resource and may reference siblings by their con
 
 **Every group example must have at least one member** (a source in every `logtail_source_group`, an application in every `logtail_errors_application_group`, etc.). The platform garbage-collects empty groups older than 5 minutes team-wide (`Team#delete_empty_resource_groups!`, triggered by any resource deletion — including sibling CI jobs'), so an empty group vanishes mid-run and fails the empty-`plan` check.
 
+Dashboard chart/section coordinates pinned across the merged examples must not overlap — the server tolerates overlaps but schedules a debounced layout consolidation that moves items, breaking the empty-`plan` check for any job running longer than ~5 minutes. `TestExamplesDashboardLayoutHasNoOverlaps` enforces this in `make test`.
+
 `examples/` itself is the runnable **basic** example. `examples/connection/` runs as its own E2E config because it needs a global API token; the combined run denylists it and `logtail_source_aws_account` (needs AWS credentials).
 
 **Seeded fixtures** the examples reference (create once in the E2E team, never delete): collector `My Existing Collector`, `My Existing Source Group`, errors application `My Existing Errors Application` and group `My Existing Errors Application Group`, `My Existing Dashboard Group`, `My Existing Exploration`, `My Existing Exploration Group`; escalation policy `My Existing Escalation Policy` (used by the alert resources); and the connected source-code repositories `BetterStackHQ/test-blame-repo` (GitHub integration) and `better-stack/test-blame-repo` (GitLab integration), linked by the `errors_application` examples.
