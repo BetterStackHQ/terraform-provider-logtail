@@ -28,6 +28,7 @@ resource "logtail_source" "transformed" {
 resource "logtail_source" "scrape" {
   name                  = "Prometheus scrape"
   platform              = "prometheus_scrape"
+  source_group_id       = logtail_source_group.secondary.id
   scrape_urls           = ["https://myserver.example.com/metrics"]
   scrape_frequency_secs = 30
   scrape_request_headers = [
