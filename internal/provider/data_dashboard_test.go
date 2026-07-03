@@ -23,7 +23,10 @@ func TestDataSourceDashboard(t *testing.T) {
 
 		switch {
 		case r.Method == http.MethodGet && r.RequestURI == "/api/v2/dashboards/123":
-			_, _ = w.Write([]byte(`{"data":{"id":"123","type":"dashboard","attributes":{"name":"Unique Dashboard A","team_id":123,"created_at":"2025-01-20T01:00:00.000Z","updated_at":"2025-01-20T01:30:00.000Z"}}}`))
+			_, _ = w.Write([]byte(`{"data":{"id":"123","type":"dashboard","attributes":{"name":"Unique Dashboard A","team_id":123,"team_name":"test-team","created_at":"2025-01-20T01:00:00.000Z","updated_at":"2025-01-20T01:30:00.000Z"}}}`))
+		case r.Method == http.MethodGet && r.RequestURI == "/api/v2/dashboards/999":
+			w.WriteHeader(http.StatusNotFound)
+			_, _ = w.Write([]byte(`{"errors":"Resource with the provided ID was not found"}`))
 		case r.Method == http.MethodGet && r.RequestURI == "/api/v2/dashboards/123/export":
 			_, _ = w.Write([]byte(`{"id":"123","name":"Unique Dashboard A","data":{"refresh_interval":30,"date_range_from":"now-1h","date_range_to":"now","charts":[],"sections":[]}}`))
 		case r.Method == http.MethodGet && r.RequestURI == "/api/v2/dashboards/234":
@@ -160,7 +163,40 @@ func TestDataSourceDashboard(t *testing.T) {
 					t.Log("step 5 - lookup by ID with mismatched name (should error)")
 				},
 			},
-			// Step 6 - lookup by ID with broken export (should error)
+			// Step 6 - lookup by non-existent ID (should error, without listing dashboards)
+			{
+				Config: `
+				provider "logtail" {
+					api_token = "foo"
+				}
+
+				data "logtail_dashboard" "missing" {
+					id = "999"
+				}
+				`,
+				ExpectError: regexp.MustCompile(`dashboard with ID 999 not found`),
+				PreConfig: func() {
+					t.Log("step 6 - lookup by non-existent ID (should error)")
+				},
+			},
+			// Step 7 - lookup by ID with mismatched team_name (should error)
+			{
+				Config: `
+				provider "logtail" {
+					api_token = "foo"
+				}
+
+				data "logtail_dashboard" "team_mismatch" {
+					id        = "123"
+					team_name = "other-team"
+				}
+				`,
+				ExpectError: regexp.MustCompile(`dashboard with ID 123 has team_name "test-team", but requested team_name is "other-team"`),
+				PreConfig: func() {
+					t.Log("step 7 - lookup by ID with mismatched team_name (should error)")
+				},
+			},
+			// Step 8 - lookup by ID with broken export (should error)
 			{
 				Config: `
 				provider "logtail" {
@@ -175,7 +211,7 @@ func TestDataSourceDashboard(t *testing.T) {
 				`,
 				ExpectError: regexp.MustCompile(`dashboard "Dashboard with broken export" was found but couldn't be exported`),
 				PreConfig: func() {
-					t.Log("step 6 - lookup by ID with broken export (should error)")
+					t.Log("step 8 - lookup by ID with broken export (should error)")
 				},
 			},
 		},
