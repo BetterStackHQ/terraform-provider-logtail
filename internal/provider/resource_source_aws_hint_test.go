@@ -13,24 +13,6 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
-func TestAWSSourceNeedsAccountHint(t *testing.T) {
-	cases := []struct {
-		name     string
-		platform string
-		want     bool
-	}{
-		{"aws -> hint", "aws", true},
-		{"non-aws platform -> no hint", "docker", false},
-		{"aws_cloudwatch is a different integration -> no hint", "aws_cloudwatch", false},
-		{"http -> no hint", "http", false},
-	}
-	for _, c := range cases {
-		if got := awsSourceNeedsAccountHint(c.platform); got != c.want {
-			t.Errorf("%s: awsSourceNeedsAccountHint(%q) = %v, want %v", c.name, c.platform, got, c.want)
-		}
-	}
-}
-
 // End-to-end (white-box): drive the real sourceCreate against a mock Sources API and assert the
 // "connect your AWS account" hint is emitted on apply for an aws source, and not for other platforms.
 func TestSourceCreateEmitsAWSHint(t *testing.T) {
@@ -62,7 +44,7 @@ func TestSourceCreateEmitsAWSHint(t *testing.T) {
 			if dg.Severity == diag.Error {
 				t.Fatalf("unexpected error diag: %s: %s", dg.Summary, dg.Detail)
 			}
-			if dg.Severity == diag.Warning && strings.Contains(dg.Summary, "without a connected AWS account") {
+			if dg.Severity == diag.Warning && strings.Contains(dg.Summary, "needs a connected AWS account") {
 				return true
 			}
 		}
@@ -74,5 +56,8 @@ func TestSourceCreateEmitsAWSHint(t *testing.T) {
 	}
 	if warned(map[string]interface{}{"name": "x", "platform": "docker"}) {
 		t.Error("non-aws source should NOT emit the hint")
+	}
+	if warned(map[string]interface{}{"name": "x", "platform": "aws_cloudwatch"}) {
+		t.Error("aws_cloudwatch is a different integration and should NOT emit the hint")
 	}
 }

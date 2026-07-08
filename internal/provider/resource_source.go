@@ -470,26 +470,16 @@ func sourceCreate(ctx context.Context, d *schema.ResourceData, meta interface{})
 	}
 	d.SetId(out.Data.ID)
 	diags := sourceCopyAttrs(d, &out.Data.Attributes)
-	if awsSourceNeedsAccountHint(d.Get("platform").(string)) {
+	if d.Get("platform").(string) == "aws" {
 		diags = append(diags, diag.Diagnostic{
 			Severity: diag.Warning,
-			Summary:  "AWS source created without a connected AWS account",
-			Detail: "This source will ingest logs and metrics via its token, but no AWS account is linked, " +
-				"so Better Stack shows the \"Connect your AWS account\" setup step and no role ARN " +
-				"(and CloudWatch log groups can't be enumerated). Add a logtail_source_aws_account resource that " +
-				"pastes back the CloudFormation IntegrationRoleArn / ExternalId to connect the account in the same terraform apply. " +
-				"See https://registry.terraform.io/providers/BetterStackHQ/logtail/latest/docs/guides/connect-aws-account. " +
+			Summary:  "AWS source needs a connected AWS account",
+			Detail: "Add a logtail_source_aws_account resource that pastes back the CloudFormation IntegrationRoleArn / ExternalId to connect the account. " +
+				"See https://registry.terraform.io/providers/BetterStackHQ/logtail/latest/docs/guides/connect-aws-account for detailed guide. " +
 				"If you already added one, you can ignore this.",
 		})
 	}
 	return diags
-}
-
-// awsSourceNeedsAccountHint reports whether a freshly-created source warrants the "no AWS account
-// linked" hint. It can't see a sibling logtail_source_aws_account resource, so the hint is worded
-// to be safely ignorable when the account is connected separately.
-func awsSourceNeedsAccountHint(platform string) bool {
-	return platform == "aws"
 }
 
 func sourceRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
