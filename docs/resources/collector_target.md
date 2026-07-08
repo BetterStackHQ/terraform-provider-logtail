@@ -3,12 +3,12 @@
 page_title: "logtail_collector_target Resource - terraform-provider-logtail"
 subcategory: ""
 description: |-
-  Manages a single 'Collect metrics' target on a Better Stack Collector - a database (postgres, pgbouncer, mysql, redis, mongodb, memcached, elasticsearch) or process exporter (nginx, apache, kafka, prometheus) that the collector scrapes.
+  Manages a single 'Collect metrics' target on a Better Stack Collector - a database (postgres, pgbouncer, mysql, redis, mongodb, memcached, elasticsearch) or process exporter (nginx, apache, kafka, prometheus, traefik) that the collector scrapes.
 ---
 
 # logtail_collector_target (Resource)
 
-Manages a single 'Collect metrics' target on a Better Stack Collector - a database (postgres, pgbouncer, mysql, redis, mongodb, memcached, elasticsearch) or process exporter (nginx, apache, kafka, prometheus) that the collector scrapes.
+Manages a single 'Collect metrics' target on a Better Stack Collector - a database (postgres, pgbouncer, mysql, redis, mongodb, memcached, elasticsearch) or process exporter (nginx, apache, kafka, prometheus, traefik) that the collector scrapes.
 
 ## Example Usage
 
@@ -66,6 +66,16 @@ resource "logtail_collector_target" "edge_nginx" {
   port           = 80
 }
 
+# Process target - Traefik metrics on its Prometheus entrypoint (conventionally :8082)
+resource "logtail_collector_target" "edge_traefik" {
+  collector_id   = logtail_collector.production.id
+  kind           = "traefik"
+  service        = "edge-traefik"
+  collector_host = "edge-1.internal"
+  listen_ip      = "127.0.0.1"
+  port           = 8082
+}
+
 # Process target - custom Prometheus exporter at a full scrape URL
 resource "logtail_collector_target" "app_metrics" {
   collector_id   = logtail_collector.production.id
@@ -94,16 +104,16 @@ resource "logtail_collector_target" "paused_replica" {
 ### Required
 
 - `collector_id` (String) The ID of the collector this target belongs to.
-- `kind` (String) The target kind. One of: postgres, pgbouncer, mysql, redis, mongodb, memcached, elasticsearch, nginx, apache, kafka, prometheus.
+- `kind` (String) The target kind. One of: postgres, pgbouncer, mysql, redis, mongodb, memcached, elasticsearch, nginx, apache, kafka, prometheus, traefik.
 
 ### Optional
 
 - `api_key` (String, Sensitive) API key for authentication. Used by elasticsearch.
-- `collector_host` (String) Hostname of the collector host running this process. Use this for process kinds (nginx, apache, kafka, prometheus). Must match the hostname of a `collector_host` reporting to this collector. For database kinds use `host` instead.
+- `collector_host` (String) Hostname of the collector host running this process. Use this for process kinds (nginx, apache, kafka, prometheus, traefik). Must match the hostname of a `collector_host` reporting to this collector. For database kinds use `host` instead.
 - `enabled` (Boolean) Whether the collector should scrape this target. Defaults to `true` server-side. Setting to `false` puts the target into `disabled` status - it remains configured but is not scraped.
 - `endpoint` (String) Full scrape URL. Required for prometheus.
 - `host` (String) Hostname or IP of the database server. Use this for database kinds (postgres, pgbouncer, mysql, redis, mongodb, memcached, elasticsearch). For process kinds use `collector_host` instead.
-- `listen_ip` (String) IP address the process listens on, as seen from the collector host. Used for nginx, apache, kafka.
+- `listen_ip` (String) IP address the process listens on, as seen from the collector host. Used for nginx, apache, kafka, traefik.
 - `password` (String, Sensitive) Password for authentication. Used by database kinds.
 - `port` (Number) Port the target listens on. Required for database kinds and most process kinds; not used by prometheus (use `endpoint` instead).
 - `scheme` (String) URL scheme. Required for elasticsearch. Valid values: `http`, `https`.

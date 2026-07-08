@@ -51,6 +51,16 @@ resource "logtail_collector_target" "edge_nginx" {
   port           = 80
 }
 
+# Process target - Traefik metrics on its Prometheus entrypoint (conventionally :8082)
+resource "logtail_collector_target" "edge_traefik" {
+  collector_id   = logtail_collector.production.id
+  kind           = "traefik"
+  service        = "edge-traefik"
+  collector_host = "edge-1.internal"
+  listen_ip      = "127.0.0.1"
+  port           = 8082
+}
+
 # Process target - custom Prometheus exporter at a full scrape URL
 resource "logtail_collector_target" "app_metrics" {
   collector_id   = logtail_collector.production.id

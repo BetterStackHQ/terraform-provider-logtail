@@ -103,3 +103,93 @@ func TestResourceConnection(t *testing.T) {
 		},
 	})
 }
+
+func TestResourceConnectionUnknownDataSourceField(t *testing.T) {
+	var data atomic.Value
+	// The API returns data_sources entries with fields unknown to the provider schema;
+	// they must be ignored instead of failing the plan/refresh with "Invalid address to set".
+	dataSources := []interface{}{
+		map[string]interface{}{
+			"source_name":          "my-source",
+			"source_id":            42,
+			"team_name":            "Test Team",
+			"data_sources":         []interface{}{"logs", "metrics"},
+			"retention_days":       30,
+			"another_future_field": "ignored",
+		},
+	}
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Header.Get("Authorization") != "Bearer foo" {
+			t.Fatal("Not authorized: " + r.Header.Get("Authorization"))
+		}
+
+		prefix := "/api/v1/connections"
+		id := "1"
+
+		switch {
+		case r.Method == http.MethodPost && r.RequestURI == prefix:
+			body, err := io.ReadAll(r.Body)
+			if err != nil {
+				t.Fatal(err)
+			}
+			body = inject(t, body, "host", "us-east-9-connect.betterstackdata.com")
+			body = inject(t, body, "port", 443)
+			body = inject(t, body, "data_sources", dataSources)
+
+			data.Store(body)
+			w.WriteHeader(http.StatusCreated)
+			_, _ = w.Write([]byte(fmt.Sprintf(`{"data":{"id":%q,"attributes":%s}}`, id, body)))
+		case r.Method == http.MethodGet && r.RequestURI == prefix+"/"+id:
+			body := data.Load().([]byte)
+			body = inject(t, body, "data_sources", dataSources)
+			_, _ = w.Write([]byte(fmt.Sprintf(`{"data":{"id":%q,"attributes":%s}}`, id, body)))
+		case r.Method == http.MethodDelete && r.RequestURI == prefix+"/"+id:
+			w.WriteHeader(http.StatusNoContent)
+			data.Store([]byte(nil))
+		default:
+			t.Fatal("Unexpected " + r.Method + " " + r.RequestURI)
+		}
+	}))
+	defer server.Close()
+
+	config := `
+	provider "logtail" {
+		api_token = "foo"
+	}
+
+	resource "logtail_connection" "this" {
+		client_type = "clickhouse"
+		team_names  = ["Test Team"]
+	}
+	`
+
+	resource.Test(t, resource.TestCase{
+		IsUnitTest: true,
+		ProviderFactories: map[string]func() (*schema.Provider, error){
+			"logtail": func() (*schema.Provider, error) {
+				return New(WithURL(server.URL)), nil
+			},
+		},
+		Steps: []resource.TestStep{
+			// Step 1 - create; unknown data_sources fields must be ignored, known ones kept.
+			{
+				Config: config,
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttrSet("logtail_connection.this", "id"),
+					resource.TestCheckResourceAttr("logtail_connection.this", "data_sources.#", "1"),
+					resource.TestCheckResourceAttr("logtail_connection.this", "data_sources.0.source_name", "my-source"),
+					resource.TestCheckResourceAttr("logtail_connection.this", "data_sources.0.source_id", "42"),
+					resource.TestCheckResourceAttr("logtail_connection.this", "data_sources.0.team_name", "Test Team"),
+					resource.TestCheckResourceAttr("logtail_connection.this", "data_sources.0.data_sources.#", "2"),
+					resource.TestCheckNoResourceAttr("logtail_connection.this", "data_sources.0.retention_days"),
+					resource.TestCheckNoResourceAttr("logtail_connection.this", "data_sources.0.another_future_field"),
+				),
+			},
+			// Step 2 - refresh + plan must not fail on the unknown fields either.
+			{
+				Config:   config,
+				PlanOnly: true,
+			},
+		},
+	})
+}

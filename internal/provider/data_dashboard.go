@@ -179,40 +179,20 @@ func dataSourceDashboardRead(ctx context.Context, d *schema.ResourceData, meta i
 		return &tr, json.Unmarshal(body, &tr)
 	}
 
-	// If ID is provided, look up directly by ID
+	// If ID is provided, look up directly by ID. Never search the paginated
+	// list for an ID: concurrent dashboard deletions shift items between
+	// pages mid-iteration, so an existing dashboard can be skipped.
 	if id != "" {
-		// First, verify the dashboard exists in the list and get its details
-		// We need to search through all pages to find the dashboard
-		var dashboardExists bool
-		var dashboardName string
-		var dashboardTeamName *string
-
-		page := 1
-		for {
-			res, err := fetch(page)
-			if err != nil {
-				return diag.FromErr(err)
-			}
-
-			for _, e := range res.Data {
-				if e.ID == id {
-					dashboardExists = true
-					if e.Attributes.Name != nil {
-						dashboardName = *e.Attributes.Name
-					}
-					dashboardTeamName = e.Attributes.TeamName
-					break
-				}
-			}
-
-			if dashboardExists || res.Pagination.Next == "" {
-				break
-			}
-			page++
+		var out dashboardHTTPResponse
+		if err, ok := resourceReadWithBaseURL(ctx, meta, meta.(*client).TelemetryBaseURL(), fmt.Sprintf("/api/v2/dashboards/%s", url.PathEscape(id)), &out); err != nil {
+			return err
+		} else if !ok {
+			return diag.Errorf("dashboard with ID %s not found", id)
 		}
 
-		if !dashboardExists {
-			return diag.Errorf("dashboard with ID %s not found in dashboards list", id)
+		var dashboardName string
+		if out.Data.Attributes.Name != nil {
+			dashboardName = *out.Data.Attributes.Name
 		}
 
 		// If both ID and name are provided, validate they match
@@ -221,17 +201,12 @@ func dataSourceDashboardRead(ctx context.Context, d *schema.ResourceData, meta i
 		}
 
 		// If team_name is provided, validate it matches
-		if teamName != "" && (dashboardTeamName == nil || !strings.EqualFold(*dashboardTeamName, teamName)) {
+		if teamName != "" && (out.Data.Attributes.TeamName == nil || !strings.EqualFold(*out.Data.Attributes.TeamName, teamName)) {
 			actualTeamName := ""
-			if dashboardTeamName != nil {
-				actualTeamName = *dashboardTeamName
+			if out.Data.Attributes.TeamName != nil {
+				actualTeamName = *out.Data.Attributes.TeamName
 			}
 			return diag.Errorf("dashboard with ID %s has team_name %q, but requested team_name is %q", id, actualTeamName, teamName)
-		}
-
-		var out dashboardHTTPResponse
-		if err, ok := resourceReadWithBaseURL(ctx, meta, meta.(*client).TelemetryBaseURL(), fmt.Sprintf("/api/v2/dashboards/%s", url.PathEscape(id)), &out); !ok {
-			return diag.Errorf("dashboard %q was found but couldn't be exported: %v", dashboardName, err)
 		}
 
 		d.SetId(id)

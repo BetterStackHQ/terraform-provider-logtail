@@ -28,6 +28,7 @@ resource "logtail_errors_application" "configured" {
 resource "logtail_errors_application" "with_github" {
   name                   = "Production errors (GitHub)"
   platform               = "ruby_errors"
+  application_group_id   = logtail_errors_application_group.secondary.id
   github_repository_name = "BetterStackHQ/test-blame-repo"
 }
 

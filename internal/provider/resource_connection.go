@@ -114,27 +114,29 @@ var connectionSchema = map[string]*schema.Schema{
 		Type:        schema.TypeList,
 		Computed:    true,
 		Elem: &schema.Resource{
-			Schema: map[string]*schema.Schema{
-				"source_name": {
-					Type:     schema.TypeString,
-					Computed: true,
-				},
-				"source_id": {
-					Type:     schema.TypeInt,
-					Computed: true,
-				},
-				"team_name": {
-					Type:     schema.TypeString,
-					Computed: true,
-				},
-				"data_sources": {
-					Type:     schema.TypeList,
-					Computed: true,
-					Elem: &schema.Schema{
-						Type: schema.TypeString,
-					},
-				},
-			},
+			Schema: connectionDataSourceSchema,
+		},
+	},
+}
+
+var connectionDataSourceSchema = map[string]*schema.Schema{
+	"source_name": {
+		Type:     schema.TypeString,
+		Computed: true,
+	},
+	"source_id": {
+		Type:     schema.TypeInt,
+		Computed: true,
+	},
+	"team_name": {
+		Type:     schema.TypeString,
+		Computed: true,
+	},
+	"data_sources": {
+		Type:     schema.TypeList,
+		Computed: true,
+		Elem: &schema.Schema{
+			Type: schema.TypeString,
 		},
 	},
 }
@@ -289,6 +291,7 @@ func connectionCopyAttrs(d *schema.ResourceData, in *connection) diag.Diagnostic
 	if err := d.Set("created_by", in.CreatedBy); err != nil {
 		derr = append(derr, diag.FromErr(err)[0])
 	}
+	in.DataSources = dropUnknownKeys(in.DataSources, connectionDataSourceSchema)
 	if in.DataSources != nil && *in.DataSources != nil {
 		if err := d.Set("data_sources", *in.DataSources); err != nil {
 			derr = append(derr, diag.FromErr(err)[0])
