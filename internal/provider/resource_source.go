@@ -469,7 +469,17 @@ func sourceCreate(ctx context.Context, d *schema.ResourceData, meta interface{})
 		return err
 	}
 	d.SetId(out.Data.ID)
-	return sourceCopyAttrs(d, &out.Data.Attributes)
+	diags := sourceCopyAttrs(d, &out.Data.Attributes)
+	if d.Get("platform").(string) == "aws" {
+		diags = append(diags, diag.Diagnostic{
+			Severity: diag.Warning,
+			Summary:  "AWS source needs a connected AWS account",
+			Detail: "Add a logtail_source_aws_account resource that pastes back the CloudFormation IntegrationRoleArn / ExternalId to connect the account. " +
+				"See https://registry.terraform.io/providers/BetterStackHQ/logtail/latest/docs/guides/connect-aws-account for detailed guide. " +
+				"If you already added one, you can ignore this.",
+		})
+	}
+	return diags
 }
 
 func sourceRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
