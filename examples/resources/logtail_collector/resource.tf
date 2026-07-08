@@ -84,6 +84,7 @@ resource "logtail_collector" "kubernetes" {
       metrics_databases        = true
       metrics_nginx            = true
       metrics_apache           = true
+      metrics_traefik          = true
       logs_host                = false
       logs_kubernetes          = true
       logs_collector_internals = false
