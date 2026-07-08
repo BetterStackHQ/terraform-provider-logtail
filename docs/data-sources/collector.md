@@ -93,6 +93,7 @@ Read-Only:
 - `metrics_apache` (Boolean)
 - `metrics_databases` (Boolean)
 - `metrics_nginx` (Boolean)
+- `metrics_traefik` (Boolean)
 - `traces_opentelemetry` (Boolean)
 
 

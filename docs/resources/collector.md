@@ -99,6 +99,7 @@ resource "logtail_collector" "kubernetes" {
       metrics_databases        = true
       metrics_nginx            = true
       metrics_apache           = true
+      metrics_traefik          = true
       logs_host                = false
       logs_kubernetes          = true
       logs_collector_internals = false
@@ -234,6 +235,7 @@ Optional:
 - `metrics_apache` (Boolean) Collect Apache metrics.
 - `metrics_databases` (Boolean) Collect database metrics via the cluster agent.
 - `metrics_nginx` (Boolean) Collect Nginx metrics.
+- `metrics_traefik` (Boolean) Collect Traefik metrics.
 - `traces_opentelemetry` (Boolean) Accept OpenTelemetry SDK traces on ports 4317 (gRPC) and 4318 (HTTP).
 
 
