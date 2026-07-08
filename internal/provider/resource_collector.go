@@ -249,6 +249,7 @@ var collectorSchema = map[string]*schema.Schema{
 							"metrics_databases":        {Description: "Collect database metrics via the cluster agent.", Type: schema.TypeBool, Optional: true, Computed: true},
 							"metrics_nginx":            {Description: "Collect Nginx metrics.", Type: schema.TypeBool, Optional: true, Computed: true},
 							"metrics_apache":           {Description: "Collect Apache metrics.", Type: schema.TypeBool, Optional: true, Computed: true},
+							"metrics_traefik":          {Description: "Collect Traefik metrics.", Type: schema.TypeBool, Optional: true, Computed: true},
 							"ebpf_metrics":             {Description: "Enable eBPF-based metrics collection.", Type: schema.TypeBool, Optional: true, Computed: true},
 							"ebpf_tracing_basic":       {Description: "Enable basic eBPF tracing.", Type: schema.TypeBool, Optional: true, Computed: true},
 							"ebpf_tracing_full":        {Description: "Enable full eBPF tracing.", Type: schema.TypeBool, Optional: true, Computed: true},
@@ -388,6 +389,7 @@ type collectorComponents struct {
 	MetricsDatabases      *bool `json:"metrics_databases,omitempty"`
 	MetricsNginx          *bool `json:"metrics_nginx,omitempty"`
 	MetricsApache         *bool `json:"metrics_apache,omitempty"`
+	MetricsTraefik        *bool `json:"metrics_traefik,omitempty"`
 	EbpfMetrics           *bool `json:"ebpf_metrics,omitempty"`
 	EbpfTracingBasic      *bool `json:"ebpf_tracing_basic,omitempty"`
 	EbpfTracingFull       *bool `json:"ebpf_tracing_full,omitempty"`
@@ -700,6 +702,7 @@ func loadCollectorConfiguration(d *schema.ResourceData) *collectorConfiguration 
 			MetricsDatabases:      boolPtrIfSet(cm, "metrics_databases"),
 			MetricsNginx:          boolPtrIfSet(cm, "metrics_nginx"),
 			MetricsApache:         boolPtrIfSet(cm, "metrics_apache"),
+			MetricsTraefik:        boolPtrIfSet(cm, "metrics_traefik"),
 			EbpfMetrics:           boolPtrIfSet(cm, "ebpf_metrics"),
 			EbpfTracingBasic:      boolPtrIfSet(cm, "ebpf_tracing_basic"),
 			EbpfTracingFull:       boolPtrIfSet(cm, "ebpf_tracing_full"),
@@ -987,6 +990,9 @@ func collectorCopyAttrs(d *schema.ResourceData, in *collector) diag.Diagnostics 
 			}
 			if c.MetricsApache != nil {
 				componentsData["metrics_apache"] = *c.MetricsApache
+			}
+			if c.MetricsTraefik != nil {
+				componentsData["metrics_traefik"] = *c.MetricsTraefik
 			}
 			if c.EbpfMetrics != nil {
 				componentsData["ebpf_metrics"] = *c.EbpfMetrics

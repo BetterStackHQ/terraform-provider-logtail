@@ -14,13 +14,14 @@ import (
 
 var collectorTargetKinds = []string{
 	"postgres", "pgbouncer", "mysql", "redis", "mongodb", "memcached", "elasticsearch",
-	"nginx", "apache", "kafka", "prometheus",
+	"nginx", "apache", "kafka", "prometheus", "traefik",
 }
 
 var collectorTargetProcessKinds = map[string]bool{
 	"nginx":      true,
 	"apache":     true,
 	"kafka":      true,
+	"traefik":    true,
 	"prometheus": true,
 }
 
@@ -37,6 +38,7 @@ var collectorTargetAllowedFields = map[string]map[string]bool{
 	"nginx":         {"collector_host": true, "port": true, "service": true, "listen_ip": true},
 	"apache":        {"collector_host": true, "port": true, "service": true, "listen_ip": true},
 	"kafka":         {"collector_host": true, "port": true, "service": true, "listen_ip": true},
+	"traefik":       {"collector_host": true, "port": true, "service": true, "listen_ip": true},
 	"prometheus":    {"collector_host": true, "service": true, "endpoint": true},
 }
 
@@ -72,7 +74,7 @@ var collectorTargetSchema = map[string]*schema.Schema{
 		Optional:    true,
 	},
 	"collector_host": {
-		Description: "Hostname of the collector host running this process. Use this for process kinds (nginx, apache, kafka, prometheus). Must match the hostname of a `collector_host` reporting to this collector. For database kinds use `host` instead.",
+		Description: "Hostname of the collector host running this process. Use this for process kinds (nginx, apache, kafka, prometheus, traefik). Must match the hostname of a `collector_host` reporting to this collector. For database kinds use `host` instead.",
 		Type:        schema.TypeString,
 		Optional:    true,
 	},
@@ -87,7 +89,7 @@ var collectorTargetSchema = map[string]*schema.Schema{
 		Optional:    true,
 	},
 	"listen_ip": {
-		Description: "IP address the process listens on, as seen from the collector host. Used for nginx, apache, kafka.",
+		Description: "IP address the process listens on, as seen from the collector host. Used for nginx, apache, kafka, traefik.",
 		Type:        schema.TypeString,
 		Optional:    true,
 	},
@@ -196,7 +198,7 @@ func newCollectorTargetResource() *schema.Resource {
 			StateContext: collectorTargetImport,
 		},
 		CustomizeDiff: validateCollectorTarget,
-		Description:   "Manages a single 'Collect metrics' target on a Better Stack Collector - a database (postgres, pgbouncer, mysql, redis, mongodb, memcached, elasticsearch) or process exporter (nginx, apache, kafka, prometheus) that the collector scrapes.",
+		Description:   "Manages a single 'Collect metrics' target on a Better Stack Collector - a database (postgres, pgbouncer, mysql, redis, mongodb, memcached, elasticsearch) or process exporter (nginx, apache, kafka, prometheus, traefik) that the collector scrapes.",
 		Schema:        collectorTargetSchema,
 	}
 }
