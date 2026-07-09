@@ -628,13 +628,12 @@ func validateRequestHeader(header map[string]interface{}) error {
 	return nil
 }
 
-// validateCustomBucketChange rejects any meaningful change to custom_bucket on an existing
-// resource with an explicit plan-time error. The API only accepts the block at creation (updates
-// fail with 422), so without this a config change would either fail the apply or plan the same
-// update forever. Two changes stay allowed because they only need to land in state, never in the
-// API: name (the API derives the real bucket name from the endpoint and ignores this value), and
-// filling in secret_access_key when state holds none (the API never returns the secret, so after
-// terraform import the configuration legitimately adds it).
+// validateCustomBucketChange rejects any change to custom_bucket on an existing resource with an
+// explicit plan-time error. The API only accepts the block at creation (updates fail with 422),
+// so without this a config change would either fail the apply or plan the same update forever.
+// Two exceptions stay allowed because state legitimately starts without the value: filling in
+// secret_access_key (the API never returns the secret, so a configuration adds it after
+// terraform import) and filling in a previously-empty name.
 func validateCustomBucketChange(ctx context.Context, diff *schema.ResourceDiff, v interface{}) error {
 	// Only validate for existing resources (not during creation)
 	if diff.Id() == "" || !diff.HasChange("custom_bucket") {
@@ -661,8 +660,10 @@ func validateCustomBucketChange(ctx context.Context, diff *schema.ResourceDiff, 
 			return fmt.Errorf("custom_bucket.%s cannot be changed once set - recreate the resource to use a different bucket configuration", k)
 		}
 	}
-	if oldSecret, newSecret := oldMap["secret_access_key"], newMap["secret_access_key"]; oldSecret != "" && !reflect.DeepEqual(oldSecret, newSecret) {
-		return fmt.Errorf("custom_bucket.secret_access_key cannot be changed once set - recreate the resource to use a different bucket configuration")
+	for _, k := range []string{"name", "secret_access_key"} {
+		if oldVal, newVal := oldMap[k], newMap[k]; oldVal != "" && !reflect.DeepEqual(oldVal, newVal) {
+			return fmt.Errorf("custom_bucket.%s cannot be changed once set - recreate the resource to use a different bucket configuration", k)
+		}
 	}
 	return nil
 }

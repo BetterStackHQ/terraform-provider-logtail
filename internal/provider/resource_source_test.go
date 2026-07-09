@@ -627,9 +627,7 @@ func TestResourceSource(t *testing.T) {
 				`, name, platform),
 				PlanOnly: true,
 			},
-			// Step 4 - changing name is a benign state-only update: the API ignores the value,
-			// so nothing is sent (the mock 422s any custom_bucket PATCH) and state keeps the
-			// configured name from now on.
+			// Step 4 - changing name fails at plan time like every other field.
 			{
 				Config: fmt.Sprintf(`
 				provider "logtail" {
@@ -648,10 +646,8 @@ func TestResourceSource(t *testing.T) {
 					}
 				}
 				`, name, platform),
-				Check: resource.ComposeTestCheckFunc(
-					resource.TestCheckResourceAttr("logtail_source.this", "custom_bucket.0.name", "renamed-bucket"),
-					resource.TestCheckResourceAttr("logtail_source.this", "custom_bucket.0.endpoint", "https://s3.us-east-1.amazonaws.com/my-test-bucket"),
-				),
+				PlanOnly:    true,
+				ExpectError: regexp.MustCompile(`custom_bucket\.name cannot be changed once set`),
 			},
 			// Step 5 - changing the endpoint fails at plan time.
 			{

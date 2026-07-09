@@ -555,8 +555,7 @@ func TestResourceCollector(t *testing.T) {
 					resource.TestCheckResourceAttr("logtail_collector.this", "custom_bucket.#", "1"),
 				),
 			},
-			// Step 2 - changing name is a benign state-only update (the API ignores it; the
-			// mock 422s any custom_bucket PATCH, so this also proves nothing is sent)
+			// Step 2 - changing name fails at plan time like every other field
 			{
 				Config: fmt.Sprintf(`
 				provider "logtail" {
@@ -574,9 +573,8 @@ func TestResourceCollector(t *testing.T) {
 					}
 				}
 				`, name, platform),
-				Check: resource.ComposeTestCheckFunc(
-					resource.TestCheckResourceAttr("logtail_collector.this", "custom_bucket.0.name", "different-bucket"),
-				),
+				PlanOnly:    true,
+				ExpectError: regexp.MustCompile(`custom_bucket\.name cannot be changed once set`),
 			},
 			// Step 3 - changing the endpoint fails at plan time
 			{
