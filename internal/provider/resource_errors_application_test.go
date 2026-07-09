@@ -38,7 +38,7 @@ func TestResourceErrorsApplication(t *testing.T) {
 			body = inject(t, body, "team_id", 123456)
 
 			// Handle custom_bucket - remove secret_access_key from response as API doesn't return it
-			body = removeCustomBucketSecret(t, body)
+			body = simulateCustomBucketAPI(t, body)
 
 			data.Store(body)
 			w.WriteHeader(http.StatusCreated)
@@ -49,6 +49,10 @@ func TestResourceErrorsApplication(t *testing.T) {
 			body, err := io.ReadAll(r.Body)
 			if err != nil {
 				t.Fatal(err)
+			}
+			// The real API rejects custom_bucket on update - the provider must never send it.
+			if rejectCustomBucketUpdate(w, body) {
+				return
 			}
 			patch := make(map[string]interface{})
 			if err = json.Unmarshal(data.Load().([]byte), &patch); err != nil {
@@ -67,7 +71,7 @@ func TestResourceErrorsApplication(t *testing.T) {
 			patched = inject(t, patched, "team_id", 123456)
 
 			// Handle custom_bucket - remove secret_access_key from response as API doesn't return it
-			patched = removeCustomBucketSecret(t, patched)
+			patched = simulateCustomBucketAPI(t, patched)
 
 			data.Store(patched)
 			_, _ = w.Write([]byte(fmt.Sprintf(`{"data":{"id":%q,"attributes":%s}}`, id, patched)))
@@ -206,7 +210,7 @@ func TestResourceErrorsApplicationCustomBucket(t *testing.T) {
 			body = inject(t, body, "table_name", "test_errors_application")
 
 			// Handle custom_bucket - remove secret_access_key from response as API doesn't return it
-			body = removeCustomBucketSecret(t, body)
+			body = simulateCustomBucketAPI(t, body)
 
 			data.Store(body)
 			w.WriteHeader(http.StatusCreated)
@@ -217,6 +221,10 @@ func TestResourceErrorsApplicationCustomBucket(t *testing.T) {
 			body, err := io.ReadAll(r.Body)
 			if err != nil {
 				t.Fatal(err)
+			}
+			// The real API rejects custom_bucket on update - the provider must never send it.
+			if rejectCustomBucketUpdate(w, body) {
+				return
 			}
 			patch := make(map[string]interface{})
 			if err = json.Unmarshal(data.Load().([]byte), &patch); err != nil {
@@ -234,7 +242,7 @@ func TestResourceErrorsApplicationCustomBucket(t *testing.T) {
 			patched = inject(t, patched, "table_name", "test_errors_application")
 
 			// Handle custom_bucket - remove secret_access_key from response as API doesn't return it
-			patched = removeCustomBucketSecret(t, patched)
+			patched = simulateCustomBucketAPI(t, patched)
 
 			data.Store(patched)
 			_, _ = w.Write([]byte(fmt.Sprintf(`{"data":{"id":%q,"attributes":%s}}`, id, patched)))
@@ -269,8 +277,7 @@ func TestResourceErrorsApplicationCustomBucket(t *testing.T) {
 					name     = "%s"
 					platform = "%s"
 					custom_bucket {
-						name = "my-test-bucket"
-						endpoint = "https://s3.amazonaws.com"
+						endpoint = "https://s3.us-east-1.amazonaws.com/my-test-bucket"
 						access_key_id = "AKIAIOSFODNN7EXAMPLE"
 						secret_access_key = "wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY"
 						keep_data_after_retention = false
@@ -284,7 +291,7 @@ func TestResourceErrorsApplicationCustomBucket(t *testing.T) {
 					resource.TestCheckResourceAttr("logtail_errors_application.this", "token", "generated_by_logtail"),
 					resource.TestCheckResourceAttr("logtail_errors_application.this", "custom_bucket.#", "1"),
 					resource.TestCheckResourceAttr("logtail_errors_application.this", "custom_bucket.0.name", "my-test-bucket"),
-					resource.TestCheckResourceAttr("logtail_errors_application.this", "custom_bucket.0.endpoint", "https://s3.amazonaws.com"),
+					resource.TestCheckResourceAttr("logtail_errors_application.this", "custom_bucket.0.endpoint", "https://s3.us-east-1.amazonaws.com/my-test-bucket"),
 					resource.TestCheckResourceAttr("logtail_errors_application.this", "custom_bucket.0.access_key_id", "AKIAIOSFODNN7EXAMPLE"),
 					resource.TestCheckResourceAttr("logtail_errors_application.this", "custom_bucket.0.secret_access_key", "wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY"),
 					resource.TestCheckResourceAttr("logtail_errors_application.this", "custom_bucket.0.keep_data_after_retention", "false"),
@@ -302,8 +309,7 @@ func TestResourceErrorsApplicationCustomBucket(t *testing.T) {
 					platform         = "%s"
 					errors_retention = 60
 					custom_bucket {
-						name = "my-test-bucket"
-						endpoint = "https://s3.amazonaws.com"
+						endpoint = "https://s3.us-east-1.amazonaws.com/my-test-bucket"
 						access_key_id = "AKIAIOSFODNN7EXAMPLE"
 						secret_access_key = "wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY"
 						keep_data_after_retention = false
@@ -317,7 +323,7 @@ func TestResourceErrorsApplicationCustomBucket(t *testing.T) {
 					resource.TestCheckResourceAttr("logtail_errors_application.this", "errors_retention", "60"),
 					resource.TestCheckResourceAttr("logtail_errors_application.this", "custom_bucket.#", "1"),
 					resource.TestCheckResourceAttr("logtail_errors_application.this", "custom_bucket.0.name", "my-test-bucket"),
-					resource.TestCheckResourceAttr("logtail_errors_application.this", "custom_bucket.0.endpoint", "https://s3.amazonaws.com"),
+					resource.TestCheckResourceAttr("logtail_errors_application.this", "custom_bucket.0.endpoint", "https://s3.us-east-1.amazonaws.com/my-test-bucket"),
 					resource.TestCheckResourceAttr("logtail_errors_application.this", "custom_bucket.0.access_key_id", "AKIAIOSFODNN7EXAMPLE"),
 					resource.TestCheckResourceAttr("logtail_errors_application.this", "custom_bucket.0.secret_access_key", "wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY"),
 					resource.TestCheckResourceAttr("logtail_errors_application.this", "custom_bucket.0.keep_data_after_retention", "false"),
@@ -350,7 +356,7 @@ func TestResourceErrorsApplicationCustomBucketKeepData(t *testing.T) {
 			body = inject(t, body, "table_name", "test_errors_application")
 
 			// Handle custom_bucket - remove secret_access_key from response as API doesn't return it
-			body = removeCustomBucketSecret(t, body)
+			body = simulateCustomBucketAPI(t, body)
 
 			data.Store(body)
 			w.WriteHeader(http.StatusCreated)
@@ -361,6 +367,10 @@ func TestResourceErrorsApplicationCustomBucketKeepData(t *testing.T) {
 			body, err := io.ReadAll(r.Body)
 			if err != nil {
 				t.Fatal(err)
+			}
+			// The real API rejects custom_bucket on update - the provider must never send it.
+			if rejectCustomBucketUpdate(w, body) {
+				return
 			}
 			patch := make(map[string]interface{})
 			if err = json.Unmarshal(data.Load().([]byte), &patch); err != nil {
@@ -378,7 +388,7 @@ func TestResourceErrorsApplicationCustomBucketKeepData(t *testing.T) {
 			patched = inject(t, patched, "table_name", "test_errors_application")
 
 			// Handle custom_bucket - remove secret_access_key from response as API doesn't return it
-			patched = removeCustomBucketSecret(t, patched)
+			patched = simulateCustomBucketAPI(t, patched)
 
 			data.Store(patched)
 			_, _ = w.Write([]byte(fmt.Sprintf(`{"data":{"id":%q,"attributes":%s}}`, id, patched)))
@@ -413,8 +423,7 @@ func TestResourceErrorsApplicationCustomBucketKeepData(t *testing.T) {
 					name     = "%s"
 					platform = "%s"
 					custom_bucket {
-						name = "my-test-bucket"
-						endpoint = "https://s3.amazonaws.com"
+						endpoint = "https://s3.us-east-1.amazonaws.com/my-test-bucket"
 						access_key_id = "AKIAIOSFODNN7EXAMPLE"
 						secret_access_key = "wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY"
 						keep_data_after_retention = true
@@ -427,7 +436,7 @@ func TestResourceErrorsApplicationCustomBucketKeepData(t *testing.T) {
 					resource.TestCheckResourceAttr("logtail_errors_application.this", "platform", platform),
 					resource.TestCheckResourceAttr("logtail_errors_application.this", "custom_bucket.#", "1"),
 					resource.TestCheckResourceAttr("logtail_errors_application.this", "custom_bucket.0.name", "my-test-bucket"),
-					resource.TestCheckResourceAttr("logtail_errors_application.this", "custom_bucket.0.endpoint", "https://s3.amazonaws.com"),
+					resource.TestCheckResourceAttr("logtail_errors_application.this", "custom_bucket.0.endpoint", "https://s3.us-east-1.amazonaws.com/my-test-bucket"),
 					resource.TestCheckResourceAttr("logtail_errors_application.this", "custom_bucket.0.access_key_id", "AKIAIOSFODNN7EXAMPLE"),
 					resource.TestCheckResourceAttr("logtail_errors_application.this", "custom_bucket.0.secret_access_key", "wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY"),
 					resource.TestCheckResourceAttr("logtail_errors_application.this", "custom_bucket.0.keep_data_after_retention", "true"),
@@ -460,7 +469,7 @@ func TestResourceErrorsApplicationCustomBucketRemovalValidation(t *testing.T) {
 			body = inject(t, body, "table_name", "test_errors_application")
 
 			// Handle custom_bucket - remove secret_access_key from response as API doesn't return it
-			body = removeCustomBucketSecret(t, body)
+			body = simulateCustomBucketAPI(t, body)
 
 			data.Store(body)
 			w.WriteHeader(http.StatusCreated)
@@ -471,6 +480,10 @@ func TestResourceErrorsApplicationCustomBucketRemovalValidation(t *testing.T) {
 			body, err := io.ReadAll(r.Body)
 			if err != nil {
 				t.Fatal(err)
+			}
+			// The real API rejects custom_bucket on update - the provider must never send it.
+			if rejectCustomBucketUpdate(w, body) {
+				return
 			}
 			patch := make(map[string]interface{})
 			if err = json.Unmarshal(data.Load().([]byte), &patch); err != nil {
@@ -488,7 +501,7 @@ func TestResourceErrorsApplicationCustomBucketRemovalValidation(t *testing.T) {
 			patched = inject(t, patched, "table_name", "test_errors_application")
 
 			// Handle custom_bucket - remove secret_access_key from response as API doesn't return it
-			patched = removeCustomBucketSecret(t, patched)
+			patched = simulateCustomBucketAPI(t, patched)
 
 			data.Store(patched)
 			_, _ = w.Write([]byte(fmt.Sprintf(`{"data":{"id":%q,"attributes":%s}}`, id, patched)))
@@ -523,8 +536,7 @@ func TestResourceErrorsApplicationCustomBucketRemovalValidation(t *testing.T) {
 					name     = "%s"
 					platform = "%s"
 					custom_bucket {
-						name = "my-test-bucket"
-						endpoint = "https://s3.amazonaws.com"
+						endpoint = "https://s3.us-east-1.amazonaws.com/my-test-bucket"
 						access_key_id = "AKIAIOSFODNN7EXAMPLE"
 						secret_access_key = "wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY"
 					}
@@ -583,6 +595,10 @@ func TestResourceErrorsApplicationGithubRepository(t *testing.T) {
 			body, err := io.ReadAll(r.Body)
 			if err != nil {
 				t.Fatal(err)
+			}
+			// The real API rejects custom_bucket on update - the provider must never send it.
+			if rejectCustomBucketUpdate(w, body) {
+				return
 			}
 			patch := make(map[string]interface{})
 			if err = json.Unmarshal(data.Load().([]byte), &patch); err != nil {
@@ -688,6 +704,10 @@ func TestResourceErrorsApplicationGitlabRepository(t *testing.T) {
 			body, err := io.ReadAll(r.Body)
 			if err != nil {
 				t.Fatal(err)
+			}
+			// The real API rejects custom_bucket on update - the provider must never send it.
+			if rejectCustomBucketUpdate(w, body) {
+				return
 			}
 			patch := make(map[string]interface{})
 			if err = json.Unmarshal(data.Load().([]byte), &patch); err != nil {
@@ -829,6 +849,10 @@ func TestResourceErrorsApplicationCodeMapping(t *testing.T) {
 			body, err := io.ReadAll(r.Body)
 			if err != nil {
 				t.Fatal(err)
+			}
+			// The real API rejects custom_bucket on update - the provider must never send it.
+			if rejectCustomBucketUpdate(w, body) {
+				return
 			}
 			patch := make(map[string]interface{})
 			if err = json.Unmarshal(data.Load().([]byte), &patch); err != nil {

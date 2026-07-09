@@ -42,6 +42,26 @@ resource "logtail_source" "scrape" {
   skip_ssl_verify                    = true
 }
 
+# Store ingested data in your own S3-compatible bucket.
+# custom_bucket can only be set when creating the source and cannot be changed later.
+# Better Stack derives the bucket name from the endpoint URL and verifies the
+# credentials by writing and reading a test object in the bucket during creation.
+resource "logtail_source" "custom_bucket" {
+  name     = "Production (custom bucket)"
+  platform = "http"
+
+  custom_bucket {
+    # The endpoint includes the bucket name, e.g. "https://s3.us-east-1.amazonaws.com/my-bucket"
+    # The credentials are secrets - pass them via variables, never commit them.
+    endpoint          = var.source_custom_bucket_endpoint
+    access_key_id     = var.source_custom_bucket_access_key_id
+    secret_access_key = var.source_custom_bucket_secret_access_key
+
+    # Keep the data in your bucket even after the Better Stack retention period
+    keep_data_after_retention = true
+  }
+}
+
 # Pin the region, set retention and file the source under a group
 resource "logtail_source" "configured" {
   name              = "Production (EU)"

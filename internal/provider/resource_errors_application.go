@@ -260,19 +260,22 @@ var errorsApplicationSchema = map[string]*schema.Schema{
 		ConflictsWith: []string{"github_repository_name"},
 	},
 	"custom_bucket": {
-		Description: "Optional custom bucket configuration for the application. When provided, all fields (name, endpoint, access_key_id, secret_access_key) are required.",
-		Type:        schema.TypeList,
-		Optional:    true,
-		MaxItems:    1,
+		Description: "Optional custom S3-compatible bucket configuration for the application. " +
+			"Can only be set when creating the application and cannot be added, changed, or removed afterwards - recreate the application to use a different bucket. " +
+			"Better Stack validates the credentials by writing and reading a test object in the bucket during creation.",
+		Type:     schema.TypeList,
+		Optional: true,
+		MaxItems: 1,
 		Elem: &schema.Resource{
 			Schema: map[string]*schema.Schema{
 				"name": {
-					Description: "Bucket name",
+					Description: "Bucket name. Safe to omit - the bucket name will be derived from `endpoint`.",
 					Type:        schema.TypeString,
-					Required:    true,
+					Optional:    true,
+					Computed:    true,
 				},
 				"endpoint": {
-					Description: "Bucket endpoint",
+					Description: "Bucket endpoint including the bucket name, e.g. `https://s3.us-east-1.amazonaws.com/my-bucket` or `https://my-bucket.s3.us-east-1.amazonaws.com`.",
 					Type:        schema.TypeString,
 					Required:    true,
 				},
@@ -396,11 +399,16 @@ func errorsApplicationCreate(ctx context.Context, d *schema.ResourceData, meta i
 		if len(customBucketList) > 0 {
 			customBucketMap := customBucketList[0].(map[string]interface{})
 			in.CustomBucket = &sourceCustomBucket{
-				Name:                   stringPtr(customBucketMap["name"].(string)),
 				Endpoint:               stringPtr(customBucketMap["endpoint"].(string)),
 				AccessKeyID:            stringPtr(customBucketMap["access_key_id"].(string)),
 				SecretAccessKey:        stringPtr(customBucketMap["secret_access_key"].(string)),
 				KeepDataAfterRetention: boolPtr(customBucketMap["keep_data_after_retention"].(bool)),
+			}
+			// name is passed along when set, but the API ignores it and stores the bucket
+			// name parsed out of the endpoint URL instead (state keeps the configured
+			// value - see errorsApplicationCopyAttrs).
+			if name := customBucketMap["name"].(string); name != "" {
+				in.CustomBucket.Name = stringPtr(name)
 			}
 		}
 	}
@@ -450,7 +458,22 @@ func errorsApplicationCopyAttrs(d *schema.ResourceData, in *errorsApplication) d
 
 	if in.CustomBucket != nil {
 		customBucketData := make(map[string]interface{})
-		if in.CustomBucket.Name != nil {
+		var existingName string
+		var existingSecret interface{}
+		if existingCustomBucket, ok := d.GetOk("custom_bucket"); ok {
+			existingCustomBucketList := existingCustomBucket.([]interface{})
+			if len(existingCustomBucketList) > 0 {
+				existingCustomBucketMap := existingCustomBucketList[0].(map[string]interface{})
+				existingName, _ = existingCustomBucketMap["name"].(string)
+				existingSecret = existingCustomBucketMap["secret_access_key"]
+			}
+		}
+		// The API stores a bucket name parsed out of the endpoint URL, ignoring the one
+		// sent to it. Keep the configured name when there is one (like data_region) and
+		// only read the derived name back when name is omitted or state is fresh (import).
+		if existingName != "" {
+			customBucketData["name"] = existingName
+		} else if in.CustomBucket.Name != nil {
 			customBucketData["name"] = *in.CustomBucket.Name
 		}
 		if in.CustomBucket.Endpoint != nil {
@@ -460,14 +483,8 @@ func errorsApplicationCopyAttrs(d *schema.ResourceData, in *errorsApplication) d
 			customBucketData["access_key_id"] = *in.CustomBucket.AccessKeyID
 		}
 		// Note: secret_access_key is never returned from API, so we preserve the existing value
-		if existingCustomBucket, ok := d.GetOk("custom_bucket"); ok {
-			existingCustomBucketList := existingCustomBucket.([]interface{})
-			if len(existingCustomBucketList) > 0 {
-				existingCustomBucketMap := existingCustomBucketList[0].(map[string]interface{})
-				if secretKey, ok := existingCustomBucketMap["secret_access_key"]; ok {
-					customBucketData["secret_access_key"] = secretKey
-				}
-			}
+		if existingSecret != nil {
+			customBucketData["secret_access_key"] = existingSecret
 		}
 		if in.CustomBucket.KeepDataAfterRetention != nil {
 			customBucketData["keep_data_after_retention"] = *in.CustomBucket.KeepDataAfterRetention
@@ -549,7 +566,7 @@ func validateErrorsApplication(ctx context.Context, diff *schema.ResourceDiff, v
 		return fmt.Errorf("data_region cannot be changed after application is created")
 	}
 
-	if err := validateCustomBucketRemoval(ctx, diff, v); err != nil {
+	if err := validateCustomBucketChange(ctx, diff, v); err != nil {
 		return err
 	}
 

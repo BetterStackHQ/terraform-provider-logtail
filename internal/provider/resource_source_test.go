@@ -45,7 +45,7 @@ func TestResourceSource(t *testing.T) {
 			body = inject(t, body, "team_id", 123456)
 
 			// Handle custom_bucket - remove secret_access_key from response as API doesn't return it
-			body = removeCustomBucketSecret(t, body)
+			body = simulateCustomBucketAPI(t, body)
 
 			data.Store(body)
 			w.WriteHeader(http.StatusCreated)
@@ -59,6 +59,10 @@ func TestResourceSource(t *testing.T) {
 			}
 			// Store raw request body for assertions
 			lastRequestBody.Store(append([]byte{}, body...))
+			// The real API rejects custom_bucket on update - the provider must never send it.
+			if rejectCustomBucketUpdate(w, body) {
+				return
+			}
 			patch := make(map[string]interface{})
 			if err = json.Unmarshal(data.Load().([]byte), &patch); err != nil {
 				t.Fatal(err)
@@ -76,7 +80,7 @@ func TestResourceSource(t *testing.T) {
 			patched = inject(t, patched, "team_id", 123456)
 
 			// Handle custom_bucket - remove secret_access_key from response as API doesn't return it
-			patched = removeCustomBucketSecret(t, patched)
+			patched = simulateCustomBucketAPI(t, patched)
 
 			data.Store(patched)
 			_, _ = w.Write([]byte(fmt.Sprintf(`{"data":{"id":%q,"attributes":%s}}`, id, patched)))
@@ -535,7 +539,8 @@ func TestResourceSource(t *testing.T) {
 			},
 		},
 		Steps: []resource.TestStep{
-			// Step 1 - create with custom_bucket
+			// Step 1 - create with custom_bucket. name is omitted: the API derives it from the
+			// endpoint URL, and state must pick up the derived value.
 			{
 				Config: fmt.Sprintf(`
 				provider "logtail" {
@@ -546,8 +551,7 @@ func TestResourceSource(t *testing.T) {
 					name     = "%s"
 					platform = "%s"
 					custom_bucket {
-						name              = "my-test-bucket"
-						endpoint          = "https://s3.amazonaws.com"
+						endpoint          = "https://s3.us-east-1.amazonaws.com/my-test-bucket"
 						access_key_id     = "AKIAIOSFODNN7EXAMPLE"
 						secret_access_key = "wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY"
 					}
@@ -559,13 +563,50 @@ func TestResourceSource(t *testing.T) {
 					resource.TestCheckResourceAttr("logtail_source.this", "platform", platform),
 					resource.TestCheckResourceAttr("logtail_source.this", "custom_bucket.#", "1"),
 					resource.TestCheckResourceAttr("logtail_source.this", "custom_bucket.0.name", "my-test-bucket"),
-					resource.TestCheckResourceAttr("logtail_source.this", "custom_bucket.0.endpoint", "https://s3.amazonaws.com"),
+					resource.TestCheckResourceAttr("logtail_source.this", "custom_bucket.0.endpoint", "https://s3.us-east-1.amazonaws.com/my-test-bucket"),
+					resource.TestCheckResourceAttr("logtail_source.this", "custom_bucket.0.access_key_id", "AKIAIOSFODNN7EXAMPLE"),
+					resource.TestCheckResourceAttr("logtail_source.this", "custom_bucket.0.secret_access_key", "wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY"),
+					resource.TestCheckResourceAttr("logtail_source.this", "custom_bucket.0.keep_data_after_retention", "false"),
+					// an omitted name is not sent to the API
+					func(s *terraform.State) error {
+						body := string(lastRequestBody.Load().([]byte))
+						if strings.Contains(body, `"name":"my-test-bucket"`) {
+							return fmt.Errorf("omitted custom_bucket.name should not be sent to the API, got: %s", body)
+						}
+						return nil
+					},
+				),
+			},
+			// Step 2 - update an unrelated field; custom_bucket must not be sent (the mock
+			// returns 422 like the real API if it is) and must stay intact in state.
+			{
+				Config: fmt.Sprintf(`
+				provider "logtail" {
+					api_token = "foo"
+				}
+
+				resource "logtail_source" "this" {
+					name             = "%s"
+					platform         = "%s"
+					ingesting_paused = true
+					custom_bucket {
+						endpoint          = "https://s3.us-east-1.amazonaws.com/my-test-bucket"
+						access_key_id     = "AKIAIOSFODNN7EXAMPLE"
+						secret_access_key = "wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY"
+					}
+				}
+				`, name, platform),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr("logtail_source.this", "ingesting_paused", "true"),
+					resource.TestCheckResourceAttr("logtail_source.this", "custom_bucket.#", "1"),
+					resource.TestCheckResourceAttr("logtail_source.this", "custom_bucket.0.name", "my-test-bucket"),
+					resource.TestCheckResourceAttr("logtail_source.this", "custom_bucket.0.endpoint", "https://s3.us-east-1.amazonaws.com/my-test-bucket"),
 					resource.TestCheckResourceAttr("logtail_source.this", "custom_bucket.0.access_key_id", "AKIAIOSFODNN7EXAMPLE"),
 					resource.TestCheckResourceAttr("logtail_source.this", "custom_bucket.0.secret_access_key", "wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY"),
 					resource.TestCheckResourceAttr("logtail_source.this", "custom_bucket.0.keep_data_after_retention", "false"),
 				),
 			},
-			// Step 2 - update without custom_bucket (should preserve it in state since API doesn't return secret)
+			// Step 3 - setting name to the stored (derived) value is fine - empty plan.
 			{
 				Config: fmt.Sprintf(`
 				provider "logtail" {
@@ -578,21 +619,127 @@ func TestResourceSource(t *testing.T) {
 					ingesting_paused = true
 					custom_bucket {
 						name              = "my-test-bucket"
-						endpoint          = "https://s3.amazonaws.com"
+						endpoint          = "https://s3.us-east-1.amazonaws.com/my-test-bucket"
+						access_key_id     = "AKIAIOSFODNN7EXAMPLE"
+						secret_access_key = "wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY"
+					}
+				}
+				`, name, platform),
+				PlanOnly: true,
+			},
+			// Step 4 - changing name is a benign state-only update: the API ignores the value,
+			// so nothing is sent (the mock 422s any custom_bucket PATCH) and state keeps the
+			// configured name from now on.
+			{
+				Config: fmt.Sprintf(`
+				provider "logtail" {
+					api_token = "foo"
+				}
+
+				resource "logtail_source" "this" {
+					name             = "%s"
+					platform         = "%s"
+					ingesting_paused = true
+					custom_bucket {
+						name              = "renamed-bucket"
+						endpoint          = "https://s3.us-east-1.amazonaws.com/my-test-bucket"
 						access_key_id     = "AKIAIOSFODNN7EXAMPLE"
 						secret_access_key = "wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY"
 					}
 				}
 				`, name, platform),
 				Check: resource.ComposeTestCheckFunc(
-					resource.TestCheckResourceAttr("logtail_source.this", "ingesting_paused", "true"),
-					resource.TestCheckResourceAttr("logtail_source.this", "custom_bucket.#", "1"),
-					resource.TestCheckResourceAttr("logtail_source.this", "custom_bucket.0.name", "my-test-bucket"),
-					resource.TestCheckResourceAttr("logtail_source.this", "custom_bucket.0.endpoint", "https://s3.amazonaws.com"),
-					resource.TestCheckResourceAttr("logtail_source.this", "custom_bucket.0.access_key_id", "AKIAIOSFODNN7EXAMPLE"),
-					resource.TestCheckResourceAttr("logtail_source.this", "custom_bucket.0.secret_access_key", "wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY"),
-					resource.TestCheckResourceAttr("logtail_source.this", "custom_bucket.0.keep_data_after_retention", "false"),
+					resource.TestCheckResourceAttr("logtail_source.this", "custom_bucket.0.name", "renamed-bucket"),
+					resource.TestCheckResourceAttr("logtail_source.this", "custom_bucket.0.endpoint", "https://s3.us-east-1.amazonaws.com/my-test-bucket"),
 				),
+			},
+			// Step 5 - changing the endpoint fails at plan time.
+			{
+				Config: fmt.Sprintf(`
+				provider "logtail" {
+					api_token = "foo"
+				}
+
+				resource "logtail_source" "this" {
+					name             = "%s"
+					platform         = "%s"
+					ingesting_paused = true
+					custom_bucket {
+						endpoint          = "https://s3.us-east-1.amazonaws.com/other-bucket"
+						access_key_id     = "AKIAIOSFODNN7EXAMPLE"
+						secret_access_key = "wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY"
+					}
+				}
+				`, name, platform),
+				PlanOnly:    true,
+				ExpectError: regexp.MustCompile(`custom_bucket\.endpoint cannot be changed once set`),
+			},
+			// Step 6 - changing the secret fails at plan time (it is only fillable after import).
+			{
+				Config: fmt.Sprintf(`
+				provider "logtail" {
+					api_token = "foo"
+				}
+
+				resource "logtail_source" "this" {
+					name             = "%s"
+					platform         = "%s"
+					ingesting_paused = true
+					custom_bucket {
+						endpoint          = "https://s3.us-east-1.amazonaws.com/my-test-bucket"
+						access_key_id     = "AKIAIOSFODNN7EXAMPLE"
+						secret_access_key = "differentsecret"
+					}
+				}
+				`, name, platform),
+				PlanOnly:    true,
+				ExpectError: regexp.MustCompile(`custom_bucket\.secret_access_key cannot be changed once set`),
+			},
+		},
+	})
+
+	// Test that custom_bucket cannot be added to an existing source
+	resource.Test(t, resource.TestCase{
+		IsUnitTest: true,
+		ProviderFactories: map[string]func() (*schema.Provider, error){
+			"logtail": func() (*schema.Provider, error) {
+				return New(WithURL(server.URL)), nil
+			},
+		},
+		Steps: []resource.TestStep{
+			// Step 1 - create without custom_bucket
+			{
+				Config: fmt.Sprintf(`
+				provider "logtail" {
+					api_token = "foo"
+				}
+
+				resource "logtail_source" "this" {
+					name     = "%s"
+					platform = "%s"
+				}
+				`, name, platform),
+				Check: resource.TestCheckResourceAttr("logtail_source.this", "custom_bucket.#", "0"),
+			},
+			// Step 2 - adding custom_bucket to the existing source fails at plan time
+			{
+				Config: fmt.Sprintf(`
+				provider "logtail" {
+					api_token = "foo"
+				}
+
+				resource "logtail_source" "this" {
+					name     = "%s"
+					platform = "%s"
+					custom_bucket {
+						endpoint          = "https://s3.us-east-1.amazonaws.com/my-test-bucket"
+						access_key_id     = "AKIAIOSFODNN7EXAMPLE"
+						secret_access_key = "wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY"
+					}
+				}
+				`, name, platform),
+				PlanOnly:    true,
+				ExpectError: regexp.MustCompile(`custom_bucket can only be set when creating the resource`),
 			},
 		},
 	})
@@ -617,8 +764,7 @@ func TestResourceSource(t *testing.T) {
 					name     = "%s"
 					platform = "%s"
 					custom_bucket {
-						name                      = "my-test-bucket"
-						endpoint                  = "https://s3.amazonaws.com"
+						endpoint                  = "https://s3.us-east-1.amazonaws.com/my-test-bucket"
 						access_key_id             = "AKIAIOSFODNN7EXAMPLE"
 						secret_access_key         = "wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY"
 						keep_data_after_retention = true
@@ -632,7 +778,7 @@ func TestResourceSource(t *testing.T) {
 					resource.TestCheckResourceAttr("logtail_source.this", "platform", platform),
 					resource.TestCheckResourceAttr("logtail_source.this", "custom_bucket.#", "1"),
 					resource.TestCheckResourceAttr("logtail_source.this", "custom_bucket.0.name", "my-test-bucket"),
-					resource.TestCheckResourceAttr("logtail_source.this", "custom_bucket.0.endpoint", "https://s3.amazonaws.com"),
+					resource.TestCheckResourceAttr("logtail_source.this", "custom_bucket.0.endpoint", "https://s3.us-east-1.amazonaws.com/my-test-bucket"),
 					resource.TestCheckResourceAttr("logtail_source.this", "custom_bucket.0.access_key_id", "AKIAIOSFODNN7EXAMPLE"),
 					resource.TestCheckResourceAttr("logtail_source.this", "custom_bucket.0.secret_access_key", "wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY"),
 					resource.TestCheckResourceAttr("logtail_source.this", "custom_bucket.0.keep_data_after_retention", "true"),
@@ -650,27 +796,7 @@ func TestResourceSource(t *testing.T) {
 			},
 		},
 		Steps: []resource.TestStep{
-			// Step 1 - custom_bucket missing name (schema validation)
-			{
-				Config: fmt.Sprintf(`
-				provider "logtail" {
-					api_token = "foo"
-				}
-
-				resource "logtail_source" "this" {
-					name     = "%s"
-					platform = "%s"
-					custom_bucket {
-						endpoint          = "https://s3.amazonaws.com"
-						access_key_id     = "AKIAIOSFODNN7EXAMPLE"
-						secret_access_key = "wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY"
-					}
-				}
-				`, name, platform),
-				PlanOnly:    true,
-				ExpectError: regexp.MustCompile(`The argument "name" is required`),
-			},
-			// Step 2 - custom_bucket missing endpoint (schema validation)
+			// Step 1 - custom_bucket missing endpoint (schema validation)
 			{
 				Config: fmt.Sprintf(`
 				provider "logtail" {
@@ -753,8 +879,8 @@ func TestResourceSource(t *testing.T) {
 					name     = "%s"
 					platform = "%s"
 					custom_bucket {
-						name              = "my-test-bucket"
-						endpoint          = "https://s3.amazonaws.com"
+						name              = "my-own-label"
+						endpoint          = "https://s3.us-east-1.amazonaws.com/my-test-bucket"
 						access_key_id     = "AKIAIOSFODNN7EXAMPLE"
 						secret_access_key = "wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY"
 					}
@@ -762,6 +888,9 @@ func TestResourceSource(t *testing.T) {
 				`, name, platform),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("logtail_source.this", "custom_bucket.#", "1"),
+					// a configured name is kept in state even though the API stores the
+					// endpoint-derived one
+					resource.TestCheckResourceAttr("logtail_source.this", "custom_bucket.0.name", "my-own-label"),
 				),
 			},
 			// Step 2 - try to remove custom_bucket (should fail)
@@ -1387,8 +1516,10 @@ func inject(t *testing.T, body json.RawMessage, key string, value interface{}) j
 	return body
 }
 
-func removeCustomBucketSecret(t *testing.T, body json.RawMessage) json.RawMessage {
-	// Remove secret_access_key from custom_bucket to simulate API behavior
+// simulateCustomBucketAPI mimics the server's custom_bucket handling: the stored bucket name is
+// always the one parsed out of the endpoint URL (any name sent by the caller is ignored), and
+// secret_access_key is write-only, never returned.
+func simulateCustomBucketAPI(t *testing.T, body json.RawMessage) json.RawMessage {
 	response := make(map[string]interface{})
 	if err := json.Unmarshal(body, &response); err != nil {
 		t.Fatal(err)
@@ -1396,6 +1527,10 @@ func removeCustomBucketSecret(t *testing.T, body json.RawMessage) json.RawMessag
 
 	if customBucket, ok := response["custom_bucket"].(map[string]interface{}); ok {
 		delete(customBucket, "secret_access_key")
+		endpoint, _ := customBucket["endpoint"].(string)
+		if i := strings.LastIndex(endpoint, "/"); i > len("https:/") {
+			customBucket["name"] = endpoint[i+1:]
+		}
 		response["custom_bucket"] = customBucket
 	}
 
@@ -1405,4 +1540,19 @@ func removeCustomBucketSecret(t *testing.T, body json.RawMessage) json.RawMessag
 	}
 
 	return body
+}
+
+// rejectCustomBucketUpdate mimics the server's PATCH guard: custom_bucket cannot be updated after
+// creation. Returns true if it wrote the 422 response.
+func rejectCustomBucketUpdate(w http.ResponseWriter, body []byte) bool {
+	patch := make(map[string]interface{})
+	if err := json.Unmarshal(body, &patch); err != nil {
+		return false
+	}
+	if _, ok := patch["custom_bucket"]; !ok {
+		return false
+	}
+	w.WriteHeader(http.StatusUnprocessableEntity)
+	_, _ = w.Write([]byte(`{"errors":"Custom S3 storage cannot be updated after creation","invalid_attributes":["custom_bucket"]}`))
+	return true
 }

@@ -344,14 +344,16 @@ var collectorSchema = map[string]*schema.Schema{
 		},
 	},
 	"custom_bucket": {
-		Description: "Optional custom bucket configuration for the collector. Once set, it cannot be removed.",
-		Type:        schema.TypeList,
-		Optional:    true,
-		MaxItems:    1,
+		Description: "Optional custom S3-compatible bucket configuration for the collector. " +
+			"Can only be set when creating the collector and cannot be added, changed, or removed afterwards - recreate the collector to use a different bucket. " +
+			"Better Stack validates the credentials by writing and reading a test object in the bucket during creation.",
+		Type:     schema.TypeList,
+		Optional: true,
+		MaxItems: 1,
 		Elem: &schema.Resource{
 			Schema: map[string]*schema.Schema{
-				"name":                      {Description: "Bucket name.", Type: schema.TypeString, Required: true},
-				"endpoint":                  {Description: "Bucket endpoint URL.", Type: schema.TypeString, Required: true},
+				"name":                      {Description: "Bucket name. Safe to omit - the bucket name will be derived from `endpoint`.", Type: schema.TypeString, Optional: true, Computed: true},
+				"endpoint":                  {Description: "Bucket endpoint including the bucket name, e.g. `https://s3.us-east-1.amazonaws.com/my-bucket` or `https://my-bucket.s3.us-east-1.amazonaws.com`.", Type: schema.TypeString, Required: true},
 				"access_key_id":             {Description: "Access key ID for the bucket.", Type: schema.TypeString, Required: true},
 				"secret_access_key":         {Description: "Secret access key for the bucket.", Type: schema.TypeString, Required: true, Sensitive: true},
 				"keep_data_after_retention": {Description: "Whether to keep data in the bucket after the retention period.", Type: schema.TypeBool, Optional: true, Default: false},
@@ -792,11 +794,16 @@ func collectorCreate(ctx context.Context, d *schema.ResourceData, meta interface
 		if len(customBucketList) > 0 {
 			cbm := customBucketList[0].(map[string]interface{})
 			in.CustomBucket = &collectorCustomBucket{
-				Name:                   stringPtr(cbm["name"].(string)),
 				Endpoint:               stringPtr(cbm["endpoint"].(string)),
 				AccessKeyID:            stringPtr(cbm["access_key_id"].(string)),
 				SecretAccessKey:        stringPtr(cbm["secret_access_key"].(string)),
 				KeepDataAfterRetention: boolPtr(cbm["keep_data_after_retention"].(bool)),
+			}
+			// name is passed along when set, but the API ignores it and stores the bucket
+			// name parsed out of the endpoint URL instead (state keeps the configured
+			// value - see collectorCopyAttrs).
+			if name := cbm["name"].(string); name != "" {
+				in.CustomBucket.Name = stringPtr(name)
 			}
 		}
 	}
@@ -906,22 +913,9 @@ func collectorUpdate(ctx context.Context, d *schema.ResourceData, meta interface
 		}
 	}
 
-	// Load custom_bucket if changed
-	if d.HasChange("custom_bucket") {
-		if customBucketData, ok := d.GetOk("custom_bucket"); ok {
-			customBucketList := customBucketData.([]interface{})
-			if len(customBucketList) > 0 {
-				cbm := customBucketList[0].(map[string]interface{})
-				in.CustomBucket = &collectorCustomBucket{
-					Name:                   stringPtr(cbm["name"].(string)),
-					Endpoint:               stringPtr(cbm["endpoint"].(string)),
-					AccessKeyID:            stringPtr(cbm["access_key_id"].(string)),
-					SecretAccessKey:        stringPtr(cbm["secret_access_key"].(string)),
-					KeepDataAfterRetention: boolPtr(cbm["keep_data_after_retention"].(bool)),
-				}
-			}
-		}
-	}
+	// custom_bucket is never sent on update: the API rejects it with 422 after creation.
+	// validateCustomBucketChange already fails the plan for every change except filling in
+	// secret_access_key after an import, which only needs to land in state, not in the API.
 
 	// Handle databases update with delta computation
 	if d.HasChange("databases") {
@@ -1109,10 +1103,25 @@ func collectorCopyAttrs(d *schema.ResourceData, in *collector) diag.Diagnostics 
 		}
 	}
 
-	// Copy custom_bucket (preserve secret_access_key from state)
+	// Copy custom_bucket (preserve name and secret_access_key from state)
 	if in.CustomBucket != nil {
 		customBucketData := make(map[string]interface{})
-		if in.CustomBucket.Name != nil {
+		var existingName string
+		var existingSecret interface{}
+		if existingCustomBucket, ok := d.GetOk("custom_bucket"); ok {
+			existingList := existingCustomBucket.([]interface{})
+			if len(existingList) > 0 {
+				existingMap := existingList[0].(map[string]interface{})
+				existingName, _ = existingMap["name"].(string)
+				existingSecret = existingMap["secret_access_key"]
+			}
+		}
+		// The API stores a bucket name parsed out of the endpoint URL, ignoring the one
+		// sent to it. Keep the configured name when there is one (like data_region) and
+		// only read the derived name back when name is omitted or state is fresh (import).
+		if existingName != "" {
+			customBucketData["name"] = existingName
+		} else if in.CustomBucket.Name != nil {
 			customBucketData["name"] = *in.CustomBucket.Name
 		}
 		if in.CustomBucket.Endpoint != nil {
@@ -1122,14 +1131,8 @@ func collectorCopyAttrs(d *schema.ResourceData, in *collector) diag.Diagnostics 
 			customBucketData["access_key_id"] = *in.CustomBucket.AccessKeyID
 		}
 		// Preserve secret_access_key from existing state (API doesn't return it)
-		if existingCustomBucket, ok := d.GetOk("custom_bucket"); ok {
-			existingList := existingCustomBucket.([]interface{})
-			if len(existingList) > 0 {
-				existingMap := existingList[0].(map[string]interface{})
-				if secretKey, ok := existingMap["secret_access_key"]; ok {
-					customBucketData["secret_access_key"] = secretKey
-				}
-			}
+		if existingSecret != nil {
+			customBucketData["secret_access_key"] = existingSecret
 		}
 		if in.CustomBucket.KeepDataAfterRetention != nil {
 			customBucketData["keep_data_after_retention"] = *in.CustomBucket.KeepDataAfterRetention
@@ -1206,21 +1209,7 @@ func validateCollector(ctx context.Context, diff *schema.ResourceDiff, v interfa
 		return fmt.Errorf("data_region cannot be changed after collector is created")
 	}
 
-	if diff.Id() != "" && diff.HasChange("custom_bucket") {
-		oldVal, newVal := diff.GetChange("custom_bucket")
-		oldList := oldVal.([]interface{})
-		newList := newVal.([]interface{})
-		if len(oldList) > 0 && len(newList) == 0 {
-			return fmt.Errorf("custom_bucket cannot be removed once set - it is a create-only field")
-		}
-		// The API also rejects modifications to existing custom_bucket fields,
-		// so block any changes when the bucket was already set.
-		if len(oldList) > 0 && len(newList) > 0 {
-			return fmt.Errorf("custom_bucket fields cannot be modified after creation - the bucket configuration is immutable once set")
-		}
-	}
-
-	return nil
+	return validateCustomBucketChange(ctx, diff, v)
 }
 
 // computeDatabasesDelta calculates the delta between old and new databases for update.

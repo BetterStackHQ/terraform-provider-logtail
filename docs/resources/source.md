@@ -57,6 +57,26 @@ resource "logtail_source" "scrape" {
   skip_ssl_verify                    = true
 }
 
+# Store ingested data in your own S3-compatible bucket.
+# custom_bucket can only be set when creating the source and cannot be changed later.
+# Better Stack derives the bucket name from the endpoint URL and verifies the
+# credentials by writing and reading a test object in the bucket during creation.
+resource "logtail_source" "custom_bucket" {
+  name     = "Production (custom bucket)"
+  platform = "http"
+
+  custom_bucket {
+    # The endpoint includes the bucket name, e.g. "https://s3.us-east-1.amazonaws.com/my-bucket"
+    # The credentials are secrets - pass them via variables, never commit them.
+    endpoint          = var.source_custom_bucket_endpoint
+    access_key_id     = var.source_custom_bucket_access_key_id
+    secret_access_key = var.source_custom_bucket_secret_access_key
+
+    # Keep the data in your bucket even after the Better Stack retention period
+    keep_data_after_retention = true
+  }
+}
+
 # Pin the region, set retention and file the source under a group
 resource "logtail_source" "configured" {
   name              = "Production (EU)"
@@ -141,7 +161,7 @@ resource "logtail_source" "configured" {
 - `blocked_metrics` (List of String) Metric names to mark as spam (one entry per metric). Listed metrics are rejected during ingestion and not billed.
 - `code_mapping_source_root` (String) Source code root path that replaces the stack trace root prefix. Used to map container or build paths to the corresponding repository paths for git blame.
 - `code_mapping_stack_root` (String) Stack trace root path prefix to match. When a stack trace file starts with this prefix, it will be replaced with the source code root to map to the correct repository path.
-- `custom_bucket` (Block List, Max: 1) Optional custom bucket configuration for the source. When provided, all fields (name, endpoint, access_key_id, secret_access_key) are required. (see [below for nested schema](#nestedblock--custom_bucket))
+- `custom_bucket` (Block List, Max: 1) Optional custom S3-compatible bucket configuration for the source. Can only be set when creating the source and cannot be added, changed, or removed afterwards - recreate the source to use a different bucket. Better Stack validates the credentials by writing and reading a test object in the bucket during creation. (see [below for nested schema](#nestedblock--custom_bucket))
 - `data_region` (String) Data region or private cluster name to create the source in. Permitted values for most plans are: `us_east`, `germany`, `singapore`. This value can only be set at creation time and cannot be changed afterwards. The API returns the specific cluster name, which may differ from the value you provide (for example, `germany` may read back as `eu-nbg-2`).  
 When importing an existing source, leave `data_region` unset in your configuration - Terraform reads it from the API. Pinning it to an identifier that differs from the stored cluster name produces a spurious `data_region cannot be changed after source is created` error.
 - `ingesting_paused` (Boolean) This property allows you to temporarily pause data ingesting for this source (e.g., when you are reaching your plan's usage quota and you want to prioritize some sources over others).
@@ -176,10 +196,10 @@ When importing an existing source, leave `data_region` unset in your configurati
 Required:
 
 - `access_key_id` (String) Access key ID
-- `endpoint` (String) Bucket endpoint
-- `name` (String) Bucket name
+- `endpoint` (String) Bucket endpoint including the bucket name, e.g. `https://s3.us-east-1.amazonaws.com/my-bucket` or `https://my-bucket.s3.us-east-1.amazonaws.com`.
 - `secret_access_key` (String, Sensitive) Secret access key
 
 Optional:
 
 - `keep_data_after_retention` (Boolean) Whether we should keep data in the bucket after the retention period.
+- `name` (String) Bucket name. Safe to omit - the bucket name will be derived from `endpoint`.
