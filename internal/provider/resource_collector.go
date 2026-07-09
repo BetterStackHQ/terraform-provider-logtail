@@ -353,9 +353,9 @@ var collectorSchema = map[string]*schema.Schema{
 		Elem: &schema.Resource{
 			Schema: map[string]*schema.Schema{
 				"name":                      {Description: "Bucket name. Safe to omit - the bucket name will be derived from `endpoint`.", Type: schema.TypeString, Optional: true, Computed: true},
-				"endpoint":                  {Description: "Bucket endpoint including the bucket name, e.g. `https://s3.us-east-1.amazonaws.com/my-bucket` or `https://my-bucket.s3.us-east-1.amazonaws.com`.", Type: schema.TypeString, Required: true},
-				"access_key_id":             {Description: "Access key ID for the bucket.", Type: schema.TypeString, Required: true},
-				"secret_access_key":         {Description: "Secret access key for the bucket.", Type: schema.TypeString, Required: true, Sensitive: true},
+				"endpoint":                  {Description: "Bucket endpoint including the bucket name, e.g. `https://s3.us-east-1.amazonaws.com/my-bucket` or `https://my-bucket.s3.us-east-1.amazonaws.com`.", Type: schema.TypeString, Required: true, ValidateFunc: validation.StringIsNotEmpty},
+				"access_key_id":             {Description: "Access key ID for the bucket.", Type: schema.TypeString, Required: true, ValidateFunc: validation.StringIsNotEmpty},
+				"secret_access_key":         {Description: "Secret access key for the bucket.", Type: schema.TypeString, Required: true, Sensitive: true, ValidateFunc: validation.StringIsNotEmpty},
 				"keep_data_after_retention": {Description: "Whether to keep data in the bucket after the retention period.", Type: schema.TypeBool, Optional: true, Default: false},
 			},
 		},

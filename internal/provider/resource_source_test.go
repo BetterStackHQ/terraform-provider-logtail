@@ -796,6 +796,28 @@ func TestResourceSource(t *testing.T) {
 			},
 		},
 		Steps: []resource.TestStep{
+			// Step 0 - empty credentials fail validation. Missing CI secrets surface as empty
+			// strings (not null), and the API silently creates the source without any bucket
+			// when all bucket fields are blank - this must fail loudly at plan time instead.
+			{
+				Config: fmt.Sprintf(`
+				provider "logtail" {
+					api_token = "foo"
+				}
+
+				resource "logtail_source" "this" {
+					name     = "%s"
+					platform = "%s"
+					custom_bucket {
+						endpoint          = ""
+						access_key_id     = ""
+						secret_access_key = ""
+					}
+				}
+				`, name, platform),
+				PlanOnly:    true,
+				ExpectError: regexp.MustCompile(`expected "custom_bucket\.0\.endpoint" to not be an empty string`),
+			},
 			// Step 1 - custom_bucket missing endpoint (schema validation)
 			{
 				Config: fmt.Sprintf(`
