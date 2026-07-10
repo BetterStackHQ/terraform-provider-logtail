@@ -1,69 +1,24 @@
-# =============================================================================
-# Sources
-# =============================================================================
-
 resource "logtail_source" "this" {
-  name     = "Terraform Basic Source"
-  platform = "http"
+  name               = "Terraform Advanced Source"
+  platform           = "http"
+  ingesting_paused   = true
+  data_region        = "germany"
+  live_tail_pattern  = "{level} {message}"
+  logs_retention     = 60
+  metrics_retention  = 90
+  vrl_transformation = <<EOT
+# Expected msg format: [svc:router] GET /api/health succeeded in 12.345ms
+parsed, err = parse_regex(.message, r'\[svc:(?P<service>[a-zA-Z_-]+)\] .* in (?P<duration>\d+(?:\.\d+)?)ms')
+if (err == null) {
+    .service_name = parsed.service
+    .duration_ms = to_float!(parsed.duration)
 }
-
-resource "logtail_errors_application" "this" {
-  name                     = "Terraform Basic Errors Application"
-  platform                 = "ruby_errors"
-  correlate_with_source_id = logtail_source.this.id
-}
-
-# =============================================================================
-# Explorations - Basic Examples
-# =============================================================================
-
-# Line chart - event count over time
-resource "logtail_exploration" "event_count" {
-  name = "Event Count Over Time"
-
-  chart {
-    chart_type  = "line_chart"
-    description = "Shows the number of events over time"
+EOT
+  custom_bucket {
+    name                      = "my-test-bucket2"
+    endpoint                  = "https://7faa830e77ada78a80b015875a7e1e3e.r2.cloudflarestorage.com/telemetry-e2e-test-bucket"
+    access_key_id             = "19701543064d2c698cbda7c6b091d735"
+    secret_access_key         = "adacaec2310c7a92369e2ec28152871125264ef3cc6f5d28deba7f77f0b37462"
+    keep_data_after_retention = true
   }
-
-  query {
-    query_type = "sql_expression"
-    sql_query  = "SELECT {{time}} AS time, count(*) AS value FROM {{source}} WHERE time BETWEEN {{start_time}} AND {{end_time}} GROUP BY time"
-  }
-}
-
-# Tail chart - live log view with filter
-resource "logtail_exploration" "error_logs" {
-  name = "Terraform Explore Errors"
-
-  chart {
-    chart_type  = "tail_chart"
-    description = "Live view of error logs"
-  }
-
-  query {
-    query_type      = "tail_query"
-    where_condition = "level=error"
-  }
-
-  variable {
-    name          = "source"
-    variable_type = "source"
-    values        = [logtail_source.this.id]
-  }
-}
-
-# =============================================================================
-# Simple Alert
-# =============================================================================
-
-resource "logtail_exploration_alert" "error_logs" {
-  exploration_id = logtail_exploration.error_logs.id
-  name           = "Terraform Errors Alert"
-  alert_type     = "threshold"
-  operator       = "higher_than"
-  value          = 0
-  check_period   = 60
-
-  email = true
 }

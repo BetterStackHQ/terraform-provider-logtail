@@ -278,7 +278,7 @@ Required:
 Optional:
 
 - `keep_data_after_retention` (Boolean) Whether to keep data in the bucket after the retention period.
-- `name` (String) Bucket name. Safe to omit - the bucket name will be derived from `endpoint`.
+- `name` (String, Deprecated) Bucket name derived from `endpoint`. Deprecated - do not set this attribute.
 
 
 <a id="nestedblock--databases"></a>

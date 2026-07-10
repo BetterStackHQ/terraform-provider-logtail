@@ -269,7 +269,8 @@ var errorsApplicationSchema = map[string]*schema.Schema{
 		Elem: &schema.Resource{
 			Schema: map[string]*schema.Schema{
 				"name": {
-					Description: "Bucket name. Safe to omit - the bucket name will be derived from `endpoint`.",
+					Description: "Bucket name derived from `endpoint`. Deprecated - do not set this attribute.",
+					Deprecated:  "Do not set the bucket name - it is always derived from `endpoint`. This attribute will be removed in a future release.",
 					Type:        schema.TypeString,
 					Optional:    true,
 					Computed:    true,
