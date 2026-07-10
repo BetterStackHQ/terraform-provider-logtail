@@ -164,7 +164,7 @@ resource "logtail_errors_application" "with_gitlab" {
 - `code_mapping_source_root` (String) Source code root path that replaces the stack trace root prefix. Used to map container or build paths to the corresponding repository paths for git blame.
 - `code_mapping_stack_root` (String) Stack trace root path prefix to match. When a stack trace file starts with this prefix, it will be replaced with the source code root to map to the correct repository path.
 - `correlate_with_source_id` (Number) ID of an existing source to correlate errors from this application with, for log and trace correlation. Cannot be changed after the application is created.
-- `custom_bucket` (Block List, Max: 1) Optional custom bucket configuration for the application. When provided, all fields (name, endpoint, access_key_id, secret_access_key) are required. (see [below for nested schema](#nestedblock--custom_bucket))
+- `custom_bucket` (Block List, Max: 1) Optional custom S3-compatible bucket configuration for the application. Can only be set when creating the application and cannot be added, changed, or removed afterwards - recreate the application to use a different bucket. Better Stack validates the credentials by writing and reading a test object in the bucket during creation. (see [below for nested schema](#nestedblock--custom_bucket))
 - `data_region` (String) Data region or private cluster name to create the application in. Permitted values for most plans are: `us_east`, `germany`, `singapore`. This value can only be set at creation time and cannot be changed afterwards. The API returns the specific cluster name, which may differ from the value you provide (for example, `germany` may read back as `eu-nbg-2`).  
 When importing an existing application, leave `data_region` unset in your configuration - Terraform reads it from the API. Pinning it to an identifier that differs from the stored cluster name produces a spurious `data_region cannot be changed after application is created` error.
 - `errors_retention` (Number) Error data retention period in days. Default retention is 90 days.
@@ -189,10 +189,10 @@ When importing an existing application, leave `data_region` unset in your config
 Required:
 
 - `access_key_id` (String) Access key ID
-- `endpoint` (String) Bucket endpoint
-- `name` (String) Bucket name
+- `endpoint` (String) Bucket endpoint including the bucket name, e.g. `https://s3.us-east-1.amazonaws.com/my-bucket` or `https://my-bucket.s3.us-east-1.amazonaws.com`.
 - `secret_access_key` (String, Sensitive) Secret access key
 
 Optional:
 
 - `keep_data_after_retention` (Boolean) Whether we should keep data in the bucket after the retention period.
+- `name` (String, Deprecated) Bucket name derived from `endpoint`. Deprecated - do not set this attribute.

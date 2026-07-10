@@ -241,32 +241,39 @@ var sourceSchema = map[string]*schema.Schema{
 		},
 	},
 	"custom_bucket": {
-		Description: "Optional custom bucket configuration for the source. When provided, all fields (name, endpoint, access_key_id, secret_access_key) are required.",
-		Type:        schema.TypeList,
-		Optional:    true,
-		MaxItems:    1,
+		Description: "Optional custom S3-compatible bucket configuration for the source. " +
+			"Can only be set when creating the source and cannot be added, changed, or removed afterwards - recreate the source to use a different bucket. " +
+			"Better Stack validates the credentials by writing and reading a test object in the bucket during creation.",
+		Type:     schema.TypeList,
+		Optional: true,
+		MaxItems: 1,
 		Elem: &schema.Resource{
 			Schema: map[string]*schema.Schema{
 				"name": {
-					Description: "Bucket name",
+					Description: "Bucket name derived from `endpoint`. Deprecated - do not set this attribute.",
+					Deprecated:  "Do not set the bucket name - it is always derived from `endpoint`. This attribute will be removed in a future release.",
 					Type:        schema.TypeString,
-					Required:    true,
+					Optional:    true,
+					Computed:    true,
 				},
 				"endpoint": {
-					Description: "Bucket endpoint",
-					Type:        schema.TypeString,
-					Required:    true,
+					Description:  "Bucket endpoint including the bucket name, e.g. `https://s3.us-east-1.amazonaws.com/my-bucket` or `https://my-bucket.s3.us-east-1.amazonaws.com`.",
+					Type:         schema.TypeString,
+					Required:     true,
+					ValidateFunc: validation.StringIsNotEmpty,
 				},
 				"access_key_id": {
-					Description: "Access key ID",
-					Type:        schema.TypeString,
-					Required:    true,
+					Description:  "Access key ID",
+					Type:         schema.TypeString,
+					Required:     true,
+					ValidateFunc: validation.StringIsNotEmpty,
 				},
 				"secret_access_key": {
-					Description: "Secret access key",
-					Type:        schema.TypeString,
-					Required:    true,
-					Sensitive:   true,
+					Description:  "Secret access key",
+					Type:         schema.TypeString,
+					Required:     true,
+					Sensitive:    true,
+					ValidateFunc: validation.StringIsNotEmpty,
 				},
 				"keep_data_after_retention": {
 					Description: "Whether we should keep data in the bucket after the retention period.",
@@ -455,11 +462,16 @@ func sourceCreate(ctx context.Context, d *schema.ResourceData, meta interface{})
 		if len(customBucketList) > 0 {
 			customBucketMap := customBucketList[0].(map[string]interface{})
 			in.CustomBucket = &sourceCustomBucket{
-				Name:                   stringPtr(customBucketMap["name"].(string)),
 				Endpoint:               stringPtr(customBucketMap["endpoint"].(string)),
 				AccessKeyID:            stringPtr(customBucketMap["access_key_id"].(string)),
 				SecretAccessKey:        stringPtr(customBucketMap["secret_access_key"].(string)),
 				KeepDataAfterRetention: boolPtr(customBucketMap["keep_data_after_retention"].(bool)),
+			}
+			// name is passed along when set, but the API ignores it and stores the bucket
+			// name parsed out of the endpoint URL instead (state keeps the configured
+			// value - see sourceCopyAttrs).
+			if name := customBucketMap["name"].(string); name != "" {
+				in.CustomBucket.Name = stringPtr(name)
 			}
 		}
 	}
@@ -511,7 +523,22 @@ func sourceCopyAttrs(d *schema.ResourceData, in *source) diag.Diagnostics {
 
 	if in.CustomBucket != nil {
 		customBucketData := make(map[string]interface{})
-		if in.CustomBucket.Name != nil {
+		var existingName string
+		var existingSecret interface{}
+		if existingCustomBucket, ok := d.GetOk("custom_bucket"); ok {
+			existingCustomBucketList := existingCustomBucket.([]interface{})
+			if len(existingCustomBucketList) > 0 {
+				existingCustomBucketMap := existingCustomBucketList[0].(map[string]interface{})
+				existingName, _ = existingCustomBucketMap["name"].(string)
+				existingSecret = existingCustomBucketMap["secret_access_key"]
+			}
+		}
+		// The API stores a bucket name parsed out of the endpoint URL, ignoring the one
+		// sent to it. Keep the configured name when there is one (like data_region) and
+		// only read the derived name back when name is omitted or state is fresh (import).
+		if existingName != "" {
+			customBucketData["name"] = existingName
+		} else if in.CustomBucket.Name != nil {
 			customBucketData["name"] = *in.CustomBucket.Name
 		}
 		if in.CustomBucket.Endpoint != nil {
@@ -521,14 +548,8 @@ func sourceCopyAttrs(d *schema.ResourceData, in *source) diag.Diagnostics {
 			customBucketData["access_key_id"] = *in.CustomBucket.AccessKeyID
 		}
 		// Note: secret_access_key is never returned from API, so we preserve the existing value
-		if existingCustomBucket, ok := d.GetOk("custom_bucket"); ok {
-			existingCustomBucketList := existingCustomBucket.([]interface{})
-			if len(existingCustomBucketList) > 0 {
-				existingCustomBucketMap := existingCustomBucketList[0].(map[string]interface{})
-				if secretKey, ok := existingCustomBucketMap["secret_access_key"]; ok {
-					customBucketData["secret_access_key"] = secretKey
-				}
-			}
+		if existingSecret != nil {
+			customBucketData["secret_access_key"] = existingSecret
 		}
 		if in.CustomBucket.KeepDataAfterRetention != nil {
 			customBucketData["keep_data_after_retention"] = *in.CustomBucket.KeepDataAfterRetention
@@ -575,7 +596,7 @@ func validateSource(ctx context.Context, diff *schema.ResourceDiff, v interface{
 		return err
 	}
 
-	if err := validateCustomBucketRemoval(ctx, diff, v); err != nil {
+	if err := validateCustomBucketChange(ctx, diff, v); err != nil {
 		return err
 	}
 
@@ -618,17 +639,41 @@ func validateRequestHeader(header map[string]interface{}) error {
 	return nil
 }
 
-func validateCustomBucketRemoval(ctx context.Context, diff *schema.ResourceDiff, v interface{}) error {
+// validateCustomBucketChange rejects any change to custom_bucket on an existing resource with an
+// explicit plan-time error. The API only accepts the block at creation (updates fail with 422),
+// so without this a config change would either fail the apply or plan the same update forever.
+// Two exceptions stay allowed because state legitimately starts without the value: filling in
+// secret_access_key (the API never returns the secret, so a configuration adds it after
+// terraform import) and filling in a previously-empty name.
+func validateCustomBucketChange(ctx context.Context, diff *schema.ResourceDiff, v interface{}) error {
 	// Only validate for existing resources (not during creation)
-	if diff.Id() != "" && diff.HasChange("custom_bucket") {
-		oldVal, newVal := diff.GetChange("custom_bucket")
+	if diff.Id() == "" || !diff.HasChange("custom_bucket") {
+		return nil
+	}
+	oldVal, newVal := diff.GetChange("custom_bucket")
+	oldList := oldVal.([]interface{})
+	newList := newVal.([]interface{})
 
-		// Check if custom_bucket was removed (had value, now empty)
-		oldList := oldVal.([]interface{})
-		newList := newVal.([]interface{})
+	if len(oldList) > 0 && len(newList) == 0 {
+		return fmt.Errorf("custom_bucket cannot be removed once set - it is a create-only field")
+	}
+	if len(oldList) == 0 && len(newList) > 0 {
+		return fmt.Errorf("custom_bucket can only be set when creating the resource - recreate it to use a custom bucket")
+	}
+	if len(oldList) == 0 || len(newList) == 0 {
+		return nil
+	}
 
-		if len(oldList) > 0 && len(newList) == 0 {
-			return fmt.Errorf("custom_bucket cannot be removed once set - it is a create-only field")
+	oldMap := oldList[0].(map[string]interface{})
+	newMap := newList[0].(map[string]interface{})
+	for _, k := range []string{"endpoint", "access_key_id", "keep_data_after_retention"} {
+		if !reflect.DeepEqual(oldMap[k], newMap[k]) {
+			return fmt.Errorf("custom_bucket.%s cannot be changed once set - recreate the resource to use a different bucket configuration", k)
+		}
+	}
+	for _, k := range []string{"name", "secret_access_key"} {
+		if oldVal, newVal := oldMap[k], newMap[k]; oldVal != "" && !reflect.DeepEqual(oldVal, newVal) {
+			return fmt.Errorf("custom_bucket.%s cannot be changed once set - recreate the resource to use a different bucket configuration", k)
 		}
 	}
 	return nil

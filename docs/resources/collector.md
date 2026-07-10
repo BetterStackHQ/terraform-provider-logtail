@@ -172,7 +172,7 @@ resource "logtail_collector" "custom_sources" {
 ### Optional
 
 - `configuration` (Block List, Max: 1) Collector-level configuration including active components, sampling rates, batching, and VRL transformations. These settings run on the collector host inside your infrastructure. (see [below for nested schema](#nestedblock--configuration))
-- `custom_bucket` (Block List, Max: 1) Optional custom bucket configuration for the collector. Once set, it cannot be removed. (see [below for nested schema](#nestedblock--custom_bucket))
+- `custom_bucket` (Block List, Max: 1) Optional custom S3-compatible bucket configuration for the collector. Can only be set when creating the collector and cannot be added, changed, or removed afterwards - recreate the collector to use a different bucket. Better Stack validates the credentials by writing and reading a test object in the bucket during creation. (see [below for nested schema](#nestedblock--custom_bucket))
 - `data_region` (String) Data region or private cluster name to create the collector in. Permitted values for most plans are: `us_east`, `germany`, `singapore`. This value can only be set at creation time and cannot be changed afterwards. The API returns the specific cluster name, which may differ from the value you provide (for example, `germany` may read back as `eu-nbg-2`).  
 When importing an existing collector, leave `data_region` unset in your configuration - Terraform reads it from the API. Pinning it to an identifier that differs from the stored cluster name produces a spurious `data_region cannot be changed after collector is created` error.
 - `databases` (Block List, Deprecated) Database connections for the collector. Deprecated - use the `logtail_collector_target` resource instead. (see [below for nested schema](#nestedblock--databases))
@@ -272,13 +272,13 @@ Optional:
 Required:
 
 - `access_key_id` (String) Access key ID for the bucket.
-- `endpoint` (String) Bucket endpoint URL.
-- `name` (String) Bucket name.
+- `endpoint` (String) Bucket endpoint including the bucket name, e.g. `https://s3.us-east-1.amazonaws.com/my-bucket` or `https://my-bucket.s3.us-east-1.amazonaws.com`.
 - `secret_access_key` (String, Sensitive) Secret access key for the bucket.
 
 Optional:
 
 - `keep_data_after_retention` (Boolean) Whether to keep data in the bucket after the retention period.
+- `name` (String, Deprecated) Bucket name derived from `endpoint`. Deprecated - do not set this attribute.
 
 
 <a id="nestedblock--databases"></a>

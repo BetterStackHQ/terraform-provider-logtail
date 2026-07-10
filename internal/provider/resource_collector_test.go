@@ -44,7 +44,7 @@ func TestResourceCollector(t *testing.T) {
 			body = inject(t, body, "hosts_up_count", 0)
 
 			// Handle custom_bucket - remove secret_access_key from response
-			body = removeCustomBucketSecret(t, body)
+			body = simulateCustomBucketAPI(t, body)
 
 			// Handle HTTP Basic Auth - move enable flag to configuration and remove password
 
@@ -69,6 +69,10 @@ func TestResourceCollector(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
+			// The real API rejects custom_bucket on update - the provider must never send it.
+			if rejectCustomBucketUpdate(w, body) {
+				return
+			}
 			patch := make(map[string]interface{})
 			if err = json.Unmarshal(collectorData.Load().([]byte), &patch); err != nil {
 				t.Fatal(err)
@@ -86,7 +90,7 @@ func TestResourceCollector(t *testing.T) {
 			patched = inject(t, patched, "source_id", 42)
 
 			// Handle custom_bucket - remove secret_access_key from response
-			patched = removeCustomBucketSecret(t, patched)
+			patched = simulateCustomBucketAPI(t, patched)
 
 			// Handle HTTP Basic Auth - move enable flag to configuration and remove password
 
@@ -283,8 +287,7 @@ func TestResourceCollector(t *testing.T) {
 					name     = "%s"
 					platform = "%s"
 					custom_bucket {
-						name              = "my-collector-bucket"
-						endpoint          = "https://s3.amazonaws.com"
+						endpoint          = "https://s3.us-east-1.amazonaws.com/my-collector-bucket"
 						access_key_id     = "AKIAIOSFODNN7EXAMPLE"
 						secret_access_key = "wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY"
 					}
@@ -294,7 +297,7 @@ func TestResourceCollector(t *testing.T) {
 					resource.TestCheckResourceAttrSet("logtail_collector.this", "id"),
 					resource.TestCheckResourceAttr("logtail_collector.this", "custom_bucket.#", "1"),
 					resource.TestCheckResourceAttr("logtail_collector.this", "custom_bucket.0.name", "my-collector-bucket"),
-					resource.TestCheckResourceAttr("logtail_collector.this", "custom_bucket.0.endpoint", "https://s3.amazonaws.com"),
+					resource.TestCheckResourceAttr("logtail_collector.this", "custom_bucket.0.endpoint", "https://s3.us-east-1.amazonaws.com/my-collector-bucket"),
 					resource.TestCheckResourceAttr("logtail_collector.this", "custom_bucket.0.access_key_id", "AKIAIOSFODNN7EXAMPLE"),
 					resource.TestCheckResourceAttr("logtail_collector.this", "custom_bucket.0.secret_access_key", "wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY"),
 					resource.TestCheckResourceAttr("logtail_collector.this", "custom_bucket.0.keep_data_after_retention", "false"),
@@ -312,8 +315,7 @@ func TestResourceCollector(t *testing.T) {
 					platform = "%s"
 					note     = "Updated with bucket"
 					custom_bucket {
-						name              = "my-collector-bucket"
-						endpoint          = "https://s3.amazonaws.com"
+						endpoint          = "https://s3.us-east-1.amazonaws.com/my-collector-bucket"
 						access_key_id     = "AKIAIOSFODNN7EXAMPLE"
 						secret_access_key = "wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY"
 					}
@@ -348,8 +350,7 @@ func TestResourceCollector(t *testing.T) {
 					name     = "%s"
 					platform = "%s"
 					custom_bucket {
-						name              = "my-bucket"
-						endpoint          = "https://s3.amazonaws.com"
+						endpoint          = "https://s3.us-east-1.amazonaws.com/my-collector-bucket"
 						access_key_id     = "AKIAIOSFODNN7EXAMPLE"
 						secret_access_key = "wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY"
 					}
@@ -544,8 +545,7 @@ func TestResourceCollector(t *testing.T) {
 					name     = "%s"
 					platform = "%s"
 					custom_bucket {
-						name              = "my-bucket"
-						endpoint          = "https://s3.amazonaws.com"
+						endpoint          = "https://s3.us-east-1.amazonaws.com/my-collector-bucket"
 						access_key_id     = "AKIAIOSFODNN7EXAMPLE"
 						secret_access_key = "wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY"
 					}
@@ -555,7 +555,7 @@ func TestResourceCollector(t *testing.T) {
 					resource.TestCheckResourceAttr("logtail_collector.this", "custom_bucket.#", "1"),
 				),
 			},
-			// Step 2 - try to modify custom_bucket fields (should fail)
+			// Step 2 - changing name fails at plan time like every other field
 			{
 				Config: fmt.Sprintf(`
 				provider "logtail" {
@@ -567,14 +567,34 @@ func TestResourceCollector(t *testing.T) {
 					platform = "%s"
 					custom_bucket {
 						name              = "different-bucket"
-						endpoint          = "https://s3.amazonaws.com"
+						endpoint          = "https://s3.us-east-1.amazonaws.com/my-collector-bucket"
 						access_key_id     = "AKIAIOSFODNN7EXAMPLE"
 						secret_access_key = "wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY"
 					}
 				}
 				`, name, platform),
 				PlanOnly:    true,
-				ExpectError: regexp.MustCompile(`custom_bucket fields cannot be modified after creation`),
+				ExpectError: regexp.MustCompile(`custom_bucket\.name cannot be changed once set`),
+			},
+			// Step 3 - changing the endpoint fails at plan time
+			{
+				Config: fmt.Sprintf(`
+				provider "logtail" {
+					api_token = "foo"
+				}
+
+				resource "logtail_collector" "this" {
+					name     = "%s"
+					platform = "%s"
+					custom_bucket {
+						endpoint          = "https://s3.us-east-1.amazonaws.com/other-bucket"
+						access_key_id     = "AKIAIOSFODNN7EXAMPLE"
+						secret_access_key = "wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY"
+					}
+				}
+				`, name, platform),
+				PlanOnly:    true,
+				ExpectError: regexp.MustCompile(`custom_bucket\.endpoint cannot be changed once set`),
 			},
 		},
 	})
@@ -977,7 +997,7 @@ func TestResourceCollectorNewFeatures(t *testing.T) {
 			body = inject(t, body, "source_id", 42)
 			body = inject(t, body, "hosts_count", 0)
 			body = inject(t, body, "hosts_up_count", 0)
-			body = removeCustomBucketSecret(t, body)
+			body = simulateCustomBucketAPI(t, body)
 
 			body, databases := extractDatabasesFromResponse(t, body)
 			databasesData.Store(databases)
@@ -997,6 +1017,10 @@ func TestResourceCollectorNewFeatures(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
+			// The real API rejects custom_bucket on update - the provider must never send it.
+			if rejectCustomBucketUpdate(w, body) {
+				return
+			}
 			patch := make(map[string]interface{})
 			if err = json.Unmarshal(collectorData.Load().([]byte), &patch); err != nil {
 				t.Fatal(err)
@@ -1012,7 +1036,7 @@ func TestResourceCollectorNewFeatures(t *testing.T) {
 			patched = inject(t, patched, "status", "active")
 			patched = inject(t, patched, "team_id", 123456)
 			patched = inject(t, patched, "source_id", 42)
-			patched = removeCustomBucketSecret(t, patched)
+			patched = simulateCustomBucketAPI(t, patched)
 
 			patched = processDatabasesUpdate(t, patched)
 			patched, databases := extractDatabasesFromResponse(t, patched)
