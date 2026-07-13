@@ -132,7 +132,7 @@ var collectorSchema = map[string]*schema.Schema{
 		Computed:    true,
 	},
 	"data_region": {
-		Description: "Data region or private cluster name to create the collector in. Permitted values for most plans are: `us_east`, `germany`, `singapore`. " +
+		Description: "Data region or private cluster name to create the collector in. Permitted values for most plans are: `us_west`, `germany`, `singapore`. " +
 			"This value can only be set at creation time and cannot be changed afterwards. " +
 			"The API returns the specific cluster name, which may differ from the value you provide (for example, `germany` may read back as `eu-nbg-2`).  \n" +
 			"When importing an existing collector, leave `data_region` unset in your configuration - Terraform reads it from the API. " +
