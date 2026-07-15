@@ -45,6 +45,7 @@ When importing an existing application, leave `data_region` unset in your config
 - `id` (String) The ID of this application.
 - `ingesting_host` (String) The host where the errors should be sent. See documentation for your specific platform for details.
 - `ingesting_paused` (Boolean) This property allows you to temporarily pause data ingesting for this application.
+- `js_tag_token` (String) The public JavaScript tag token embedded in the browser snippet for RUM and browser-side error tracking. Distinct from `token`, which is used for server-side data ingestion.
 - `platform` (String) The platform type for the application. This helps configure appropriate SDKs and integrations. You can't update this value later. Valid values are:
     - `aiohttp_errors`
     - `android_errors`

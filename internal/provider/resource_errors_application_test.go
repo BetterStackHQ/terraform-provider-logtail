@@ -33,6 +33,7 @@ func TestResourceErrorsApplication(t *testing.T) {
 				t.Fatal(err)
 			}
 			body = inject(t, body, "token", "generated_by_logtail")
+			body = inject(t, body, "js_tag_token", "js_tag_generated_by_logtail")
 			body = inject(t, body, "ingesting_host", "s1234.us-east-9.betterstackdata.com")
 			body = inject(t, body, "table_name", "test_errors_application")
 			body = inject(t, body, "team_id", 123456)
@@ -66,6 +67,7 @@ func TestResourceErrorsApplication(t *testing.T) {
 				t.Fatal(err)
 			}
 			patched = inject(t, patched, "token", "generated_by_logtail")
+			patched = inject(t, patched, "js_tag_token", "js_tag_generated_by_logtail")
 			patched = inject(t, patched, "ingesting_host", "s1234.us-east-9.betterstackdata.com")
 			patched = inject(t, patched, "table_name", "test_errors_application")
 			patched = inject(t, patched, "team_id", 123456)
@@ -114,6 +116,7 @@ func TestResourceErrorsApplication(t *testing.T) {
 					resource.TestCheckResourceAttr("logtail_errors_application.this", "name", name),
 					resource.TestCheckResourceAttr("logtail_errors_application.this", "platform", platform),
 					resource.TestCheckResourceAttr("logtail_errors_application.this", "token", "generated_by_logtail"),
+					resource.TestCheckResourceAttr("logtail_errors_application.this", "js_tag_token", "js_tag_generated_by_logtail"),
 					resource.TestCheckResourceAttr("logtail_errors_application.this", "ingesting_host", "s1234.us-east-9.betterstackdata.com"),
 					resource.TestCheckResourceAttr("logtail_errors_application.this", "team_id", "123456"),
 					resource.TestCheckResourceAttr("logtail_errors_application.this", "data_region", "us-east-9"),
@@ -206,6 +209,7 @@ func TestResourceErrorsApplicationCustomBucket(t *testing.T) {
 				t.Fatal(err)
 			}
 			body = inject(t, body, "token", "generated_by_logtail")
+			body = inject(t, body, "js_tag_token", "js_tag_generated_by_logtail")
 			body = inject(t, body, "ingesting_host", "s1234.us-east-9.betterstackdata.com")
 			body = inject(t, body, "table_name", "test_errors_application")
 
@@ -238,6 +242,7 @@ func TestResourceErrorsApplicationCustomBucket(t *testing.T) {
 				t.Fatal(err)
 			}
 			patched = inject(t, patched, "token", "generated_by_logtail")
+			patched = inject(t, patched, "js_tag_token", "js_tag_generated_by_logtail")
 			patched = inject(t, patched, "ingesting_host", "s1234.us-east-9.betterstackdata.com")
 			patched = inject(t, patched, "table_name", "test_errors_application")
 
@@ -352,6 +357,7 @@ func TestResourceErrorsApplicationCustomBucketKeepData(t *testing.T) {
 				t.Fatal(err)
 			}
 			body = inject(t, body, "token", "generated_by_logtail")
+			body = inject(t, body, "js_tag_token", "js_tag_generated_by_logtail")
 			body = inject(t, body, "ingesting_host", "s1234.us-east-9.betterstackdata.com")
 			body = inject(t, body, "table_name", "test_errors_application")
 
@@ -384,6 +390,7 @@ func TestResourceErrorsApplicationCustomBucketKeepData(t *testing.T) {
 				t.Fatal(err)
 			}
 			patched = inject(t, patched, "token", "generated_by_logtail")
+			patched = inject(t, patched, "js_tag_token", "js_tag_generated_by_logtail")
 			patched = inject(t, patched, "ingesting_host", "s1234.us-east-9.betterstackdata.com")
 			patched = inject(t, patched, "table_name", "test_errors_application")
 
@@ -465,6 +472,7 @@ func TestResourceErrorsApplicationCustomBucketRemovalValidation(t *testing.T) {
 				t.Fatal(err)
 			}
 			body = inject(t, body, "token", "generated_by_logtail")
+			body = inject(t, body, "js_tag_token", "js_tag_generated_by_logtail")
 			body = inject(t, body, "ingesting_host", "s1234.us-east-9.betterstackdata.com")
 			body = inject(t, body, "table_name", "test_errors_application")
 
@@ -497,6 +505,7 @@ func TestResourceErrorsApplicationCustomBucketRemovalValidation(t *testing.T) {
 				t.Fatal(err)
 			}
 			patched = inject(t, patched, "token", "generated_by_logtail")
+			patched = inject(t, patched, "js_tag_token", "js_tag_generated_by_logtail")
 			patched = inject(t, patched, "ingesting_host", "s1234.us-east-9.betterstackdata.com")
 			patched = inject(t, patched, "table_name", "test_errors_application")
 
@@ -584,6 +593,7 @@ func TestResourceErrorsApplicationGithubRepository(t *testing.T) {
 				t.Fatal(err)
 			}
 			body = inject(t, body, "token", "generated_by_logtail")
+			body = inject(t, body, "js_tag_token", "js_tag_generated_by_logtail")
 			body = inject(t, body, "ingesting_host", "s1234.us-east-9.betterstackdata.com")
 			body = inject(t, body, "table_name", "test_errors_application")
 			data.Store(body)
@@ -612,6 +622,7 @@ func TestResourceErrorsApplicationGithubRepository(t *testing.T) {
 				t.Fatal(err)
 			}
 			patched = inject(t, patched, "token", "generated_by_logtail")
+			patched = inject(t, patched, "js_tag_token", "js_tag_generated_by_logtail")
 			patched = inject(t, patched, "ingesting_host", "s1234.us-east-9.betterstackdata.com")
 			patched = inject(t, patched, "table_name", "test_errors_application")
 			data.Store(patched)
@@ -693,6 +704,7 @@ func TestResourceErrorsApplicationGitlabRepository(t *testing.T) {
 				t.Fatal(err)
 			}
 			body = inject(t, body, "token", "generated_by_logtail")
+			body = inject(t, body, "js_tag_token", "js_tag_generated_by_logtail")
 			body = inject(t, body, "ingesting_host", "s1234.us-east-9.betterstackdata.com")
 			body = inject(t, body, "table_name", "test_errors_application")
 			data.Store(body)
@@ -721,6 +733,7 @@ func TestResourceErrorsApplicationGitlabRepository(t *testing.T) {
 				t.Fatal(err)
 			}
 			patched = inject(t, patched, "token", "generated_by_logtail")
+			patched = inject(t, patched, "js_tag_token", "js_tag_generated_by_logtail")
 			patched = inject(t, patched, "ingesting_host", "s1234.us-east-9.betterstackdata.com")
 			patched = inject(t, patched, "table_name", "test_errors_application")
 			data.Store(patched)
@@ -838,6 +851,7 @@ func TestResourceErrorsApplicationCodeMapping(t *testing.T) {
 				t.Fatal(err)
 			}
 			body = inject(t, body, "token", "generated_by_logtail")
+			body = inject(t, body, "js_tag_token", "js_tag_generated_by_logtail")
 			body = inject(t, body, "ingesting_host", "s1234.us-east-9.betterstackdata.com")
 			body = inject(t, body, "table_name", "test_errors_application")
 			data.Store(body)
@@ -866,6 +880,7 @@ func TestResourceErrorsApplicationCodeMapping(t *testing.T) {
 				t.Fatal(err)
 			}
 			patched = inject(t, patched, "token", "generated_by_logtail")
+			patched = inject(t, patched, "js_tag_token", "js_tag_generated_by_logtail")
 			patched = inject(t, patched, "ingesting_host", "s1234.us-east-9.betterstackdata.com")
 			patched = inject(t, patched, "table_name", "test_errors_application")
 			data.Store(patched)
