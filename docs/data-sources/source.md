@@ -64,6 +64,7 @@ When importing an existing source, leave `data_region` unset in your configurati
     - `dotnet`
     - `elasticsearch`
     - `erlang`
+    - `fastly`
     - `filebeat`
     - `flights`
     - `fluentbit`

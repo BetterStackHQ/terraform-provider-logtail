@@ -119,6 +119,7 @@ resource "logtail_source" "configured" {
     - `dotnet`
     - `elasticsearch`
     - `erlang`
+    - `fastly`
     - `filebeat`
     - `flights`
     - `fluentbit`
