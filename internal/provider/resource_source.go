@@ -33,6 +33,7 @@ var platformTypes = []string{
 	"dotnet",
 	"elasticsearch",
 	"erlang",
+	"fastly",
 	"filebeat",
 	"flights",
 	"fluentbit",
