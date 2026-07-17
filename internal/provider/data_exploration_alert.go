@@ -36,6 +36,7 @@ func newExplorationAlertDataSource() *schema.Resource {
 			cp.Required = false
 			cp.ValidateFunc = nil
 			cp.ValidateDiagFunc = nil
+			cp.ConflictsWith = nil
 			cp.Default = nil
 			cp.DefaultFunc = nil
 			cp.DiffSuppressFunc = nil

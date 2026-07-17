@@ -25,6 +25,10 @@ resource "logtail_exploration_alert" "errors_high" {
   query_period        = 300
   confirmation_period = 60
 
+  # What to do when the query returns no data:
+  # treat_as_zero / dont_fire / treat_as_previous / start_incident
+  on_missing_data = "dont_fire"
+
   email = true
   push  = true
 }
@@ -70,6 +74,9 @@ resource "logtail_exploration_alert" "volume_anomaly" {
   query_period         = 300
   aggregation_interval = 60
 
+  # How many days of history to train the anomaly detection on (1-30)
+  anomaly_training_range_days = 14
+
   email          = true
   push           = true
   call           = true
@@ -87,6 +94,9 @@ resource "logtail_exploration_alert" "all_http_errors" {
   check_period     = 300
   source_mode      = "platforms_all_sources"
   source_platforms = ["http"]
+
+  # Monitor every series except these (conflicts with series_names)
+  series_names_except = ["staging"]
 
   # Created paused, alerting will not start unless you flip this
   paused = true
@@ -108,6 +118,7 @@ resource "logtail_exploration_alert" "all_http_errors" {
 
 - `aggregation_interval` (Number) The data aggregation interval in seconds.
 - `anomaly_sensitivity` (Number) Anomaly detection sensitivity 0-100 (only for 'anomaly_rrcf' type, lower = more sensitive).
+- `anomaly_training_range_days` (Number) How many days of history to train the anomaly detection on, 1-30 (only for 'anomaly_rrcf' type).
 - `anomaly_trigger` (String) Anomaly trigger mode: 'any', 'higher', or 'lower' (only for 'anomaly_rrcf' type).
 - `call` (Boolean) Enable phone call notifications.
 - `check_period` (Number) How often to check the alert condition in seconds. Required for threshold and relative alerts; ignored for anomaly alerts, which derive their cadence from query_period.
@@ -118,12 +129,14 @@ resource "logtail_exploration_alert" "all_http_errors" {
 - `incident_cause` (String) Incident description template (supports {{variable}} interpolation).
 - `incident_per_series` (Boolean) Create separate incidents per series.
 - `metadata` (Map of String) Custom metadata key-value pairs included in incident notifications. Use a plain string for a single value; for multiple values use jsonencode([...]).
+- `on_missing_data` (String) What to do when the monitored query returns no data: 'treat_as_zero', 'dont_fire', 'treat_as_previous', or 'start_incident'. Only for threshold and relative alerts.
 - `operator` (String) The comparison operator. Required for threshold and relative alerts; not used for anomaly alerts. For threshold: 'equal', 'not_equal', 'higher_than', 'higher_than_or_equal', 'lower_than', 'lower_than_or_equal'. For relative: 'increases_by', 'decreases_by', 'changes_by'.
 - `paused` (Boolean) Whether the alert is paused.
 - `push` (Boolean) Enable push notifications.
 - `query_period` (Number) The query evaluation window in seconds.
 - `recovery_period` (Number) The recovery delay in seconds.
-- `series_names` (List of String) Specific series to monitor.
+- `series_names` (List of String) Specific series to monitor. Conflicts with series_names_except.
+- `series_names_except` (List of String) Monitor all series except these. Conflicts with series_names.
 - `sms` (Boolean) Enable SMS notifications.
 - `source_mode` (String) Source selection mode: 'source_variable', 'platforms_single_source', or 'platforms_all_sources'.
 - `source_platforms` (List of String) Platform filters (used when source_mode is 'platforms_*').
