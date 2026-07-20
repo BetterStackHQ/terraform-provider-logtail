@@ -17,6 +17,7 @@ resource "logtail_dashboard_section" "performance" {
   dashboard_id = logtail_dashboard.production.id
   name         = "Performance"
   y            = 8
+  explanation  = "Latency and throughput of the public API"
 }
 
 resource "logtail_dashboard_section" "errors" {
@@ -39,6 +40,7 @@ resource "logtail_dashboard_section" "errors" {
 ### Optional
 
 - `collapsed` (Boolean) Whether this section is collapsed.
+- `explanation` (String) The explanation text shown for this section.
 
 ### Read-Only
 

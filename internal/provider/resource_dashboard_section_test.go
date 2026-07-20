@@ -76,6 +76,9 @@ func TestResourceDashboardSection(t *testing.T) {
 			if _, ok := reqData["collapsed"]; !ok {
 				reqData["collapsed"] = false
 			}
+			if _, ok := reqData["explanation"]; !ok {
+				reqData["explanation"] = ""
+			}
 			respData, _ := json.Marshal(reqData)
 			sectionData.Store(respData)
 			w.WriteHeader(http.StatusCreated)
@@ -140,6 +143,7 @@ func TestResourceDashboardSection(t *testing.T) {
 					resource.TestCheckResourceAttr("logtail_dashboard_section.this", "name", "Performance"),
 					resource.TestCheckResourceAttr("logtail_dashboard_section.this", "y", "8"),
 					resource.TestCheckResourceAttr("logtail_dashboard_section.this", "collapsed", "false"),
+					resource.TestCheckResourceAttr("logtail_dashboard_section.this", "explanation", ""),
 					resource.TestCheckResourceAttrSet("logtail_dashboard_section.this", "created_at"),
 				),
 			},
@@ -159,6 +163,7 @@ func TestResourceDashboardSection(t *testing.T) {
 					name         = "Performance Updated"
 					y            = 12
 					collapsed    = true
+					explanation  = "Latency and throughput of the public API"
 				}
 				`,
 				Check: resource.ComposeTestCheckFunc(
@@ -166,6 +171,7 @@ func TestResourceDashboardSection(t *testing.T) {
 					resource.TestCheckResourceAttr("logtail_dashboard_section.this", "name", "Performance Updated"),
 					resource.TestCheckResourceAttr("logtail_dashboard_section.this", "y", "12"),
 					resource.TestCheckResourceAttr("logtail_dashboard_section.this", "collapsed", "true"),
+					resource.TestCheckResourceAttr("logtail_dashboard_section.this", "explanation", "Latency and throughput of the public API"),
 				),
 			},
 			// Step 3 - import

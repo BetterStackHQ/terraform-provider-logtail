@@ -39,6 +39,12 @@ var dashboardSectionSchema = map[string]*schema.Schema{
 		Optional:    true,
 		Computed:    true,
 	},
+	"explanation": {
+		Description: "The explanation text shown for this section.",
+		Type:        schema.TypeString,
+		Optional:    true,
+		Computed:    true,
+	},
 	"created_at": {
 		Description: "The time when this section was created.",
 		Type:        schema.TypeString,
@@ -68,11 +74,12 @@ func newDashboardSectionResource() *schema.Resource {
 }
 
 type dashboardSection struct {
-	Name      *string `json:"name,omitempty"`
-	Y         *int    `json:"y,omitempty"`
-	Collapsed *bool   `json:"collapsed,omitempty"`
-	CreatedAt *string `json:"created_at,omitempty"`
-	UpdatedAt *string `json:"updated_at,omitempty"`
+	Name        *string `json:"name,omitempty"`
+	Y           *int    `json:"y,omitempty"`
+	Collapsed   *bool   `json:"collapsed,omitempty"`
+	Explanation *string `json:"explanation,omitempty"`
+	CreatedAt   *string `json:"created_at,omitempty"`
+	UpdatedAt   *string `json:"updated_at,omitempty"`
 }
 
 type dashboardSectionHTTPResponse struct {
@@ -167,6 +174,7 @@ func parseDashboardSectionID(id string) (dashboardID, sectionID string, err erro
 func loadDashboardSection(d *schema.ResourceData) dashboardSection {
 	var in dashboardSection
 	load(d, "name", &in.Name)
+	load(d, "explanation", &in.Explanation)
 	in.Y = intFromResourceData(d, "y")
 	in.Collapsed = boolFromResourceData(d, "collapsed")
 	return in
@@ -187,6 +195,11 @@ func dashboardSectionCopyAttrs(d *schema.ResourceData, in *dashboardSection) dia
 	}
 	if in.Collapsed != nil {
 		if err := d.Set("collapsed", *in.Collapsed); err != nil {
+			derr = append(derr, diag.FromErr(err)[0])
+		}
+	}
+	if in.Explanation != nil {
+		if err := d.Set("explanation", *in.Explanation); err != nil {
 			derr = append(derr, diag.FromErr(err)[0])
 		}
 	}

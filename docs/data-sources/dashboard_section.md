@@ -37,6 +37,7 @@ output "existing_section_collapsed" {
 
 - `collapsed` (Boolean) Whether this section is collapsed.
 - `created_at` (String) The time when this section was created.
+- `explanation` (String) The explanation text shown for this section.
 - `id` (String) The ID of this section.
 - `updated_at` (String) The time when this section was updated.
 - `y` (Number) The vertical position of this section in the dashboard grid.
