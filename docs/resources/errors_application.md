@@ -178,6 +178,7 @@ When importing an existing application, leave `data_region` unset in your config
 - `created_at` (String) The time when this application was created.
 - `id` (String) The ID of this application.
 - `ingesting_host` (String) The host where the errors should be sent. See documentation for your specific platform for details.
+- `js_tag_token` (String) The public JavaScript tag token embedded in the browser snippet for RUM and browser-side error tracking. Distinct from `token`, which is used for server-side data ingestion.
 - `table_name` (String) The table name generated for this application.
 - `team_id` (String) The team ID for this resource.
 - `token` (String) The token of this application. This token is used to identify and route the data you will send to Better Stack.
