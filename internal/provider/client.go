@@ -22,6 +22,13 @@ func rateLimitRetryPolicy(ctx context.Context, resp *http.Response, err error) (
 		return true, nil
 	}
 
+	// Never retry POSTs on server errors: the create may have succeeded
+	// server-side before the error response, and retrying it would create
+	// a duplicate resource.
+	if resp.Request != nil && resp.Request.Method == http.MethodPost && resp.StatusCode >= 500 {
+		return false, nil
+	}
+
 	return retryablehttp.DefaultRetryPolicy(ctx, resp, err)
 }
 

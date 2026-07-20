@@ -247,8 +247,10 @@ func TestResourceMetricSourceIdForcesRecreation(t *testing.T) {
 
 // TestResourceMetricPatchErrorPropagates verifies that a non-200 PATCH
 // response is surfaced to the user with URL + status code + body, rather
-// than being silently swallowed.
+// than being silently swallowed. The response body only appears in the
+// diagnostic when insecure logging is opted into.
 func TestResourceMetricPatchErrorPropagates(t *testing.T) {
+	t.Setenv("TF_PROVIDER_LOGTAIL_LOG_INSECURE", "1")
 	var data atomic.Value
 	var id atomic.Value
 	id.Store(0)
