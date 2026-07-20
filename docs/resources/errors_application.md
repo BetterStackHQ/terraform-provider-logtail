@@ -180,7 +180,7 @@ When importing an existing application, leave `data_region` unset in your config
 - `ingesting_host` (String) The host where the errors should be sent. See documentation for your specific platform for details.
 - `table_name` (String) The table name generated for this application.
 - `team_id` (String) The team ID for this resource.
-- `token` (String) The token of this application. This token is used to identify and route the data you will send to Better Stack.
+- `token` (String, Sensitive) The token of this application. This token is used to identify and route the data you will send to Better Stack.
 - `updated_at` (String) The time when this application was updated.
 
 <a id="nestedblock--custom_bucket"></a>
