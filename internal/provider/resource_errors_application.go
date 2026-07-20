@@ -140,6 +140,12 @@ var errorsApplicationSchema = map[string]*schema.Schema{
 		Optional:    false,
 		Computed:    true,
 	},
+	"js_tag_token": {
+		Description: "The public JavaScript tag token embedded in the browser snippet for RUM and browser-side error tracking. Distinct from `token`, which is used for server-side data ingestion.",
+		Type:        schema.TypeString,
+		Optional:    false,
+		Computed:    true,
+	},
 	"table_name": {
 		Description: "The table name generated for this application.",
 		Type:        schema.TypeString,
@@ -323,6 +329,7 @@ func newErrorsApplicationResource() *schema.Resource {
 type errorsApplication struct {
 	Name                  *string             `json:"name,omitempty"`
 	Token                 *string             `json:"token,omitempty"`
+	JsTagToken            *string             `json:"js_tag_token,omitempty"`
 	TeamId                *StringOrInt        `json:"team_id,omitempty"`
 	TableName             *string             `json:"table_name,omitempty"`
 	Platform              *string             `json:"platform,omitempty"`
@@ -359,6 +366,7 @@ func errorsApplicationRef(in *errorsApplication) []struct {
 	}{
 		{k: "name", v: &in.Name},
 		{k: "token", v: &in.Token},
+		{k: "js_tag_token", v: &in.JsTagToken},
 		{k: "team_id", v: &in.TeamId},
 		{k: "table_name", v: &in.TableName},
 		{k: "platform", v: &in.Platform},
