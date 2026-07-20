@@ -38,6 +38,7 @@ output "existing_exploration_alert_type" {
 - `aggregation_interval` (Number) The data aggregation interval in seconds.
 - `alert_type` (String) The type of alert: 'threshold', 'relative', or 'anomaly_rrcf'.
 - `anomaly_sensitivity` (Number) Anomaly detection sensitivity 0-100 (only for 'anomaly_rrcf' type, lower = more sensitive).
+- `anomaly_training_range_days` (Number) How many days of history to train the anomaly detection on, 1-30 (only for 'anomaly_rrcf' type).
 - `anomaly_trigger` (String) Anomaly trigger mode: 'any', 'higher', or 'lower' (only for 'anomaly_rrcf' type).
 - `call` (Boolean) Enable phone call notifications.
 - `check_period` (Number) How often to check the alert condition in seconds. Required for threshold and relative alerts; ignored for anomaly alerts, which derive their cadence from query_period.
@@ -50,13 +51,15 @@ output "existing_exploration_alert_type" {
 - `incident_cause` (String) Incident description template (supports {{variable}} interpolation).
 - `incident_per_series` (Boolean) Create separate incidents per series.
 - `metadata` (Map of String) Custom metadata key-value pairs included in incident notifications. Use a plain string for a single value; for multiple values use jsonencode([...]).
+- `on_missing_data` (String) What to do when the monitored query returns no data: 'treat_as_zero', 'dont_fire', 'treat_as_previous', or 'start_incident'. Only for threshold and relative alerts.
 - `operator` (String) The comparison operator. Required for threshold and relative alerts; not used for anomaly alerts. For threshold: 'equal', 'not_equal', 'higher_than', 'higher_than_or_equal', 'lower_than', 'lower_than_or_equal'. For relative: 'increases_by', 'decreases_by', 'changes_by'.
 - `paused` (Boolean) Whether the alert is paused.
 - `paused_reason` (String) Read-only field explaining why the alert is paused (e.g., 'Manually paused', complexity issues, too many failures).
 - `push` (Boolean) Enable push notifications.
 - `query_period` (Number) The query evaluation window in seconds.
 - `recovery_period` (Number) The recovery delay in seconds.
-- `series_names` (List of String) Specific series to monitor.
+- `series_names` (List of String) Specific series to monitor. Conflicts with series_names_except; set to an empty list to alert on any series.
+- `series_names_except` (List of String) Monitor all series except these. Conflicts with series_names; set to an empty list to alert on any series.
 - `sms` (Boolean) Enable SMS notifications.
 - `source_mode` (String) Source selection mode: 'source_variable', 'platforms_single_source', or 'platforms_all_sources'.
 - `source_platforms` (List of String) Platform filters (used when source_mode is 'platforms_*').

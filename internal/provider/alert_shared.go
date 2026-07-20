@@ -12,11 +12,28 @@ import (
 )
 
 func validateAlert(_ context.Context, diff *schema.ResourceDiff, _ interface{}) error {
+	// The API treats series_names / series_names_except as one setting: writing either one
+	// clears the other. Mirror that in the plan, so switching between the two fields - or
+	// explicitly emptying the configured one - plans the update that resets the sibling.
+	if raw := diff.GetRawConfig(); !raw.IsNull() && diff.Id() != "" {
+		if !raw.GetAttr("series_names").IsNull() {
+			if err := diff.SetNew("series_names_except", []interface{}{}); err != nil {
+				return err
+			}
+		} else if !raw.GetAttr("series_names_except").IsNull() {
+			if err := diff.SetNew("series_names", []interface{}{}); err != nil {
+				return err
+			}
+		}
+	}
+
 	// Only validate on create or when one of the relevant attributes changes.
 	if diff.Id() != "" &&
 		!diff.HasChange("alert_type") &&
 		!diff.HasChange("operator") &&
-		!diff.HasChange("check_period") {
+		!diff.HasChange("check_period") &&
+		!diff.HasChange("on_missing_data") &&
+		!diff.HasChange("anomaly_training_range_days") {
 		return nil
 	}
 	alertType := diff.Get("alert_type").(string)
@@ -26,6 +43,16 @@ func validateAlert(_ context.Context, diff *schema.ResourceDiff, _ interface{}) 
 		}
 		if diff.Get("check_period").(int) == 0 {
 			return fmt.Errorf("check_period is required for %s alerts", alertType)
+		}
+	}
+	// Both fields are Computed, so state carries API-returned values; only what
+	// is literally set in the configuration should fail the type check.
+	if raw := diff.GetRawConfig(); !raw.IsNull() {
+		if alertType == "anomaly_rrcf" && !raw.GetAttr("on_missing_data").IsNull() {
+			return fmt.Errorf("on_missing_data is only supported for threshold and relative alerts")
+		}
+		if alertType != "anomaly_rrcf" && !raw.GetAttr("anomaly_training_range_days").IsNull() {
+			return fmt.Errorf("anomaly_training_range_days is only supported for anomaly_rrcf alerts")
 		}
 	}
 	return nil
@@ -108,11 +135,27 @@ var alertSchema = map[string]*schema.Schema{
 		},
 	},
 	"series_names": {
-		Description: "Specific series to monitor.",
-		Type:        schema.TypeList,
-		Optional:    true,
-		Computed:    true,
-		Elem:        &schema.Schema{Type: schema.TypeString},
+		Description:   "Specific series to monitor. Conflicts with series_names_except; set to an empty list to alert on any series.",
+		Type:          schema.TypeList,
+		Optional:      true,
+		Computed:      true,
+		Elem:          &schema.Schema{Type: schema.TypeString},
+		ConflictsWith: []string{"series_names_except"},
+	},
+	"series_names_except": {
+		Description:   "Monitor all series except these. Conflicts with series_names; set to an empty list to alert on any series.",
+		Type:          schema.TypeList,
+		Optional:      true,
+		Computed:      true,
+		Elem:          &schema.Schema{Type: schema.TypeString},
+		ConflictsWith: []string{"series_names"},
+	},
+	"on_missing_data": {
+		Description:  "What to do when the monitored query returns no data: 'treat_as_zero', 'dont_fire', 'treat_as_previous', or 'start_incident'. Only for threshold and relative alerts.",
+		Type:         schema.TypeString,
+		Optional:     true,
+		Computed:     true,
+		ValidateFunc: validation.StringInSlice([]string{"treat_as_zero", "dont_fire", "treat_as_previous", "start_incident"}, false),
 	},
 	"source_variable": {
 		Description: "Source reference (format: 'source:table_name'). If omitted, derived from the parent resource's source variable.",
@@ -194,6 +237,13 @@ var alertSchema = map[string]*schema.Schema{
 		Optional:     true,
 		Computed:     true,
 		ValidateFunc: validation.StringInSlice([]string{"any", "higher", "lower"}, false),
+	},
+	"anomaly_training_range_days": {
+		Description:  "How many days of history to train the anomaly detection on, 1-30 (only for 'anomaly_rrcf' type).",
+		Type:         schema.TypeInt,
+		Optional:     true,
+		Computed:     true,
+		ValidateFunc: validation.IntBetween(1, 30),
 	},
 	"paused_reason": {
 		Description: "Read-only field explaining why the alert is paused (e.g., 'Manually paused', complexity issues, too many failures).",
@@ -355,35 +405,38 @@ func (w alertEscalationTargetWrapper) MarshalJSON() ([]byte, error) {
 }
 
 type alert struct {
-	Name                *string                       `json:"name,omitempty"`
-	AlertType           *string                       `json:"alert_type,omitempty"`
-	Operator            *string                       `json:"operator,omitempty"`
-	Value               *float64                      `json:"value,omitempty"`
-	StringValue         *string                       `json:"string_value,omitempty"`
-	QueryPeriod         *int                          `json:"query_period,omitempty"`
-	ConfirmationPeriod  *int                          `json:"confirmation_period,omitempty"`
-	RecoveryPeriod      *int                          `json:"recovery_period,omitempty"`
-	AggregationInterval *int                          `json:"aggregation_interval,omitempty"`
-	CheckPeriod         *int                          `json:"check_period,omitempty"`
-	SeriesNames         []string                      `json:"series_names,omitempty"`
-	SourceVariable      *string                       `json:"source_variable,omitempty"`
-	SourceMode          *string                       `json:"source_mode,omitempty"`
-	SourcePlatforms     []string                      `json:"source_platforms,omitempty"`
-	IncidentCause       *string                       `json:"incident_cause,omitempty"`
-	IncidentPerSeries   *bool                         `json:"incident_per_series,omitempty"`
-	Paused              *bool                         `json:"paused,omitempty"`
-	PausedReason        *string                       `json:"paused_reason,omitempty"`
-	Call                *bool                         `json:"call,omitempty"`
-	SMS                 *bool                         `json:"sms,omitempty"`
-	Email               *bool                         `json:"email,omitempty"`
-	Push                *bool                         `json:"push,omitempty"`
-	CriticalAlert       *bool                         `json:"critical_alert,omitempty"`
-	AnomalySensitivity  *float64                      `json:"anomaly_sensitivity,omitempty"`
-	AnomalyTrigger      *string                       `json:"anomaly_trigger,omitempty"`
-	EscalationTarget    alertEscalationTargetWrapper  `json:"escalation_target,omitempty"`
-	Metadata            map[string]alertMetadataValue `json:"metadata,omitempty"`
-	CreatedAt           *string                       `json:"created_at,omitempty"`
-	UpdatedAt           *string                       `json:"updated_at,omitempty"`
+	Name                     *string                       `json:"name,omitempty"`
+	AlertType                *string                       `json:"alert_type,omitempty"`
+	Operator                 *string                       `json:"operator,omitempty"`
+	Value                    *float64                      `json:"value,omitempty"`
+	StringValue              *string                       `json:"string_value,omitempty"`
+	QueryPeriod              *int                          `json:"query_period,omitempty"`
+	ConfirmationPeriod       *int                          `json:"confirmation_period,omitempty"`
+	RecoveryPeriod           *int                          `json:"recovery_period,omitempty"`
+	AggregationInterval      *int                          `json:"aggregation_interval,omitempty"`
+	CheckPeriod              *int                          `json:"check_period,omitempty"`
+	SeriesNames              *[]string                     `json:"series_names,omitempty"`
+	SeriesNamesExcept        *[]string                     `json:"series_names_except,omitempty"`
+	OnMissingData            *string                       `json:"on_missing_data,omitempty"`
+	SourceVariable           *string                       `json:"source_variable,omitempty"`
+	SourceMode               *string                       `json:"source_mode,omitempty"`
+	SourcePlatforms          []string                      `json:"source_platforms,omitempty"`
+	IncidentCause            *string                       `json:"incident_cause,omitempty"`
+	IncidentPerSeries        *bool                         `json:"incident_per_series,omitempty"`
+	Paused                   *bool                         `json:"paused,omitempty"`
+	PausedReason             *string                       `json:"paused_reason,omitempty"`
+	Call                     *bool                         `json:"call,omitempty"`
+	SMS                      *bool                         `json:"sms,omitempty"`
+	Email                    *bool                         `json:"email,omitempty"`
+	Push                     *bool                         `json:"push,omitempty"`
+	CriticalAlert            *bool                         `json:"critical_alert,omitempty"`
+	AnomalySensitivity       *float64                      `json:"anomaly_sensitivity,omitempty"`
+	AnomalyTrigger           *string                       `json:"anomaly_trigger,omitempty"`
+	AnomalyTrainingRangeDays *int                          `json:"anomaly_training_range_days,omitempty"`
+	EscalationTarget         alertEscalationTargetWrapper  `json:"escalation_target,omitempty"`
+	Metadata                 map[string]alertMetadataValue `json:"metadata,omitempty"`
+	CreatedAt                *string                       `json:"created_at,omitempty"`
+	UpdatedAt                *string                       `json:"updated_at,omitempty"`
 }
 
 type alertHTTPResponse struct {
@@ -391,6 +444,17 @@ type alertHTTPResponse struct {
 		ID         string `json:"id"`
 		Attributes alert  `json:"attributes"`
 	} `json:"data"`
+}
+
+func stringListFromResourceData(d *schema.ResourceData, key string) *[]string {
+	list := d.Get(key).([]interface{})
+	names := make([]string, 0, len(list))
+	for _, item := range list {
+		if s, ok := item.(string); ok {
+			names = append(names, s)
+		}
+	}
+	return &names
 }
 
 func loadAlert(d *schema.ResourceData) alert {
@@ -429,6 +493,10 @@ func loadAlert(d *schema.ResourceData) alert {
 		s := v.(string)
 		in.AnomalyTrigger = &s
 	}
+	if v, ok := d.GetOk("on_missing_data"); ok {
+		s := v.(string)
+		in.OnMissingData = &s
+	}
 
 	// Load float fields - use helper to allow 0 values
 	in.Value = floatFromResourceData(d, "value")
@@ -440,6 +508,7 @@ func loadAlert(d *schema.ResourceData) alert {
 	in.RecoveryPeriod = intFromResourceData(d, "recovery_period")
 	in.AggregationInterval = intFromResourceData(d, "aggregation_interval")
 	in.CheckPeriod = intFromResourceData(d, "check_period")
+	in.AnomalyTrainingRangeDays = intFromResourceData(d, "anomaly_training_range_days")
 
 	// Load bool fields - use helper to allow false values
 	in.Paused = boolFromResourceData(d, "paused")
@@ -450,16 +519,16 @@ func loadAlert(d *schema.ResourceData) alert {
 	in.Push = boolFromResourceData(d, "push")
 	in.CriticalAlert = boolFromResourceData(d, "critical_alert")
 
-	// Load string arrays
-	if v, ok := d.GetOk("series_names"); ok {
-		list := v.([]interface{})
-		names := make([]string, 0, len(list))
-		for _, item := range list {
-			if s, ok := item.(string); ok {
-				names = append(names, s)
-			}
+	// series_names / series_names_except form one setting in the API: sending either field
+	// rewrites the pair and both non-empty is rejected. Send them only when actually set in
+	// the configuration — never the computed values carried over in state.
+	if raw := d.GetRawConfig(); !raw.IsNull() {
+		if !raw.GetAttr("series_names").IsNull() {
+			in.SeriesNames = stringListFromResourceData(d, "series_names")
 		}
-		in.SeriesNames = names
+		if !raw.GetAttr("series_names_except").IsNull() {
+			in.SeriesNamesExcept = stringListFromResourceData(d, "series_names_except")
+		}
 	}
 	if v, ok := d.GetOk("source_platforms"); ok {
 		list := v.([]interface{})
@@ -555,6 +624,11 @@ func alertCopyAttrs(d *schema.ResourceData, in *alert) diag.Diagnostics {
 			derr = append(derr, diag.FromErr(err)[0])
 		}
 	}
+	if in.OnMissingData != nil {
+		if err := d.Set("on_missing_data", *in.OnMissingData); err != nil {
+			derr = append(derr, diag.FromErr(err)[0])
+		}
+	}
 	if in.CreatedAt != nil {
 		if err := d.Set("created_at", *in.CreatedAt); err != nil {
 			derr = append(derr, diag.FromErr(err)[0])
@@ -604,6 +678,11 @@ func alertCopyAttrs(d *schema.ResourceData, in *alert) diag.Diagnostics {
 			derr = append(derr, diag.FromErr(err)[0])
 		}
 	}
+	if in.AnomalyTrainingRangeDays != nil {
+		if err := d.Set("anomaly_training_range_days", *in.AnomalyTrainingRangeDays); err != nil {
+			derr = append(derr, diag.FromErr(err)[0])
+		}
+	}
 
 	// Copy bool fields
 	if in.Paused != nil {
@@ -649,7 +728,12 @@ func alertCopyAttrs(d *schema.ResourceData, in *alert) diag.Diagnostics {
 
 	// Copy arrays
 	if in.SeriesNames != nil {
-		if err := d.Set("series_names", in.SeriesNames); err != nil {
+		if err := d.Set("series_names", *in.SeriesNames); err != nil {
+			derr = append(derr, diag.FromErr(err)[0])
+		}
+	}
+	if in.SeriesNamesExcept != nil {
+		if err := d.Set("series_names_except", *in.SeriesNamesExcept); err != nil {
 			derr = append(derr, diag.FromErr(err)[0])
 		}
 	}

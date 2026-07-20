@@ -113,6 +113,12 @@ func TestResourceExplorationAlert(t *testing.T) {
 			reqData["created_at"] = "2023-01-01T00:00:00Z"
 			reqData["updated_at"] = "2023-01-01T00:00:00Z"
 			reqData["series_names"] = []string{}
+			if _, ok := reqData["series_names_except"]; !ok {
+				reqData["series_names_except"] = []string{}
+			}
+			if _, ok := reqData["on_missing_data"]; !ok {
+				reqData["on_missing_data"] = "treat_as_zero"
+			}
 			reqData["source_platforms"] = []string{}
 			if _, ok := reqData["source_mode"]; !ok {
 				reqData["source_mode"] = "source_variable"
@@ -179,6 +185,21 @@ func TestResourceExplorationAlert(t *testing.T) {
 			}
 			if err = json.Unmarshal(body, &patch); err != nil {
 				t.Fatal(err)
+			}
+			var patchReq map[string]interface{}
+			if err = json.Unmarshal(body, &patchReq); err != nil {
+				t.Fatal(err)
+			}
+			// The API treats the series fields as one setting: sending either one clears the other
+			_, hasSeriesNames := patchReq["series_names"]
+			_, hasSeriesNamesExcept := patchReq["series_names_except"]
+			if hasSeriesNames || hasSeriesNamesExcept {
+				if !hasSeriesNames {
+					patch["series_names"] = []string{}
+				}
+				if !hasSeriesNamesExcept {
+					patch["series_names_except"] = []string{}
+				}
 			}
 			patch["updated_at"] = "2023-01-02T00:00:00Z"
 			patched, err := json.Marshal(patch)
@@ -291,6 +312,9 @@ func TestResourceExplorationAlert(t *testing.T) {
 					call           = true
 					critical_alert = true
 
+					on_missing_data     = "treat_as_previous"
+					series_names_except = ["staging"]
+
 					metadata = {
 						severity = "high"
 					}
@@ -303,6 +327,8 @@ func TestResourceExplorationAlert(t *testing.T) {
 					resource.TestCheckResourceAttr("logtail_exploration_alert.this", "query_period", "600"),
 					resource.TestCheckResourceAttr("logtail_exploration_alert.this", "call", "true"),
 					resource.TestCheckResourceAttr("logtail_exploration_alert.this", "critical_alert", "true"),
+					resource.TestCheckResourceAttr("logtail_exploration_alert.this", "on_missing_data", "treat_as_previous"),
+					resource.TestCheckResourceAttr("logtail_exploration_alert.this", "series_names_except.0", "staging"),
 					resource.TestCheckResourceAttr("logtail_exploration_alert.this", "metadata.severity", "high"),
 				),
 			},
@@ -415,6 +441,12 @@ func TestResourceExplorationAlertWithEscalationTarget(t *testing.T) {
 			reqData["created_at"] = "2023-01-01T00:00:00Z"
 			reqData["updated_at"] = "2023-01-01T00:00:00Z"
 			reqData["series_names"] = []string{}
+			if _, ok := reqData["series_names_except"]; !ok {
+				reqData["series_names_except"] = []string{}
+			}
+			if _, ok := reqData["on_missing_data"]; !ok {
+				reqData["on_missing_data"] = "treat_as_zero"
+			}
 			reqData["source_platforms"] = []string{}
 			if _, ok := reqData["source_mode"]; !ok {
 				reqData["source_mode"] = "source_variable"

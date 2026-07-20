@@ -6,6 +6,7 @@ import (
 	"io"
 	"net/http"
 	"net/http/httptest"
+	"regexp"
 	"strings"
 	"sync/atomic"
 	"testing"
@@ -138,6 +139,12 @@ func TestResourceDashboardAlert(t *testing.T) {
 			reqData["created_at"] = "2023-01-01T00:00:00Z"
 			reqData["updated_at"] = "2023-01-01T00:00:00Z"
 			reqData["series_names"] = []string{}
+			if _, ok := reqData["series_names_except"]; !ok {
+				reqData["series_names_except"] = []string{}
+			}
+			if _, ok := reqData["on_missing_data"]; !ok {
+				reqData["on_missing_data"] = "treat_as_zero"
+			}
 			reqData["source_platforms"] = []string{}
 			if _, ok := reqData["source_mode"]; !ok {
 				reqData["source_mode"] = "source_variable"
@@ -186,6 +193,21 @@ func TestResourceDashboardAlert(t *testing.T) {
 			}
 			if err = json.Unmarshal(body, &patch); err != nil {
 				t.Fatal(err)
+			}
+			var patchReq map[string]interface{}
+			if err = json.Unmarshal(body, &patchReq); err != nil {
+				t.Fatal(err)
+			}
+			// The API treats the series fields as one setting: sending either one clears the other
+			_, hasSeriesNames := patchReq["series_names"]
+			_, hasSeriesNamesExcept := patchReq["series_names_except"]
+			if hasSeriesNames || hasSeriesNamesExcept {
+				if !hasSeriesNames {
+					patch["series_names"] = []string{}
+				}
+				if !hasSeriesNamesExcept {
+					patch["series_names_except"] = []string{}
+				}
 			}
 			patch["updated_at"] = "2023-01-02T00:00:00Z"
 			patched, _ := json.Marshal(patch)
@@ -305,6 +327,9 @@ func TestResourceDashboardAlert(t *testing.T) {
 					call           = true
 					critical_alert = true
 
+					on_missing_data     = "dont_fire"
+					series_names_except = ["staging"]
+
 					metadata = {
 						severity = "high"
 					}
@@ -317,10 +342,67 @@ func TestResourceDashboardAlert(t *testing.T) {
 					resource.TestCheckResourceAttr("logtail_dashboard_alert.this", "query_period", "600"),
 					resource.TestCheckResourceAttr("logtail_dashboard_alert.this", "call", "true"),
 					resource.TestCheckResourceAttr("logtail_dashboard_alert.this", "critical_alert", "true"),
+					resource.TestCheckResourceAttr("logtail_dashboard_alert.this", "on_missing_data", "dont_fire"),
+					resource.TestCheckResourceAttr("logtail_dashboard_alert.this", "series_names_except.0", "staging"),
 					resource.TestCheckResourceAttr("logtail_dashboard_alert.this", "metadata.severity", "high"),
 				),
 			},
-			// Step 3 - import
+			// Step 3 - an explicitly empty series_names resets the alert to any-series
+			{
+				Config: `
+				provider "logtail" {
+					api_token = "foo"
+				}
+
+				resource "logtail_dashboard" "this" {
+					name = "Test Dashboard"
+				}
+
+				resource "logtail_dashboard_chart" "this" {
+					dashboard_id = logtail_dashboard.this.id
+					chart_type   = "line_chart"
+					name         = "Request Rate"
+					x = 0
+					y = 0
+					w = 6
+					h = 4
+
+					query {
+						query_type = "sql_expression"
+						sql_query  = "SELECT count(*) AS value FROM logs"
+					}
+				}
+
+				resource "logtail_dashboard_alert" "this" {
+					dashboard_id        = logtail_dashboard.this.id
+					chart_id            = logtail_dashboard_chart.this.id
+					name                = "High Request Rate Updated"
+					alert_type          = "threshold"
+					operator            = "higher_than"
+					value               = 200
+					check_period        = 120
+					query_period        = 600
+					confirmation_period = 120
+
+					email          = true
+					push           = true
+					call           = true
+					critical_alert = true
+
+					on_missing_data = "dont_fire"
+					series_names    = []
+
+					metadata = {
+						severity = "high"
+					}
+				}
+				`,
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr("logtail_dashboard_alert.this", "series_names.#", "0"),
+					resource.TestCheckResourceAttr("logtail_dashboard_alert.this", "series_names_except.#", "0"),
+				),
+			},
+			// Step 4 - import
 			{
 				ResourceName:      "logtail_dashboard_alert.this",
 				ImportState:       true,
@@ -328,6 +410,83 @@ func TestResourceDashboardAlert(t *testing.T) {
 				ImportStateIdFunc: func(s *terraform.State) (string, error) {
 					return "1/10/100", nil
 				},
+			},
+			// Step 4 - on_missing_data rejected for anomaly alerts
+			{
+				PlanOnly: true,
+				Config: `
+				provider "logtail" {
+					api_token = "foo"
+				}
+
+				resource "logtail_dashboard" "this" {
+					name = "Test Dashboard"
+				}
+
+				resource "logtail_dashboard_chart" "this" {
+					dashboard_id = logtail_dashboard.this.id
+					chart_type   = "line_chart"
+					name         = "Request Rate"
+					x = 0
+					y = 0
+					w = 6
+					h = 4
+
+					query {
+						query_type = "sql_expression"
+						sql_query  = "SELECT count(*) AS value FROM logs"
+					}
+				}
+
+				resource "logtail_dashboard_alert" "this" {
+					dashboard_id    = logtail_dashboard.this.id
+					chart_id        = logtail_dashboard_chart.this.id
+					name            = "Anomaly"
+					alert_type      = "anomaly_rrcf"
+					on_missing_data = "dont_fire"
+				}
+				`,
+				ExpectError: regexp.MustCompile("on_missing_data is only supported for threshold and relative alerts"),
+			},
+			// Step 5 - anomaly_training_range_days rejected for threshold alerts
+			{
+				PlanOnly: true,
+				Config: `
+				provider "logtail" {
+					api_token = "foo"
+				}
+
+				resource "logtail_dashboard" "this" {
+					name = "Test Dashboard"
+				}
+
+				resource "logtail_dashboard_chart" "this" {
+					dashboard_id = logtail_dashboard.this.id
+					chart_type   = "line_chart"
+					name         = "Request Rate"
+					x = 0
+					y = 0
+					w = 6
+					h = 4
+
+					query {
+						query_type = "sql_expression"
+						sql_query  = "SELECT count(*) AS value FROM logs"
+					}
+				}
+
+				resource "logtail_dashboard_alert" "this" {
+					dashboard_id                = logtail_dashboard.this.id
+					chart_id                    = logtail_dashboard_chart.this.id
+					name                        = "Threshold"
+					alert_type                  = "threshold"
+					operator                    = "higher_than"
+					value                       = 100
+					check_period                = 60
+					anomaly_training_range_days = 14
+				}
+				`,
+				ExpectError: regexp.MustCompile("anomaly_training_range_days is only supported for anomaly_rrcf alerts"),
 			},
 		},
 	})

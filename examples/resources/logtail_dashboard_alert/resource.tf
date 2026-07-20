@@ -11,6 +11,10 @@ resource "logtail_dashboard_alert" "high_error_rate" {
   query_period        = 300
   confirmation_period = 60
 
+  # What to do when the query returns no data:
+  # treat_as_zero / dont_fire / treat_as_previous / start_incident
+  on_missing_data = "treat_as_zero"
+
   email = true
   push  = true
 }
@@ -58,6 +62,9 @@ resource "logtail_dashboard_alert" "volume_anomaly" {
   query_period         = 300
   aggregation_interval = 60
 
+  # How many days of history to train the anomaly detection on (1-30)
+  anomaly_training_range_days = 14
+
   email          = true
   push           = true
   call           = true
@@ -75,6 +82,9 @@ resource "logtail_dashboard_alert" "service_down" {
   operator     = "equal"
   string_value = "down"
   check_period = 60
+
+  # Monitor every series except these (conflicts with series_names)
+  series_names_except = ["staging"]
 
   # Created paused, alerting will not start unless you flip this
   paused = true
