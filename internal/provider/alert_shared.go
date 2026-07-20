@@ -12,6 +12,21 @@ import (
 )
 
 func validateAlert(_ context.Context, diff *schema.ResourceDiff, _ interface{}) error {
+	// The API treats series_names / series_names_except as one setting: writing either one
+	// clears the other. Mirror that in the plan, so switching between the two fields - or
+	// explicitly emptying the configured one - plans the update that resets the sibling.
+	if raw := diff.GetRawConfig(); !raw.IsNull() && diff.Id() != "" {
+		if !raw.GetAttr("series_names").IsNull() {
+			if err := diff.SetNew("series_names_except", []interface{}{}); err != nil {
+				return err
+			}
+		} else if !raw.GetAttr("series_names_except").IsNull() {
+			if err := diff.SetNew("series_names", []interface{}{}); err != nil {
+				return err
+			}
+		}
+	}
+
 	// Only validate on create or when one of the relevant attributes changes.
 	if diff.Id() != "" &&
 		!diff.HasChange("alert_type") &&
@@ -120,7 +135,7 @@ var alertSchema = map[string]*schema.Schema{
 		},
 	},
 	"series_names": {
-		Description:   "Specific series to monitor. Conflicts with series_names_except.",
+		Description:   "Specific series to monitor. Conflicts with series_names_except; set to an empty list to alert on any series.",
 		Type:          schema.TypeList,
 		Optional:      true,
 		Computed:      true,
@@ -128,7 +143,7 @@ var alertSchema = map[string]*schema.Schema{
 		ConflictsWith: []string{"series_names_except"},
 	},
 	"series_names_except": {
-		Description:   "Monitor all series except these. Conflicts with series_names.",
+		Description:   "Monitor all series except these. Conflicts with series_names; set to an empty list to alert on any series.",
 		Type:          schema.TypeList,
 		Optional:      true,
 		Computed:      true,
@@ -400,8 +415,8 @@ type alert struct {
 	RecoveryPeriod           *int                          `json:"recovery_period,omitempty"`
 	AggregationInterval      *int                          `json:"aggregation_interval,omitempty"`
 	CheckPeriod              *int                          `json:"check_period,omitempty"`
-	SeriesNames              []string                      `json:"series_names,omitempty"`
-	SeriesNamesExcept        []string                      `json:"series_names_except,omitempty"`
+	SeriesNames              *[]string                     `json:"series_names,omitempty"`
+	SeriesNamesExcept        *[]string                     `json:"series_names_except,omitempty"`
 	OnMissingData            *string                       `json:"on_missing_data,omitempty"`
 	SourceVariable           *string                       `json:"source_variable,omitempty"`
 	SourceMode               *string                       `json:"source_mode,omitempty"`
@@ -429,6 +444,17 @@ type alertHTTPResponse struct {
 		ID         string `json:"id"`
 		Attributes alert  `json:"attributes"`
 	} `json:"data"`
+}
+
+func stringListFromResourceData(d *schema.ResourceData, key string) *[]string {
+	list := d.Get(key).([]interface{})
+	names := make([]string, 0, len(list))
+	for _, item := range list {
+		if s, ok := item.(string); ok {
+			names = append(names, s)
+		}
+	}
+	return &names
 }
 
 func loadAlert(d *schema.ResourceData) alert {
@@ -493,26 +519,16 @@ func loadAlert(d *schema.ResourceData) alert {
 	in.Push = boolFromResourceData(d, "push")
 	in.CriticalAlert = boolFromResourceData(d, "critical_alert")
 
-	// Load string arrays
-	if v, ok := d.GetOk("series_names"); ok {
-		list := v.([]interface{})
-		names := make([]string, 0, len(list))
-		for _, item := range list {
-			if s, ok := item.(string); ok {
-				names = append(names, s)
-			}
+	// series_names / series_names_except form one setting in the API: sending either field
+	// rewrites the pair and both non-empty is rejected. Send them only when actually set in
+	// the configuration — never the computed values carried over in state.
+	if raw := d.GetRawConfig(); !raw.IsNull() {
+		if !raw.GetAttr("series_names").IsNull() {
+			in.SeriesNames = stringListFromResourceData(d, "series_names")
 		}
-		in.SeriesNames = names
-	}
-	if v, ok := d.GetOk("series_names_except"); ok {
-		list := v.([]interface{})
-		names := make([]string, 0, len(list))
-		for _, item := range list {
-			if s, ok := item.(string); ok {
-				names = append(names, s)
-			}
+		if !raw.GetAttr("series_names_except").IsNull() {
+			in.SeriesNamesExcept = stringListFromResourceData(d, "series_names_except")
 		}
-		in.SeriesNamesExcept = names
 	}
 	if v, ok := d.GetOk("source_platforms"); ok {
 		list := v.([]interface{})
@@ -712,12 +728,12 @@ func alertCopyAttrs(d *schema.ResourceData, in *alert) diag.Diagnostics {
 
 	// Copy arrays
 	if in.SeriesNames != nil {
-		if err := d.Set("series_names", in.SeriesNames); err != nil {
+		if err := d.Set("series_names", *in.SeriesNames); err != nil {
 			derr = append(derr, diag.FromErr(err)[0])
 		}
 	}
 	if in.SeriesNamesExcept != nil {
-		if err := d.Set("series_names_except", in.SeriesNamesExcept); err != nil {
+		if err := d.Set("series_names_except", *in.SeriesNamesExcept); err != nil {
 			derr = append(derr, diag.FromErr(err)[0])
 		}
 	}

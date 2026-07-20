@@ -140,8 +140,8 @@ resource "logtail_dashboard_alert" "service_down" {
 - `push` (Boolean) Enable push notifications.
 - `query_period` (Number) The query evaluation window in seconds.
 - `recovery_period` (Number) The recovery delay in seconds.
-- `series_names` (List of String) Specific series to monitor. Conflicts with series_names_except.
-- `series_names_except` (List of String) Monitor all series except these. Conflicts with series_names.
+- `series_names` (List of String) Specific series to monitor. Conflicts with series_names_except; set to an empty list to alert on any series.
+- `series_names_except` (List of String) Monitor all series except these. Conflicts with series_names; set to an empty list to alert on any series.
 - `sms` (Boolean) Enable SMS notifications.
 - `source_mode` (String) Source selection mode: 'source_variable', 'platforms_single_source', or 'platforms_all_sources'.
 - `source_platforms` (List of String) Platform filters (used when source_mode is 'platforms_*').
