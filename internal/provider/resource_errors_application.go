@@ -139,6 +139,7 @@ var errorsApplicationSchema = map[string]*schema.Schema{
 		Type:        schema.TypeString,
 		Optional:    false,
 		Computed:    true,
+		Sensitive:   true,
 	},
 	"js_tag_token": {
 		Description: "The public JavaScript tag token embedded in the browser snippet for RUM and browser-side error tracking. Distinct from `token`, which is used for server-side data ingestion.",

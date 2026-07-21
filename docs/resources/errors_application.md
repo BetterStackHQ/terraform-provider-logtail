@@ -181,7 +181,7 @@ When importing an existing application, leave `data_region` unset in your config
 - `js_tag_token` (String) The public JavaScript tag token embedded in the browser snippet for RUM and browser-side error tracking. Distinct from `token`, which is used for server-side data ingestion.
 - `table_name` (String) The table name generated for this application.
 - `team_id` (String) The team ID for this resource.
-- `token` (String) The token of this application. This token is used to identify and route the data you will send to Better Stack.
+- `token` (String, Sensitive) The token of this application. This token is used to identify and route the data you will send to Better Stack.
 - `updated_at` (String) The time when this application was updated.
 
 <a id="nestedblock--custom_bucket"></a>
