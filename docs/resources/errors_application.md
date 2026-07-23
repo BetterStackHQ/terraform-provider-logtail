@@ -25,7 +25,6 @@ resource "logtail_errors_application" "configured" {
   name                 = "Production errors (EU)"
   platform             = "ruby_errors"
   application_group_id = logtail_errors_application_group.this.id
-  data_region          = "germany"
   errors_retention     = 90
 
   # Created paused, ingestion will not start unless you flip this
@@ -33,6 +32,7 @@ resource "logtail_errors_application" "configured" {
 
   # Correlate errors with a source's logs and traces (immutable after creation)
   correlate_with_source_id = logtail_collector.production.source_id
+  data_region              = logtail_collector.production.data_region
 
   # Map container stack-trace paths to repo paths for git blame
   code_mapping_stack_root  = "/usr/src/app/"
