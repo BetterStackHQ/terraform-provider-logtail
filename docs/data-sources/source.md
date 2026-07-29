@@ -110,7 +110,7 @@ When importing an existing source, leave `data_region` unset in your configurati
 - `source_group_id` (Number) The ID of the source group this source belongs to.
 - `team_id` (String) The team ID for this resource. Can be used with table_name in [Query API](https://betterstack.com/docs/logs/query-api/connect-remotely/).
 - `team_name` (String) Used to specify the team the resource should be created in when using global tokens. You can't update this value later.
-- `token` (String) The token of this source. This token is used to identify and route the data you will send to Better Stack.
+- `token` (String, Sensitive) The token of this source. This token is used to identify and route the data you will send to Better Stack.
 - `updated_at` (String) The time when this monitor group was updated.
 - `vrl_transformation` (String, Deprecated) Deprecated alias for `vrl_transformation_logs`. VRL transformation applied to logs on Better Stack's servers during ingestion. Read more about [VRL transformations](https://betterstack.com/docs/logs/using-logtail/transforming-ingested-data/logs-vrl/).
 - `vrl_transformation_logs` (String) VRL transformation applied to logs on Better Stack's servers during ingestion. Read more about [VRL transformations](https://betterstack.com/docs/logs/using-logtail/transforming-ingested-data/logs-vrl/).

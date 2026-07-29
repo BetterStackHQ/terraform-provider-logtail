@@ -96,6 +96,7 @@ var sourceSchema = map[string]*schema.Schema{
 		Type:        schema.TypeString,
 		Optional:    false,
 		Computed:    true,
+		Sensitive:   true,
 	},
 	"table_name": {
 		Description: "The table name generated for this source.",

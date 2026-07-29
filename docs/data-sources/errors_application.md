@@ -149,7 +149,7 @@ When importing an existing application, leave `data_region` unset in your config
 - `table_name` (String) The table name generated for this application.
 - `team_id` (String) The team ID for this resource.
 - `team_name` (String) Used to specify the team the resource should be created in when using global tokens. You can't update this value later.
-- `token` (String) The token of this application. This token is used to identify and route the data you will send to Better Stack.
+- `token` (String, Sensitive) The token of this application. This token is used to identify and route the data you will send to Better Stack.
 - `updated_at` (String) The time when this application was updated.
 
 <a id="nestedatt--custom_bucket"></a>

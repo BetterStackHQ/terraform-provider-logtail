@@ -7,9 +7,22 @@ import (
 	"io"
 	"log"
 	"net/http"
+	"os"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 )
+
+// errorBody returns the API response body for inclusion in a user-facing
+// diagnostic. Error responses can echo submitted fields (including secrets
+// like bucket keys or database passwords), so the body is only included when
+// the user has opted into insecure logging - the same gate that controls
+// request/response body logging in main.go.
+func errorBody(body []byte) string {
+	if os.Getenv("TF_PROVIDER_LOGTAIL_LOG_INSECURE") == "1" {
+		return string(body)
+	}
+	return "(set TF_PROVIDER_LOGTAIL_LOG_INSECURE=1 to include the response body, which may contain sensitive data)"
+}
 
 func resourceCreate(ctx context.Context, meta interface{}, url string, in, out interface{}) diag.Diagnostics {
 	reqBody, err := json.Marshal(&in)
@@ -28,7 +41,7 @@ func resourceCreate(ctx context.Context, meta interface{}, url string, in, out i
 	}()
 	body, err := io.ReadAll(res.Body)
 	if res.StatusCode != http.StatusCreated {
-		return diag.Errorf("POST %s returned %d: %s", res.Request.URL.String(), res.StatusCode, string(body))
+		return diag.Errorf("POST %s returned %d: %s", res.Request.URL.String(), res.StatusCode, errorBody(body))
 	}
 	if err != nil {
 		return diag.FromErr(err)
@@ -57,7 +70,7 @@ func resourceCreateWithBaseURL(ctx context.Context, meta interface{}, baseURL, p
 	}()
 	body, err := io.ReadAll(res.Body)
 	if res.StatusCode != http.StatusCreated {
-		return diag.Errorf("POST %s returned %d: %s", res.Request.URL.String(), res.StatusCode, string(body))
+		return diag.Errorf("POST %s returned %d: %s", res.Request.URL.String(), res.StatusCode, errorBody(body))
 	}
 	if err != nil {
 		return diag.FromErr(err)
@@ -85,7 +98,7 @@ func resourceReadWithBaseURL(ctx context.Context, meta interface{}, baseURL, pat
 	}
 	body, err := io.ReadAll(res.Body)
 	if res.StatusCode != http.StatusOK {
-		return diag.Errorf("GET %s returned %d: %s", res.Request.URL.String(), res.StatusCode, string(body)), false
+		return diag.Errorf("GET %s returned %d: %s", res.Request.URL.String(), res.StatusCode, errorBody(body)), false
 	}
 	if err != nil {
 		return diag.FromErr(err), false
@@ -115,7 +128,7 @@ func resourceUpdate(ctx context.Context, meta interface{}, url string, req inter
 	}()
 	body, _ := io.ReadAll(res.Body)
 	if res.StatusCode != http.StatusOK {
-		return diag.Errorf("PATCH %s returned %d: %s", res.Request.URL.String(), res.StatusCode, string(body))
+		return diag.Errorf("PATCH %s returned %d: %s", res.Request.URL.String(), res.StatusCode, errorBody(body))
 	}
 	log.Printf("PATCH %s returned %d: %s", res.Request.URL.String(), res.StatusCode, string(body))
 	return nil
@@ -138,7 +151,7 @@ func resourceUpdateWithBaseURL(ctx context.Context, meta interface{}, baseURL, p
 	}()
 	body, _ := io.ReadAll(res.Body)
 	if res.StatusCode != http.StatusOK {
-		return diag.Errorf("PATCH %s returned %d: %s", res.Request.URL.String(), res.StatusCode, string(body))
+		return diag.Errorf("PATCH %s returned %d: %s", res.Request.URL.String(), res.StatusCode, errorBody(body))
 	}
 	log.Printf("PATCH %s returned %d: %s", res.Request.URL.String(), res.StatusCode, string(body))
 	return nil
@@ -157,7 +170,7 @@ func resourceDelete(ctx context.Context, meta interface{}, url string) diag.Diag
 	}()
 	body, _ := io.ReadAll(res.Body)
 	if res.StatusCode != http.StatusNoContent && res.StatusCode != http.StatusNotFound {
-		return diag.Errorf("DELETE %s returned %d: %s", res.Request.URL.String(), res.StatusCode, string(body))
+		return diag.Errorf("DELETE %s returned %d: %s", res.Request.URL.String(), res.StatusCode, errorBody(body))
 	}
 	log.Printf("DELETE %s returned %d: %s", res.Request.URL.String(), res.StatusCode, string(body))
 	return nil
@@ -176,7 +189,7 @@ func resourceDeleteWithBaseURL(ctx context.Context, meta interface{}, baseURL, p
 	}()
 	body, _ := io.ReadAll(res.Body)
 	if res.StatusCode != http.StatusNoContent && res.StatusCode != http.StatusNotFound {
-		return diag.Errorf("DELETE %s returned %d: %s", res.Request.URL.String(), res.StatusCode, string(body))
+		return diag.Errorf("DELETE %s returned %d: %s", res.Request.URL.String(), res.StatusCode, errorBody(body))
 	}
 	log.Printf("DELETE %s returned %d: %s", res.Request.URL.String(), res.StatusCode, string(body))
 	return nil
