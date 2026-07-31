@@ -450,9 +450,6 @@ func errorsApplicationCopyAttrs(d *schema.ResourceData, in *errorsApplication) d
 		if e.k == "data_region" && d.Get("data_region").(string) != "" {
 			// Don't update data region from API if it's already set - data_region can't change
 			continue
-		} else if e.k == "platform" && in.Platform == nil {
-			// An API that predates platform being returned omits it; keep the state value
-			continue
 		} else if e.k == "team_id" {
 			if err := SetStringOrIntResourceData(d, "team_id", in.TeamId); err != nil {
 				derr = append(derr, diag.FromErr(err)[0])
