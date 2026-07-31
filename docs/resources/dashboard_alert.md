@@ -26,7 +26,7 @@ resource "logtail_dashboard_alert" "high_error_rate" {
   query_period        = 300
   confirmation_period = 60
 
-  # Never recover automatically (Never in the UI); omit for the default 60s
+  # Never recover automatically
   recovery_period = -1
 
   # What to do when the query returns no data:
