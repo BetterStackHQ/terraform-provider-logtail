@@ -13,7 +13,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
-// The API returns platform since BetterStackHQ/logtail#16252; the provider must treat
+// A recent API change makes the API return platform; the provider must treat
 // it as an ordinary read attribute so refresh and import mirror the remote value.
 func TestResourceErrorsApplicationPlatformFromAPI(t *testing.T) {
 	var data atomic.Value
