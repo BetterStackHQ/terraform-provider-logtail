@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"net/url"
 	"reflect"
+	"strings"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
@@ -60,9 +61,9 @@ func newMetricResource() *schema.Resource {
 		UpdateContext: metricUpdate,
 		DeleteContext: metricDelete,
 		Importer: &schema.ResourceImporter{
-			StateContext: schema.ImportStatePassthroughContext,
+			StateContext: metricImportState,
 		},
-		Description: "This resource allows you to create, update and delete Metrics and Labels.",
+		Description: "This resource allows you to create, update and delete Metrics and Labels. Import an existing metric using a composite ID in the `source_id/metric_id` format.",
 		Schema:      metricSchema,
 	}
 }
@@ -153,7 +154,23 @@ func metricCreate(ctx context.Context, d *schema.ResourceData, meta interface{})
 	return metricCopyAttrs(d, &out.Data.Attributes)
 }
 
+// metricImportState accepts a composite source_id/metric_id import ID, mirroring
+// logtail_dashboard_chart / logtail_dashboard_alert - the read needs source_id to
+// build the URL, and an import provides only the ID.
+func metricImportState(ctx context.Context, d *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
+	parts := strings.SplitN(d.Id(), "/", 2)
+	if len(parts) != 2 {
+		return nil, fmt.Errorf("invalid metric ID format %q, expected 'source_id/metric_id'", d.Id())
+	}
+	if err := d.Set("source_id", parts[0]); err != nil {
+		return nil, err
+	}
+	d.SetId(parts[1])
+	return []*schema.ResourceData{d}, nil
+}
+
 func metricLookup(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+	id := d.Id()
 	d.SetId("")
 	sourceId := d.Get("source_id").(string)
 	fetch := func(page int) (*metricPageHTTPResponse, error) {
@@ -176,6 +193,9 @@ func metricLookup(ctx context.Context, d *schema.ResourceData, meta interface{})
 		var tr metricPageHTTPResponse
 		return &tr, json.Unmarshal(body, &tr)
 	}
+	// The resource always has an ID here (create, update, import), so match on it -
+	// names repeat and are unknown right after an import. The data source has no ID
+	// and looks up by name.
 	name := d.Get("name").(string)
 	page := 1
 	for {
@@ -184,7 +204,7 @@ func metricLookup(ctx context.Context, d *schema.ResourceData, meta interface{})
 			return diag.FromErr(err)
 		}
 		for _, e := range res.Data {
-			if *e.Attributes.Name == name {
+			if (id != "" && e.ID == id) || (id == "" && *e.Attributes.Name == name) {
 				if d.Id() != "" {
 					return diag.Errorf("duplicate")
 				}
