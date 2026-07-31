@@ -430,12 +430,6 @@ func errorsApplicationCreate(ctx context.Context, d *schema.ResourceData, meta i
 		return err
 	}
 	d.SetId(out.Data.ID)
-	// Ensure platform is set in state since API doesn't return it
-	if platform := d.Get("platform").(string); platform != "" {
-		if err := d.Set("platform", platform); err != nil {
-			return diag.FromErr(err)
-		}
-	}
 	return errorsApplicationCopyAttrs(d, &out.Data.Attributes)
 }
 
@@ -456,8 +450,8 @@ func errorsApplicationCopyAttrs(d *schema.ResourceData, in *errorsApplication) d
 		if e.k == "data_region" && d.Get("data_region").(string) != "" {
 			// Don't update data region from API if it's already set - data_region can't change
 			continue
-		} else if e.k == "platform" && d.Get("platform").(string) != "" {
-			// Don't update platform from API if it's already set - platform can't change and API doesn't return it
+		} else if e.k == "platform" && in.Platform == nil {
+			// An API that predates BetterStackHQ/logtail#16252 omits platform; keep the state value
 			continue
 		} else if e.k == "team_id" {
 			if err := SetStringOrIntResourceData(d, "team_id", in.TeamId); err != nil {
