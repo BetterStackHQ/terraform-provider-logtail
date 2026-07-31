@@ -59,7 +59,7 @@ output "existing_dashboard_alert_type" {
 - `paused_reason` (String) Read-only field explaining why the alert is paused (e.g., 'Manually paused', complexity issues, too many failures).
 - `push` (Boolean) Enable push notifications.
 - `query_period` (Number) The query evaluation window in seconds.
-- `recovery_period` (Number) The recovery delay in seconds.
+- `recovery_period` (Number) The duration in seconds that a condition must be resolved before an incident is recovered. A value of 0 recovers the alert immediately, a value of -1 means never automatically recover an incident.
 - `series_names` (List of String) Specific series to monitor. Conflicts with series_names_except; set to an empty list to alert on any series.
 - `series_names_except` (List of String) Monitor all series except these. Conflicts with series_names; set to an empty list to alert on any series.
 - `sms` (Boolean) Enable SMS notifications.

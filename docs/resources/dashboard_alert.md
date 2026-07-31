@@ -26,6 +26,9 @@ resource "logtail_dashboard_alert" "high_error_rate" {
   query_period        = 300
   confirmation_period = 60
 
+  # Never recover automatically (Never in the UI); omit for the default 60s
+  recovery_period = -1
+
   # What to do when the query returns no data:
   # treat_as_zero / dont_fire / treat_as_previous / start_incident
   on_missing_data = "treat_as_zero"
@@ -139,7 +142,7 @@ resource "logtail_dashboard_alert" "service_down" {
 - `paused` (Boolean) Whether the alert is paused.
 - `push` (Boolean) Enable push notifications.
 - `query_period` (Number) The query evaluation window in seconds.
-- `recovery_period` (Number) The recovery delay in seconds.
+- `recovery_period` (Number) The duration in seconds that a condition must be resolved before an incident is recovered. A value of 0 recovers the alert immediately, a value of -1 means never automatically recover an incident.
 - `series_names` (List of String) Specific series to monitor. Conflicts with series_names_except; set to an empty list to alert on any series.
 - `series_names_except` (List of String) Monitor all series except these. Conflicts with series_names; set to an empty list to alert on any series.
 - `sms` (Boolean) Enable SMS notifications.

@@ -110,7 +110,7 @@ var alertSchema = map[string]*schema.Schema{
 		Computed:    true,
 	},
 	"recovery_period": {
-		Description: "The recovery delay in seconds.",
+		Description: "The duration in seconds that a condition must be resolved before an incident is recovered. A value of 0 recovers the alert immediately, a value of -1 means never automatically recover an incident.",
 		Type:        schema.TypeInt,
 		Optional:    true,
 		Computed:    true,
@@ -412,7 +412,7 @@ type alert struct {
 	StringValue              *string                       `json:"string_value,omitempty"`
 	QueryPeriod              *int                          `json:"query_period,omitempty"`
 	ConfirmationPeriod       *int                          `json:"confirmation_period,omitempty"`
-	RecoveryPeriod           *int                          `json:"recovery_period,omitempty"`
+	RecoveryPeriod           *NullableInt                  `json:"recovery_period,omitempty"`
 	AggregationInterval      *int                          `json:"aggregation_interval,omitempty"`
 	CheckPeriod              *int                          `json:"check_period,omitempty"`
 	SeriesNames              *[]string                     `json:"series_names,omitempty"`
@@ -505,7 +505,7 @@ func loadAlert(d *schema.ResourceData) alert {
 	// Load int fields - use helper to allow 0 values
 	in.QueryPeriod = intFromResourceData(d, "query_period")
 	in.ConfirmationPeriod = intFromResourceData(d, "confirmation_period")
-	in.RecoveryPeriod = intFromResourceData(d, "recovery_period")
+	in.RecoveryPeriod = NullableIntFromResourceData(d, "recovery_period", -1)
 	in.AggregationInterval = intFromResourceData(d, "aggregation_interval")
 	in.CheckPeriod = intFromResourceData(d, "check_period")
 	in.AnomalyTrainingRangeDays = intFromResourceData(d, "anomaly_training_range_days")
@@ -663,10 +663,9 @@ func alertCopyAttrs(d *schema.ResourceData, in *alert) diag.Diagnostics {
 			derr = append(derr, diag.FromErr(err)[0])
 		}
 	}
-	if in.RecoveryPeriod != nil {
-		if err := d.Set("recovery_period", *in.RecoveryPeriod); err != nil {
-			derr = append(derr, diag.FromErr(err)[0])
-		}
+	// The API always returns recovery_period; null is the Never recovery mode, -1 in Terraform
+	if err := SetNullableIntResourceData(d, "recovery_period", -1, in.RecoveryPeriod); err != nil {
+		derr = append(derr, diag.FromErr(err)[0])
 	}
 	if in.AggregationInterval != nil {
 		if err := d.Set("aggregation_interval", *in.AggregationInterval); err != nil {
