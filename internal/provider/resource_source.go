@@ -501,15 +501,6 @@ func sourceCreate(ctx context.Context, d *schema.ResourceData, meta interface{})
 				"If you already added one, you can ignore this.",
 		})
 	}
-	if d.Get("platform").(string) == "azure" {
-		diags = append(diags, diag.Diagnostic{
-			Severity: diag.Warning,
-			Summary:  "Azure source needs a connected Azure tenant",
-			Detail: "Connect the tenant once via the Microsoft admin consent in the Better Stack UI, then add a logtail_source_azure_account resource that links it by account ID. " +
-				"See https://registry.terraform.io/providers/BetterStackHQ/logtail/latest/docs/guides/connect-azure-tenant for detailed guide. " +
-				"If you already added one, you can ignore this.",
-		})
-	}
 	return diags
 }
 
