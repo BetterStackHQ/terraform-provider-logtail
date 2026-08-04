@@ -505,7 +505,7 @@ func sourceCreate(ctx context.Context, d *schema.ResourceData, meta interface{})
 		diags = append(diags, diag.Diagnostic{
 			Severity: diag.Warning,
 			Summary:  "Azure source needs a connected Azure tenant",
-			Detail: "There is no Terraform path for connecting the tenant: it requires the interactive Microsoft admin consent. " +
+			Detail: "Connecting the tenant requires the interactive Microsoft admin consent. " +
 				fmt.Sprintf("Complete it in this source's Ingest tab at https://telemetry.betterstack.com/team/%s/sources/%s/data-ingestion. ", d.Get("team_id").(string), d.Id()) +
 				"If you already connected it, you can ignore this.",
 		})
