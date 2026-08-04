@@ -492,6 +492,15 @@ func sourceCreate(ctx context.Context, d *schema.ResourceData, meta interface{})
 				"If you already added one, you can ignore this.",
 		})
 	}
+	if d.Get("platform").(string) == "gcp" {
+		diags = append(diags, diag.Diagnostic{
+			Severity: diag.Warning,
+			Summary:  "GCP source needs a connected GCP project",
+			Detail: "Add a logtail_source_gcp_project resource that pastes back the project ID / project number from the Better Stack GCP Terraform module to connect the project. " +
+				"See https://registry.terraform.io/providers/BetterStackHQ/logtail/latest/docs/guides/connect-gcp-project for detailed guide. " +
+				"If you already added one, you can ignore this.",
+		})
+	}
 	return diags
 }
 
