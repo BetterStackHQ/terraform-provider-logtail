@@ -103,6 +103,7 @@ func New(opts ...Option) *schema.Provider {
 			"logtail_source":                   newSourceResource(),
 			"logtail_source_aws_account":       newSourceAWSAccountResource(),
 			"logtail_source_gcp_project":       newSourceGCPProjectResource(),
+			"logtail_source_azure_account":     newSourceAzureAccountResource(),
 			"logtail_metric":                   newMetricResource(),
 			"logtail_source_group":             newSourceGroupResource(),
 			"logtail_errors_application":       newErrorsApplicationResource(),

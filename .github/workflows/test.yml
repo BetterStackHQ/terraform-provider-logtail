@@ -133,9 +133,10 @@ jobs:
             cp "$f" "combined-e2e/$(basename "$f")"
           done
           # Flatten in every documented example, except: source_aws_account (needs AWS
-          # credentials), source_gcp_project (needs GCP credentials) and connection
-          # (needs a global token; see examples/connection).
-          deny=" logtail_source_aws_account logtail_source_gcp_project logtail_connection "
+          # credentials), source_gcp_project (needs GCP credentials), source_azure_account
+          # (needs a consented Azure tenant) and connection (needs a global token; see
+          # examples/connection).
+          deny=" logtail_source_aws_account logtail_source_gcp_project logtail_source_azure_account logtail_connection "
           for f in examples/resources/*/*.tf examples/data-sources/*/*.tf; do
             dir="$(basename "$(dirname "$f")")"
             case "$deny" in *" $dir "*) continue ;; esac
