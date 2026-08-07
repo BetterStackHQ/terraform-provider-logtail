@@ -492,6 +492,24 @@ func sourceCreate(ctx context.Context, d *schema.ResourceData, meta interface{})
 				"If you already added one, you can ignore this.",
 		})
 	}
+	if d.Get("platform").(string) == "gcp" {
+		diags = append(diags, diag.Diagnostic{
+			Severity: diag.Warning,
+			Summary:  "GCP source needs a connected GCP project",
+			Detail: "Add a logtail_source_gcp_project resource that pastes back the project ID / project number from the Better Stack GCP Terraform module to connect the project. " +
+				"See https://registry.terraform.io/providers/BetterStackHQ/logtail/latest/docs/guides/connect-gcp-project for detailed guide. " +
+				"If you already added one, you can ignore this.",
+		})
+	}
+	if d.Get("platform").(string) == "azure" {
+		diags = append(diags, diag.Diagnostic{
+			Severity: diag.Warning,
+			Summary:  "Azure source needs a connected Azure tenant",
+			Detail: "Connecting the tenant requires the interactive Microsoft admin consent. " +
+				fmt.Sprintf("Complete it in this source's Ingest tab at https://telemetry.betterstack.com/team/%s/sources/%s/data-ingestion. ", d.Get("team_id").(string), d.Id()) +
+				"If you already connected it, you can ignore this.",
+		})
+	}
 	return diags
 }
 
