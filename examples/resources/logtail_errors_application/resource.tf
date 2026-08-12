@@ -22,6 +22,12 @@ resource "logtail_errors_application" "configured" {
   # Map container stack-trace paths to repo paths for git blame
   code_mapping_stack_root  = "/usr/src/app/"
   code_mapping_source_root = "apps/backend/"
+
+  # Customize exception grouping — group solely by error type
+  vrl_transformation_exceptions = <<-EOT
+    grouping = to_string(.summary.type) ?? "unknown"
+    ._pattern = slice!(sha2(grouping), 0, 24)
+  EOT
 }
 
 # Link a connected GitHub repository for inline git blame on stack traces

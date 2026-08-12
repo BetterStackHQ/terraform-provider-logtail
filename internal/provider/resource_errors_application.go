@@ -265,6 +265,36 @@ var errorsApplicationSchema = map[string]*schema.Schema{
 		Computed:      true,
 		ConflictsWith: []string{"github_repository_name"},
 	},
+	"vrl_transformation_exceptions": {
+		Description:      "VRL transformation applied to exceptions on Better Stack's servers during ingestion. This is what controls how exceptions are grouped into errors - leave unset to keep the default grouping for the application's platform. Read more about [customizing exception grouping](https://betterstack.com/docs/errors/using-the-product/exception-grouping/#customize-exception-grouping).",
+		Type:             schema.TypeString,
+		Optional:         true,
+		DiffSuppressFunc: suppressUnmanagedVRL,
+	},
+	"vrl_transformation_replays": {
+		Description:      "VRL transformation applied to session replays on Better Stack's servers during ingestion. Read more about [VRL transformations](https://betterstack.com/docs/logs/using-logtail/transforming-ingested-data/logs-vrl/).",
+		Type:             schema.TypeString,
+		Optional:         true,
+		DiffSuppressFunc: suppressUnmanagedVRL,
+	},
+	"vrl_transformation_web_events": {
+		Description:      "VRL transformation applied to web events (page views and web vitals) on Better Stack's servers during ingestion. Read more about [VRL transformations](https://betterstack.com/docs/logs/using-logtail/transforming-ingested-data/logs-vrl/).",
+		Type:             schema.TypeString,
+		Optional:         true,
+		DiffSuppressFunc: suppressUnmanagedVRL,
+	},
+	"vrl_transformation_logs": {
+		Description:      "VRL transformation applied to logs on Better Stack's servers during ingestion. Read more about [VRL transformations](https://betterstack.com/docs/logs/using-logtail/transforming-ingested-data/logs-vrl/).",
+		Type:             schema.TypeString,
+		Optional:         true,
+		DiffSuppressFunc: suppressUnmanagedVRL,
+	},
+	"vrl_transformation_spans": {
+		Description:      "VRL transformation applied to traces (spans) on Better Stack's servers during ingestion. Read more about [VRL transformations](https://betterstack.com/docs/logs/using-logtail/transforming-ingested-data/logs-vrl/).",
+		Type:             schema.TypeString,
+		Optional:         true,
+		DiffSuppressFunc: suppressUnmanagedVRL,
+	},
 	"custom_bucket": {
 		Description: "Optional custom S3-compatible bucket configuration for the application. " +
 			"Can only be set when creating the application and cannot be added, changed, or removed afterwards - recreate the application to use a different bucket. " +
@@ -347,6 +377,12 @@ type errorsApplication struct {
 	GithubRepositoryName  *string             `json:"github_repository_name,omitempty"`
 	GitlabRepositoryName  *string             `json:"gitlab_repository_name,omitempty"`
 	CustomBucket          *sourceCustomBucket `json:"custom_bucket,omitempty"`
+
+	VrlTransformationExceptions *string `json:"vrl_transformation_exceptions,omitempty"`
+	VrlTransformationReplays    *string `json:"vrl_transformation_replays,omitempty"`
+	VrlTransformationWebEvents  *string `json:"vrl_transformation_web_events,omitempty"`
+	VrlTransformationLogs       *string `json:"vrl_transformation_logs,omitempty"`
+	VrlTransformationSpans      *string `json:"vrl_transformation_spans,omitempty"`
 }
 
 type errorsApplicationHTTPResponse struct {
@@ -382,6 +418,11 @@ func errorsApplicationRef(in *errorsApplication) []struct {
 		{k: "correlate_with_source_id", v: &in.CorrelateWithSourceID},
 		{k: "github_repository_name", v: &in.GithubRepositoryName},
 		{k: "gitlab_repository_name", v: &in.GitlabRepositoryName},
+		{k: "vrl_transformation_exceptions", v: &in.VrlTransformationExceptions},
+		{k: "vrl_transformation_replays", v: &in.VrlTransformationReplays},
+		{k: "vrl_transformation_web_events", v: &in.VrlTransformationWebEvents},
+		{k: "vrl_transformation_logs", v: &in.VrlTransformationLogs},
+		{k: "vrl_transformation_spans", v: &in.VrlTransformationSpans},
 	}
 }
 

@@ -37,6 +37,12 @@ resource "logtail_errors_application" "configured" {
   # Map container stack-trace paths to repo paths for git blame
   code_mapping_stack_root  = "/usr/src/app/"
   code_mapping_source_root = "apps/backend/"
+
+  # Customize exception grouping — group solely by error type
+  vrl_transformation_exceptions = <<-EOT
+    grouping = to_string(.summary.type) ?? "unknown"
+    ._pattern = slice!(sha2(grouping), 0, 24)
+  EOT
 }
 
 # Link a connected GitHub repository for inline git blame on stack traces
@@ -172,6 +178,11 @@ When importing an existing application, leave `data_region` unset in your config
 - `gitlab_repository_name` (String) Full name of a GitLab repository (e.g. `group/project`) to connect to this application for source links, git blame, and AI-assisted fixes. The repository must already be connected to your team's GitLab integration. Set to an empty string to disconnect. Mutually exclusive with `github_repository_name`.
 - `ingesting_paused` (Boolean) This property allows you to temporarily pause data ingesting for this application.
 - `team_name` (String) Used to specify the team the resource should be created in when using global tokens. You can't update this value later.
+- `vrl_transformation_exceptions` (String) VRL transformation applied to exceptions on Better Stack's servers during ingestion. This is what controls how exceptions are grouped into errors - leave unset to keep the default grouping for the application's platform. Read more about [customizing exception grouping](https://betterstack.com/docs/errors/using-the-product/exception-grouping/#customize-exception-grouping).
+- `vrl_transformation_logs` (String) VRL transformation applied to logs on Better Stack's servers during ingestion. Read more about [VRL transformations](https://betterstack.com/docs/logs/using-logtail/transforming-ingested-data/logs-vrl/).
+- `vrl_transformation_replays` (String) VRL transformation applied to session replays on Better Stack's servers during ingestion. Read more about [VRL transformations](https://betterstack.com/docs/logs/using-logtail/transforming-ingested-data/logs-vrl/).
+- `vrl_transformation_spans` (String) VRL transformation applied to traces (spans) on Better Stack's servers during ingestion. Read more about [VRL transformations](https://betterstack.com/docs/logs/using-logtail/transforming-ingested-data/logs-vrl/).
+- `vrl_transformation_web_events` (String) VRL transformation applied to web events (page views and web vitals) on Better Stack's servers during ingestion. Read more about [VRL transformations](https://betterstack.com/docs/logs/using-logtail/transforming-ingested-data/logs-vrl/).
 
 ### Read-Only
 
