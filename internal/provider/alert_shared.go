@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/hashicorp/go-cty/cty"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
@@ -33,7 +34,8 @@ func validateAlert(_ context.Context, diff *schema.ResourceDiff, _ interface{}) 
 		!diff.HasChange("operator") &&
 		!diff.HasChange("check_period") &&
 		!diff.HasChange("on_missing_data") &&
-		!diff.HasChange("anomaly_training_range_days") {
+		!diff.HasChange("anomaly_training_range_days") &&
+		!diff.HasChange("additional_conditions") {
 		return nil
 	}
 	alertType := diff.Get("alert_type").(string)
@@ -53,6 +55,22 @@ func validateAlert(_ context.Context, diff *schema.ResourceDiff, _ interface{}) 
 		}
 		if alertType != "anomaly_rrcf" && !raw.GetAttr("anomaly_training_range_days").IsNull() {
 			return fmt.Errorf("anomaly_training_range_days is only supported for anomaly_rrcf alerts")
+		}
+	}
+	// The nested condition objects normalize the pair server-side by silently
+	// preferring series_names_except; reject the ambiguity here instead
+	// (ConflictsWith cannot reference attributes inside a list element).
+	if raw := diff.GetRawConfig(); !raw.IsNull() {
+		conds := raw.GetAttr("additional_conditions")
+		if !conds.IsNull() {
+			for it := conds.ElementIterator(); it.Next(); {
+				_, el := it.Element()
+				names := el.GetAttr("series_names")
+				except := el.GetAttr("series_names_except")
+				if !names.IsNull() && names.LengthInt() > 0 && !except.IsNull() && except.LengthInt() > 0 {
+					return fmt.Errorf("an additional condition cannot set both series_names and series_names_except")
+				}
+			}
 		}
 	}
 	return nil
@@ -149,6 +167,50 @@ var alertSchema = map[string]*schema.Schema{
 		Computed:      true,
 		Elem:          &schema.Schema{Type: schema.TypeString},
 		ConflictsWith: []string{"series_names"},
+	},
+	"additional_conditions": {
+		Description: "Additional conditions that must all be met together with the main alert condition for the alert to fire (logical AND, evaluated per series on the same time bucket). Up to 4 additional conditions; 'threshold' and 'relative' types only.",
+		Type:        schema.TypeList,
+		Optional:    true,
+		MaxItems:    4,
+		Elem: &schema.Resource{
+			Schema: map[string]*schema.Schema{
+				"alert_type": {
+					Description:  "The type of this condition: 'threshold' or 'relative'. Anomaly detection is only available as the main alert condition.",
+					Type:         schema.TypeString,
+					Required:     true,
+					ValidateFunc: validation.StringInSlice([]string{"threshold", "relative"}, false),
+				},
+				"operator": {
+					Description:  "The comparison operator. For threshold: 'equal', 'not_equal', 'higher_than', 'higher_than_or_equal', 'lower_than', 'lower_than_or_equal'. For relative: 'increases_by', 'decreases_by', 'changes_by'.",
+					Type:         schema.TypeString,
+					Required:     true,
+					ValidateFunc: validation.StringInSlice([]string{"equal", "not_equal", "higher_than", "higher_than_or_equal", "lower_than", "lower_than_or_equal", "increases_by", "decreases_by", "changes_by"}, false),
+				},
+				"value": {
+					Description: "The numeric threshold value of this condition.",
+					Type:        schema.TypeFloat,
+					Optional:    true,
+				},
+				"string_value": {
+					Description: "The string threshold value of this condition (only with 'equal' or 'not_equal' operators). Set exactly one of value and string_value.",
+					Type:        schema.TypeString,
+					Optional:    true,
+				},
+				"series_names": {
+					Description: "Specific series this condition applies to. Conflicts with series_names_except; omit to apply to any series.",
+					Type:        schema.TypeList,
+					Optional:    true,
+					Elem:        &schema.Schema{Type: schema.TypeString},
+				},
+				"series_names_except": {
+					Description: "Apply this condition to all series except these. Conflicts with series_names; omit to apply to any series.",
+					Type:        schema.TypeList,
+					Optional:    true,
+					Elem:        &schema.Schema{Type: schema.TypeString},
+				},
+			},
+		},
 	},
 	"on_missing_data": {
 		Description:  "What to do when the monitored query returns no data: 'treat_as_zero', 'dont_fire', 'treat_as_previous', or 'start_incident'. Only for threshold and relative alerts.",
@@ -433,6 +495,7 @@ type alert struct {
 	AnomalySensitivity       *float64                      `json:"anomaly_sensitivity,omitempty"`
 	AnomalyTrigger           *string                       `json:"anomaly_trigger,omitempty"`
 	AnomalyTrainingRangeDays *int                          `json:"anomaly_training_range_days,omitempty"`
+	AdditionalConditions     *[]alertCondition             `json:"additional_conditions,omitempty"`
 	EscalationTarget         alertEscalationTargetWrapper  `json:"escalation_target,omitempty"`
 	Metadata                 map[string]alertMetadataValue `json:"metadata,omitempty"`
 	CreatedAt                *string                       `json:"created_at,omitempty"`
@@ -444,6 +507,62 @@ type alertHTTPResponse struct {
 		ID         string `json:"id"`
 		Attributes alert  `json:"attributes"`
 	} `json:"data"`
+}
+
+// alertCondition is one additional alert condition; the main condition lives
+// in the alert's own alert_type/operator/value fields.
+type alertCondition struct {
+	AlertType         *string   `json:"alert_type,omitempty"`
+	Operator          *string   `json:"operator,omitempty"`
+	Value             *float64  `json:"value,omitempty"`
+	StringValue       *string   `json:"string_value,omitempty"`
+	SeriesNames       *[]string `json:"series_names,omitempty"`
+	SeriesNamesExcept *[]string `json:"series_names_except,omitempty"`
+}
+
+// conditionsFromRawConfig converts the raw config list of additional_conditions
+// into wire objects, keeping attributes the user never wrote out of the payload.
+func conditionsFromRawConfig(list cty.Value) *[]alertCondition {
+	out := []alertCondition{}
+	for it := list.ElementIterator(); it.Next(); {
+		_, el := it.Element()
+		var c alertCondition
+		if v := el.GetAttr("alert_type"); !v.IsNull() {
+			s := v.AsString()
+			c.AlertType = &s
+		}
+		if v := el.GetAttr("operator"); !v.IsNull() {
+			s := v.AsString()
+			c.Operator = &s
+		}
+		if v := el.GetAttr("value"); !v.IsNull() {
+			f, _ := v.AsBigFloat().Float64()
+			c.Value = &f
+		}
+		if v := el.GetAttr("string_value"); !v.IsNull() && v.AsString() != "" {
+			s := v.AsString()
+			c.StringValue = &s
+		}
+		if v := el.GetAttr("series_names"); !v.IsNull() && v.LengthInt() > 0 {
+			c.SeriesNames = ctyStringList(v)
+		}
+		if v := el.GetAttr("series_names_except"); !v.IsNull() && v.LengthInt() > 0 {
+			c.SeriesNamesExcept = ctyStringList(v)
+		}
+		out = append(out, c)
+	}
+	return &out
+}
+
+func ctyStringList(list cty.Value) *[]string {
+	names := make([]string, 0, list.LengthInt())
+	for it := list.ElementIterator(); it.Next(); {
+		_, el := it.Element()
+		if !el.IsNull() {
+			names = append(names, el.AsString())
+		}
+	}
+	return &names
 }
 
 func stringListFromResourceData(d *schema.ResourceData, key string) *[]string {
@@ -528,6 +647,15 @@ func loadAlert(d *schema.ResourceData) alert {
 		}
 		if !raw.GetAttr("series_names_except").IsNull() {
 			in.SeriesNamesExcept = stringListFromResourceData(d, "series_names_except")
+		}
+	}
+
+	// additional_conditions reads the raw config so unset fields (value vs
+	// string_value) stay off the wire. An empty block list sends [], which the
+	// API takes as "clear all conditions" (an absent key leaves them untouched).
+	if raw := d.GetRawConfig(); !raw.IsNull() {
+		if conds := raw.GetAttr("additional_conditions"); !conds.IsNull() {
+			in.AdditionalConditions = conditionsFromRawConfig(conds)
 		}
 	}
 	if v, ok := d.GetOk("source_platforms"); ok {
@@ -738,6 +866,34 @@ func alertCopyAttrs(d *schema.ResourceData, in *alert) diag.Diagnostics {
 	}
 	if in.SourcePlatforms != nil {
 		if err := d.Set("source_platforms", in.SourcePlatforms); err != nil {
+			derr = append(derr, diag.FromErr(err)[0])
+		}
+	}
+	if in.AdditionalConditions != nil {
+		conds := make([]interface{}, 0, len(*in.AdditionalConditions))
+		for _, c := range *in.AdditionalConditions {
+			item := map[string]interface{}{}
+			if c.AlertType != nil {
+				item["alert_type"] = *c.AlertType
+			}
+			if c.Operator != nil {
+				item["operator"] = *c.Operator
+			}
+			if c.Value != nil {
+				item["value"] = *c.Value
+			}
+			if c.StringValue != nil {
+				item["string_value"] = *c.StringValue
+			}
+			if c.SeriesNames != nil {
+				item["series_names"] = *c.SeriesNames
+			}
+			if c.SeriesNamesExcept != nil {
+				item["series_names_except"] = *c.SeriesNamesExcept
+			}
+			conds = append(conds, item)
+		}
+		if err := d.Set("additional_conditions", conds); err != nil {
 			derr = append(derr, diag.FromErr(err)[0])
 		}
 	}

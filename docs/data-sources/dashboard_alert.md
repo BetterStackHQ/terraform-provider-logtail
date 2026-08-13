@@ -37,6 +37,7 @@ output "existing_dashboard_alert_type" {
 
 ### Read-Only
 
+- `additional_conditions` (List of Object) Additional conditions that must all be met together with the main alert condition for the alert to fire (logical AND, evaluated per series on the same time bucket). Up to 4 additional conditions; 'threshold' and 'relative' types only. (see [below for nested schema](#nestedatt--additional_conditions))
 - `aggregation_interval` (Number) The data aggregation interval in seconds.
 - `alert_type` (String) The type of alert: 'threshold', 'relative', or 'anomaly_rrcf'.
 - `anomaly_sensitivity` (Number) Anomaly detection sensitivity 0-100 (only for 'anomaly_rrcf' type, lower = more sensitive).
@@ -69,6 +70,19 @@ output "existing_dashboard_alert_type" {
 - `string_value` (String) The string threshold value (only for threshold alerts with 'equal' or 'not_equal' operators).
 - `updated_at` (String) The time when this alert was updated.
 - `value` (Number) The numeric threshold value. Required for threshold and relative alerts.
+
+<a id="nestedatt--additional_conditions"></a>
+### Nested Schema for `additional_conditions`
+
+Read-Only:
+
+- `alert_type` (String)
+- `operator` (String)
+- `series_names` (List of String)
+- `series_names_except` (List of String)
+- `string_value` (String)
+- `value` (Number)
+
 
 <a id="nestedatt--escalation_target"></a>
 ### Nested Schema for `escalation_target`

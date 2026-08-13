@@ -116,6 +116,7 @@ resource "logtail_exploration_alert" "all_http_errors" {
 
 ### Optional
 
+- `additional_conditions` (Block List, Max: 4) Additional conditions that must all be met together with the main alert condition for the alert to fire (logical AND, evaluated per series on the same time bucket). Up to 4 additional conditions; 'threshold' and 'relative' types only. (see [below for nested schema](#nestedblock--additional_conditions))
 - `aggregation_interval` (Number) The data aggregation interval in seconds.
 - `anomaly_sensitivity` (Number) Anomaly detection sensitivity 0-100 (only for 'anomaly_rrcf' type, lower = more sensitive).
 - `anomaly_training_range_days` (Number) How many days of history to train the anomaly detection on, 1-30 (only for 'anomaly_rrcf' type).
@@ -150,6 +151,22 @@ resource "logtail_exploration_alert" "all_http_errors" {
 - `id` (String) The ID of this alert.
 - `paused_reason` (String) Read-only field explaining why the alert is paused (e.g., 'Manually paused', complexity issues, too many failures).
 - `updated_at` (String) The time when this alert was updated.
+
+<a id="nestedblock--additional_conditions"></a>
+### Nested Schema for `additional_conditions`
+
+Required:
+
+- `alert_type` (String) The type of this condition: 'threshold' or 'relative'. Anomaly detection is only available as the main alert condition.
+- `operator` (String) The comparison operator. For threshold: 'equal', 'not_equal', 'higher_than', 'higher_than_or_equal', 'lower_than', 'lower_than_or_equal'. For relative: 'increases_by', 'decreases_by', 'changes_by'.
+
+Optional:
+
+- `series_names` (List of String) Specific series this condition applies to. Conflicts with series_names_except; omit to apply to any series.
+- `series_names_except` (List of String) Apply this condition to all series except these. Conflicts with series_names; omit to apply to any series.
+- `string_value` (String) The string threshold value of this condition (only with 'equal' or 'not_equal' operators). Set exactly one of value and string_value.
+- `value` (Number) The numeric threshold value of this condition.
+
 
 <a id="nestedblock--escalation_target"></a>
 ### Nested Schema for `escalation_target`
