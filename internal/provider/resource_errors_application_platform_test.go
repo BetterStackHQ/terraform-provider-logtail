@@ -24,7 +24,7 @@ func TestResourceErrorsApplicationPlatformFromAPI(t *testing.T) {
 			t.Fatal("Not authorized: " + r.Header.Get("Authorization"))
 		}
 
-		prefix := "/api/v1/applications"
+		prefix := "/api/v2/applications"
 		id := "1"
 
 		switch {

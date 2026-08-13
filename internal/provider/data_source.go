@@ -66,7 +66,7 @@ type sourcePageHTTPResponse struct {
 
 func sourceLookup(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	fetch := func(page int) (*sourcePageHTTPResponse, error) {
-		res, err := meta.(*client).Get(ctx, fmt.Sprintf("/api/v1/sources?page=%d", page))
+		res, err := meta.(*client).Get(ctx, fmt.Sprintf("/api/v2/sources?page=%d", page))
 		if err != nil {
 			return nil, err
 		}

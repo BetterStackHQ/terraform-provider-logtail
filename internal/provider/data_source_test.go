@@ -20,7 +20,7 @@ func TestDataMonitor(t *testing.T) {
 			t.Fatal("Not authorized: " + r.Header.Get("Authorization"))
 		}
 
-		prefix := "/api/v1/sources"
+		prefix := "/api/v2/sources"
 
 		switch {
 		case r.Method == http.MethodGet && r.RequestURI == prefix+"?page=1":

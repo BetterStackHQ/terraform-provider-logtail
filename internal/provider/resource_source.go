@@ -285,26 +285,19 @@ var sourceSchema = map[string]*schema.Schema{
 			},
 		},
 	},
-	"vrl_transformation": {
-		Description:      "Deprecated alias for `vrl_transformation_logs`. VRL transformation applied to logs on Better Stack's servers during ingestion. Read more about [VRL transformations](https://betterstack.com/docs/logs/using-logtail/transforming-ingested-data/logs-vrl/).",
-		Type:             schema.TypeString,
-		Optional:         true,
-		Deprecated:       "Use vrl_transformation_logs instead.",
-		ConflictsWith:    []string{"vrl_transformation_logs"},
-		DiffSuppressFunc: suppressUnmanagedVRL,
-	},
 	"vrl_transformation_logs": {
-		Description:      "VRL transformation applied to logs on Better Stack's servers during ingestion. Read more about [VRL transformations](https://betterstack.com/docs/logs/using-logtail/transforming-ingested-data/logs-vrl/).",
+		Description:      "VRL transformation applied to logs on Better Stack's servers during ingestion. Leave unset to keep the transformation unmanaged (reading back whatever is configured, including platform defaults); set to an empty string to remove it. Read more about [VRL transformations](https://betterstack.com/docs/logs/using-logtail/transforming-ingested-data/logs-vrl/).",
 		Type:             schema.TypeString,
 		Optional:         true,
-		ConflictsWith:    []string{"vrl_transformation"},
-		DiffSuppressFunc: suppressUnmanagedVRL,
+		Computed:         true,
+		DiffSuppressFunc: suppressEquivalentVRL,
 	},
 	"vrl_transformation_spans": {
-		Description:      "VRL transformation applied to traces (spans) on Better Stack's servers during ingestion. Read more about [VRL transformations](https://betterstack.com/docs/logs/using-logtail/transforming-ingested-data/logs-vrl/).",
+		Description:      "VRL transformation applied to traces (spans) on Better Stack's servers during ingestion. Leave unset to keep the transformation unmanaged; set to an empty string to remove it. Read more about [VRL transformations](https://betterstack.com/docs/logs/using-logtail/transforming-ingested-data/logs-vrl/).",
 		Type:             schema.TypeString,
 		Optional:         true,
-		DiffSuppressFunc: suppressUnmanagedVRL,
+		Computed:         true,
+		DiffSuppressFunc: suppressEquivalentVRL,
 	},
 	"blocked_metrics": {
 		Description: "Metric names to mark as spam (one entry per metric). Listed metrics are rejected during ingestion and not billed.",
@@ -326,20 +319,35 @@ var sourceSchema = map[string]*schema.Schema{
 	},
 }
 
-// suppressUnmanagedVRL suppresses spurious diffs on the per-type VRL fields. The API echoes the
-// deprecated vrl_transformation alias and vrl_transformation_logs with the same value, so an
-// attribute the configuration doesn't set comes back populated - that mirror must not register as
-// drift. A real change (including clearing with "") keeps the attribute present in the config.
-func suppressUnmanagedVRL(k, old, new string, d *schema.ResourceData) bool {
-	if normalizeVRL(old) == normalizeVRL(new) {
-		return true
-	}
+// suppressEquivalentVRL absorbs the server's normalization of stored VRL programs (trailing
+// "\n." and whitespace), so a configured program never diffs against its normalized echo.
+// Unmanaged attributes need no suppression: the fields are Optional+Computed, so a null config
+// keeps the API-side state value without planning a diff.
+func suppressEquivalentVRL(k, old, new string, d *schema.ResourceData) bool {
+	return normalizeVRL(old) == normalizeVRL(new)
+}
 
-	raw := d.GetRawConfig()
-	if raw.IsNull() || !raw.Type().IsObjectType() || !raw.Type().HasAttribute(k) {
-		return false
+// customizeDiffVRL forces an explicitly configured empty string through the plan for an
+// Optional+Computed VRL attribute. The SDK's diff logic treats "" in config the same as unset
+// for computed attributes, so clearing a transformation would otherwise plan no change. Non-empty
+// values flow through the normal diff (with suppressEquivalentVRL absorbing normalization) and a
+// null config stays unmanaged.
+func customizeDiffVRL(key string) schema.CustomizeDiffFunc {
+	return func(ctx context.Context, diff *schema.ResourceDiff, v interface{}) error {
+		rawConfig := diff.GetRawConfig()
+		if rawConfig.IsNull() || !rawConfig.Type().IsObjectType() || !rawConfig.Type().HasAttribute(key) {
+			return nil
+		}
+		val := rawConfig.GetAttr(key)
+		if val.IsNull() || !val.IsKnown() || val.AsString() != "" {
+			return nil
+		}
+		old, _ := diff.GetChange(key)
+		if normalizeVRL(old.(string)) == "" {
+			return nil
+		}
+		return diff.SetNew(key, "")
 	}
-	return raw.GetAttr(k).IsNull()
 }
 
 func newSourceResource() *schema.Resource {
@@ -351,7 +359,7 @@ func newSourceResource() *schema.Resource {
 		Importer: &schema.ResourceImporter{
 			StateContext: schema.ImportStatePassthroughContext,
 		},
-		CustomizeDiff: customdiff.Sequence(validateTeamNameNotChanged, validateSource),
+		CustomizeDiff: customdiff.Sequence(validateTeamNameNotChanged, validateSource, customizeDiffVRL("vrl_transformation_logs"), customizeDiffVRL("vrl_transformation_spans")),
 		Description:   "This resource allows you to create, modify, and delete your Sources. For more information about the Sources API check https://betterstack.com/docs/logs/api/list-all-existing-sources/",
 		Schema:        sourceSchema,
 	}
@@ -388,7 +396,6 @@ type source struct {
 	DataRegion                     *string                   `json:"data_region,omitempty"`
 	SourceGroupID                  *int                      `json:"source_group_id,omitempty"`
 	CustomBucket                   *sourceCustomBucket       `json:"custom_bucket,omitempty"`
-	VrlTransformation              *string                   `json:"vrl_transformation,omitempty"`
 	VrlTransformationLogs          *string                   `json:"vrl_transformation_logs,omitempty"`
 	VrlTransformationSpans         *string                   `json:"vrl_transformation_spans,omitempty"`
 	BlockedMetrics                 *[]string                 `json:"blocked_metrics,omitempty"`
@@ -431,7 +438,6 @@ func sourceRef(in *source) []struct {
 		{k: "skip_ssl_verify", v: &in.SkipSSLVerify},
 		{k: "data_region", v: &in.DataRegion},
 		{k: "source_group_id", v: &in.SourceGroupID},
-		{k: "vrl_transformation", v: &in.VrlTransformation},
 		{k: "vrl_transformation_logs", v: &in.VrlTransformationLogs},
 		{k: "vrl_transformation_spans", v: &in.VrlTransformationSpans},
 		{k: "blocked_metrics", v: &in.BlockedMetrics},
@@ -451,6 +457,12 @@ func sourceCreate(ctx context.Context, d *schema.ResourceData, meta interface{})
 			// - 0 -> send 0 to API (explicitly remove from group)
 			// - N -> send N to API (assign to group N)
 			in.SourceGroupID = intFromResourceData(d, e.k)
+		} else if e.k == "vrl_transformation_logs" {
+			// Raw config, not load(): the VRL fields are Optional+Computed, so GetOkExists
+			// can't distinguish null (unmanaged, omit) from "" (explicit).
+			in.VrlTransformationLogs = stringFromResourceData(d, e.k)
+		} else if e.k == "vrl_transformation_spans" {
+			in.VrlTransformationSpans = stringFromResourceData(d, e.k)
 		} else {
 			load(d, e.k, e.v)
 		}
@@ -478,7 +490,7 @@ func sourceCreate(ctx context.Context, d *schema.ResourceData, meta interface{})
 	}
 
 	var out sourceHTTPResponse
-	if err := resourceCreate(ctx, meta, "/api/v1/sources", &in, &out); err != nil {
+	if err := resourceCreate(ctx, meta, "/api/v2/sources", &in, &out); err != nil {
 		return err
 	}
 	d.SetId(out.Data.ID)
@@ -515,7 +527,7 @@ func sourceCreate(ctx context.Context, d *schema.ResourceData, meta interface{})
 
 func sourceRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	var out sourceHTTPResponse
-	if err, ok := resourceReadWithBaseURL(ctx, meta, meta.(*client).TelemetryBaseURL(), fmt.Sprintf("/api/v1/sources/%s", url.PathEscape(d.Id())), &out); err != nil {
+	if err, ok := resourceReadWithBaseURL(ctx, meta, meta.(*client).TelemetryBaseURL(), fmt.Sprintf("/api/v2/sources/%s", url.PathEscape(d.Id())), &out); err != nil {
 		return err
 	} else if !ok {
 		d.SetId("") // Force "create" on 404.
@@ -584,6 +596,26 @@ func sourceCopyAttrs(d *schema.ResourceData, in *source) diag.Diagnostics {
 func sourceUpdate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	var in source
 	for _, e := range sourceRef(&in) {
+		if e.k == "vrl_transformation_logs" || e.k == "vrl_transformation_spans" {
+			// Always evaluate from raw config: null means unmanaged (omit from PATCH); any string -
+			// including "" (explicit clear) - is sent. HasChange is unreliable here because the
+			// fields are Computed, which masks the transition to "".
+			ptr := stringFromResourceData(d, e.k)
+			if e.k == "vrl_transformation_logs" {
+				in.VrlTransformationLogs = ptr
+			} else {
+				in.VrlTransformationSpans = ptr
+			}
+			// Mirror the config value into state directly - the SDK's auto-propagation of the
+			// planned new value relies on d.HasChange, which Computed masks for "" (same
+			// workaround as the repository-name attributes).
+			if ptr != nil {
+				if err := d.Set(e.k, *ptr); err != nil {
+					return diag.FromErr(err)
+				}
+			}
+			continue
+		}
 		if d.HasChange(e.k) {
 			if e.k == "team_id" {
 				in.TeamId = StringOrIntFromResourceData(d, e.k)
@@ -599,11 +631,11 @@ func sourceUpdate(ctx context.Context, d *schema.ResourceData, meta interface{})
 		}
 	}
 
-	return resourceUpdate(ctx, meta, fmt.Sprintf("/api/v1/sources/%s", url.PathEscape(d.Id())), &in)
+	return resourceUpdate(ctx, meta, fmt.Sprintf("/api/v2/sources/%s", url.PathEscape(d.Id())), &in)
 }
 
 func sourceDelete(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	return resourceDelete(ctx, meta, fmt.Sprintf("/api/v1/sources/%s", url.PathEscape(d.Id())))
+	return resourceDelete(ctx, meta, fmt.Sprintf("/api/v2/sources/%s", url.PathEscape(d.Id())))
 }
 
 func validateSource(ctx context.Context, diff *schema.ResourceDiff, v interface{}) error {

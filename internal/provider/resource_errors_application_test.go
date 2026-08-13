@@ -23,7 +23,7 @@ func TestResourceErrorsApplication(t *testing.T) {
 			t.Fatal("Not authorized: " + r.Header.Get("Authorization"))
 		}
 
-		prefix := "/api/v1/applications"
+		prefix := "/api/v2/applications"
 		id := "1"
 
 		switch {
@@ -199,7 +199,7 @@ func TestResourceErrorsApplicationCustomBucket(t *testing.T) {
 			t.Fatal("Not authorized: " + r.Header.Get("Authorization"))
 		}
 
-		prefix := "/api/v1/applications"
+		prefix := "/api/v2/applications"
 		id := "1"
 
 		switch {
@@ -347,7 +347,7 @@ func TestResourceErrorsApplicationCustomBucketKeepData(t *testing.T) {
 			t.Fatal("Not authorized: " + r.Header.Get("Authorization"))
 		}
 
-		prefix := "/api/v1/applications"
+		prefix := "/api/v2/applications"
 		id := "1"
 
 		switch {
@@ -462,7 +462,7 @@ func TestResourceErrorsApplicationCustomBucketRemovalValidation(t *testing.T) {
 			t.Fatal("Not authorized: " + r.Header.Get("Authorization"))
 		}
 
-		prefix := "/api/v1/applications"
+		prefix := "/api/v2/applications"
 		id := "1"
 
 		switch {
@@ -583,7 +583,7 @@ func TestResourceErrorsApplicationGithubRepository(t *testing.T) {
 			t.Fatal("Not authorized: " + r.Header.Get("Authorization"))
 		}
 
-		prefix := "/api/v1/applications"
+		prefix := "/api/v2/applications"
 		id := "1"
 
 		switch {
@@ -694,7 +694,7 @@ func TestResourceErrorsApplicationGitlabRepository(t *testing.T) {
 			t.Fatal("Not authorized: " + r.Header.Get("Authorization"))
 		}
 
-		prefix := "/api/v1/applications"
+		prefix := "/api/v2/applications"
 		id := "1"
 
 		switch {
@@ -841,7 +841,7 @@ func TestResourceErrorsApplicationCodeMapping(t *testing.T) {
 			t.Fatal("Not authorized: " + r.Header.Get("Authorization"))
 		}
 
-		prefix := "/api/v1/applications"
+		prefix := "/api/v2/applications"
 		id := "1"
 
 		switch {
@@ -956,7 +956,7 @@ func TestResourceErrorsApplicationVrlTransformations(t *testing.T) {
 			t.Fatal("Not authorized: " + r.Header.Get("Authorization"))
 		}
 
-		prefix := "/api/v1/applications"
+		prefix := "/api/v2/applications"
 		id := "1"
 
 		switch {

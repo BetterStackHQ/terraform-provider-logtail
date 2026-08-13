@@ -73,7 +73,7 @@ func patchSourceAWSAccount(ctx context.Context, d *schema.ResourceData, meta int
 		AwsRoleArn:    stringFromResourceData(d, "aws_role_arn"),
 		AwsExternalID: stringFromResourceData(d, "aws_external_id"),
 	}
-	return resourceUpdate(ctx, meta, fmt.Sprintf("/api/v1/sources/%s", url.PathEscape(sourceID)), &in)
+	return resourceUpdate(ctx, meta, fmt.Sprintf("/api/v2/sources/%s", url.PathEscape(sourceID)), &in)
 }
 
 func sourceAWSAccountCreate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
@@ -87,7 +87,7 @@ func sourceAWSAccountCreate(ctx context.Context, d *schema.ResourceData, meta in
 
 func sourceAWSAccountRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	var out sourceHTTPResponse
-	if err, ok := resourceReadWithBaseURL(ctx, meta, meta.(*client).TelemetryBaseURL(), fmt.Sprintf("/api/v1/sources/%s", url.PathEscape(d.Id())), &out); err != nil {
+	if err, ok := resourceReadWithBaseURL(ctx, meta, meta.(*client).TelemetryBaseURL(), fmt.Sprintf("/api/v2/sources/%s", url.PathEscape(d.Id())), &out); err != nil {
 		return err
 	} else if !ok {
 		d.SetId("") // Source gone -> linkage gone.

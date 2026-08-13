@@ -177,9 +177,8 @@ When importing an existing source, leave `data_region` unset in your configurati
 - `skip_ssl_verify` (Boolean) Should the scraper skip SSL certificate verification? Enable for endpoints with self-signed or invalid certificates.
 - `source_group_id` (Number) The ID of the source group this source belongs to.
 - `team_name` (String) Used to specify the team the resource should be created in when using global tokens. You can't update this value later.
-- `vrl_transformation` (String, Deprecated) Deprecated alias for `vrl_transformation_logs`. VRL transformation applied to logs on Better Stack's servers during ingestion. Read more about [VRL transformations](https://betterstack.com/docs/logs/using-logtail/transforming-ingested-data/logs-vrl/).
-- `vrl_transformation_logs` (String) VRL transformation applied to logs on Better Stack's servers during ingestion. Read more about [VRL transformations](https://betterstack.com/docs/logs/using-logtail/transforming-ingested-data/logs-vrl/).
-- `vrl_transformation_spans` (String) VRL transformation applied to traces (spans) on Better Stack's servers during ingestion. Read more about [VRL transformations](https://betterstack.com/docs/logs/using-logtail/transforming-ingested-data/logs-vrl/).
+- `vrl_transformation_logs` (String) VRL transformation applied to logs on Better Stack's servers during ingestion. Leave unset to keep the transformation unmanaged (reading back whatever is configured, including platform defaults); set to an empty string to remove it. Read more about [VRL transformations](https://betterstack.com/docs/logs/using-logtail/transforming-ingested-data/logs-vrl/).
+- `vrl_transformation_spans` (String) VRL transformation applied to traces (spans) on Better Stack's servers during ingestion. Leave unset to keep the transformation unmanaged; set to an empty string to remove it. Read more about [VRL transformations](https://betterstack.com/docs/logs/using-logtail/transforming-ingested-data/logs-vrl/).
 
 ### Read-Only
 
