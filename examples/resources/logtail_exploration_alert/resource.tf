@@ -14,6 +14,14 @@ resource "logtail_exploration_alert" "errors_high" {
   # treat_as_zero / dont_fire / treat_as_previous / start_incident
   on_missing_data = "dont_fire"
 
+  # Fire only when every additional condition holds together with the main
+  # condition (logical AND on the same series and time bucket, up to 4)
+  additional_conditions {
+    alert_type = "threshold"
+    operator   = "lower_than"
+    value      = 10000
+  }
+
   email = true
   push  = true
 }
