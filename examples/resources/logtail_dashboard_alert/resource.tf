@@ -18,6 +18,14 @@ resource "logtail_dashboard_alert" "high_error_rate" {
   # treat_as_zero / dont_fire / treat_as_previous / start_incident
   on_missing_data = "treat_as_zero"
 
+  # Fire only when every additional condition holds together with the main
+  # condition (logical AND on the same series and time bucket, up to 4)
+  additional_conditions {
+    alert_type = "threshold"
+    operator   = "lower_than"
+    value      = 10000
+  }
+
   email = true
   push  = true
 }
