@@ -28,7 +28,7 @@ func TestResourceSourceAWSAccount(t *testing.T) {
 			t.Fatal("Not authorized: " + r.Header.Get("Authorization"))
 		}
 
-		prefix := "/api/v1/sources"
+		prefix := "/api/v2/sources"
 		id := "1"
 
 		switch {
@@ -180,7 +180,7 @@ func TestResourceSourceAWSAccountExistingAccount(t *testing.T) {
 		if r.Header.Get("Authorization") != "Bearer foo" {
 			t.Fatal("Not authorized: " + r.Header.Get("Authorization"))
 		}
-		prefix := "/api/v1/sources"
+		prefix := "/api/v2/sources"
 		id := "1"
 		switch {
 		case r.Method == http.MethodPost && r.RequestURI == prefix:

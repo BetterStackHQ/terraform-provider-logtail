@@ -265,6 +265,41 @@ var errorsApplicationSchema = map[string]*schema.Schema{
 		Computed:      true,
 		ConflictsWith: []string{"github_repository_name"},
 	},
+	"vrl_transformation_exceptions": {
+		Description:      "VRL transformation applied to exceptions on Better Stack's servers during ingestion. This is what controls how exceptions are grouped into errors. Leave unset to keep the grouping unmanaged - the attribute reads back the effective program, including the default grouping for the application's platform. Set to an empty string to remove the grouping program entirely (exceptions stop being grouped by it - this is rarely what you want; to return to the default grouping, use the application's Exception grouping editor). Read more about [customizing exception grouping](https://betterstack.com/docs/errors/using-the-product/exception-grouping/#customize-exception-grouping).",
+		Type:             schema.TypeString,
+		Optional:         true,
+		Computed:         true,
+		DiffSuppressFunc: suppressEquivalentVRL,
+	},
+	"vrl_transformation_replays": {
+		Description:      "VRL transformation applied to session replays on Better Stack's servers during ingestion. Leave unset to keep the transformation unmanaged; set to an empty string to remove it. Read more about [VRL transformations](https://betterstack.com/docs/logs/using-logtail/transforming-ingested-data/logs-vrl/).",
+		Type:             schema.TypeString,
+		Optional:         true,
+		Computed:         true,
+		DiffSuppressFunc: suppressEquivalentVRL,
+	},
+	"vrl_transformation_web_events": {
+		Description:      "VRL transformation applied to web events (page views and web vitals) on Better Stack's servers during ingestion. Leave unset to keep the transformation unmanaged; set to an empty string to remove it. Read more about [VRL transformations](https://betterstack.com/docs/logs/using-logtail/transforming-ingested-data/logs-vrl/).",
+		Type:             schema.TypeString,
+		Optional:         true,
+		Computed:         true,
+		DiffSuppressFunc: suppressEquivalentVRL,
+	},
+	"vrl_transformation_logs": {
+		Description:      "VRL transformation applied to logs on Better Stack's servers during ingestion. Leave unset to keep the transformation unmanaged; set to an empty string to remove it. Read more about [VRL transformations](https://betterstack.com/docs/logs/using-logtail/transforming-ingested-data/logs-vrl/).",
+		Type:             schema.TypeString,
+		Optional:         true,
+		Computed:         true,
+		DiffSuppressFunc: suppressEquivalentVRL,
+	},
+	"vrl_transformation_spans": {
+		Description:      "VRL transformation applied to traces (spans) on Better Stack's servers during ingestion. Leave unset to keep the transformation unmanaged; set to an empty string to remove it. Read more about [VRL transformations](https://betterstack.com/docs/logs/using-logtail/transforming-ingested-data/logs-vrl/).",
+		Type:             schema.TypeString,
+		Optional:         true,
+		Computed:         true,
+		DiffSuppressFunc: suppressEquivalentVRL,
+	},
 	"custom_bucket": {
 		Description: "Optional custom S3-compatible bucket configuration for the application. " +
 			"Can only be set when creating the application and cannot be added, changed, or removed afterwards - recreate the application to use a different bucket. " +
@@ -320,9 +355,13 @@ func newErrorsApplicationResource() *schema.Resource {
 		Importer: &schema.ResourceImporter{
 			StateContext: schema.ImportStatePassthroughContext,
 		},
-		CustomizeDiff: customdiff.Sequence(validateTeamNameNotChanged, validateErrorsApplication, customizeDiffRepositoryName("github_repository_name"), customizeDiffRepositoryName("gitlab_repository_name")),
-		Description:   "This resource allows you to create, modify, and delete your Errors applications. For more information about the Errors API check https://betterstack.com/docs/errors/api/applications/create/",
-		Schema:        errorsApplicationSchema,
+		CustomizeDiff: customdiff.Sequence(validateTeamNameNotChanged, validateErrorsApplication,
+			customizeDiffRepositoryName("github_repository_name"), customizeDiffRepositoryName("gitlab_repository_name"),
+			customizeDiffVRL("vrl_transformation_exceptions"), customizeDiffVRL("vrl_transformation_replays"),
+			customizeDiffVRL("vrl_transformation_web_events"), customizeDiffVRL("vrl_transformation_logs"),
+			customizeDiffVRL("vrl_transformation_spans")),
+		Description: "This resource allows you to create, modify, and delete your Errors applications. For more information about the Errors API check https://betterstack.com/docs/errors/api/applications/create/",
+		Schema:      errorsApplicationSchema,
 	}
 }
 
@@ -347,6 +386,12 @@ type errorsApplication struct {
 	GithubRepositoryName  *string             `json:"github_repository_name,omitempty"`
 	GitlabRepositoryName  *string             `json:"gitlab_repository_name,omitempty"`
 	CustomBucket          *sourceCustomBucket `json:"custom_bucket,omitempty"`
+
+	VrlTransformationExceptions *string `json:"vrl_transformation_exceptions,omitempty"`
+	VrlTransformationReplays    *string `json:"vrl_transformation_replays,omitempty"`
+	VrlTransformationWebEvents  *string `json:"vrl_transformation_web_events,omitempty"`
+	VrlTransformationLogs       *string `json:"vrl_transformation_logs,omitempty"`
+	VrlTransformationSpans      *string `json:"vrl_transformation_spans,omitempty"`
 }
 
 type errorsApplicationHTTPResponse struct {
@@ -382,6 +427,11 @@ func errorsApplicationRef(in *errorsApplication) []struct {
 		{k: "correlate_with_source_id", v: &in.CorrelateWithSourceID},
 		{k: "github_repository_name", v: &in.GithubRepositoryName},
 		{k: "gitlab_repository_name", v: &in.GitlabRepositoryName},
+		{k: "vrl_transformation_exceptions", v: &in.VrlTransformationExceptions},
+		{k: "vrl_transformation_replays", v: &in.VrlTransformationReplays},
+		{k: "vrl_transformation_web_events", v: &in.VrlTransformationWebEvents},
+		{k: "vrl_transformation_logs", v: &in.VrlTransformationLogs},
+		{k: "vrl_transformation_spans", v: &in.VrlTransformationSpans},
 	}
 }
 
@@ -399,6 +449,10 @@ func errorsApplicationCreate(ctx context.Context, d *schema.ResourceData, meta i
 		} else if e.k == "gitlab_repository_name" {
 			// Use stringFromResourceData to distinguish null (UI-managed) from "" (disconnect)
 			in.GitlabRepositoryName = stringFromResourceData(d, e.k)
+		} else if strings.HasPrefix(e.k, "vrl_transformation") {
+			// Raw config, not load(): the VRL fields are Optional+Computed, so GetOkExists
+			// can't distinguish null (unmanaged, omit) from "" (explicit).
+			*(e.v.(**string)) = stringFromResourceData(d, e.k)
 		} else {
 			load(d, e.k, e.v)
 		}
@@ -426,7 +480,7 @@ func errorsApplicationCreate(ctx context.Context, d *schema.ResourceData, meta i
 	}
 
 	var out errorsApplicationHTTPResponse
-	if err := resourceCreateWithBaseURL(ctx, meta, meta.(*client).ErrorsBaseURL(), "/api/v1/applications", &in, &out); err != nil {
+	if err := resourceCreateWithBaseURL(ctx, meta, meta.(*client).ErrorsBaseURL(), "/api/v2/applications", &in, &out); err != nil {
 		return err
 	}
 	d.SetId(out.Data.ID)
@@ -435,7 +489,7 @@ func errorsApplicationCreate(ctx context.Context, d *schema.ResourceData, meta i
 
 func errorsApplicationRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	var out errorsApplicationHTTPResponse
-	if err, ok := resourceReadWithBaseURL(ctx, meta, meta.(*client).ErrorsBaseURL(), fmt.Sprintf("/api/v1/applications/%s", url.PathEscape(d.Id())), &out); err != nil {
+	if err, ok := resourceReadWithBaseURL(ctx, meta, meta.(*client).ErrorsBaseURL(), fmt.Sprintf("/api/v2/applications/%s", url.PathEscape(d.Id())), &out); err != nil {
 		return err
 	} else if !ok {
 		d.SetId("") // Force "create" on 404.
@@ -524,6 +578,21 @@ func errorsApplicationUpdate(ctx context.Context, d *schema.ResourceData, meta i
 			}
 			continue
 		}
+		if strings.HasPrefix(e.k, "vrl_transformation") {
+			// Always evaluate from raw config: null means unmanaged (omit from PATCH); any string -
+			// including "" (explicit removal, forced into the plan by customizeDiffVRL) - is sent.
+			ptr := stringFromResourceData(d, e.k)
+			*(e.v.(**string)) = ptr
+			// Mirror the config value into state directly - the SDK's auto-propagation of the
+			// planned new value relies on d.HasChange, which Computed masks for "" (same
+			// workaround as the repository-name attributes).
+			if ptr != nil {
+				if err := d.Set(e.k, *ptr); err != nil {
+					return diag.FromErr(err)
+				}
+			}
+			continue
+		}
 		if d.HasChange(e.k) {
 			if e.k == "team_id" {
 				in.TeamId = StringOrIntFromResourceData(d, e.k)
@@ -535,11 +604,11 @@ func errorsApplicationUpdate(ctx context.Context, d *schema.ResourceData, meta i
 			}
 		}
 	}
-	return resourceUpdateWithBaseURL(ctx, meta, meta.(*client).ErrorsBaseURL(), fmt.Sprintf("/api/v1/applications/%s", url.PathEscape(d.Id())), &in)
+	return resourceUpdateWithBaseURL(ctx, meta, meta.(*client).ErrorsBaseURL(), fmt.Sprintf("/api/v2/applications/%s", url.PathEscape(d.Id())), &in)
 }
 
 func errorsApplicationDelete(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	return resourceDeleteWithBaseURL(ctx, meta, meta.(*client).ErrorsBaseURL(), fmt.Sprintf("/api/v1/applications/%s", url.PathEscape(d.Id())))
+	return resourceDeleteWithBaseURL(ctx, meta, meta.(*client).ErrorsBaseURL(), fmt.Sprintf("/api/v2/applications/%s", url.PathEscape(d.Id())))
 }
 
 // customizeDiffRepositoryName forces the planned value of a repository-name attribute (e.g.
@@ -631,7 +700,7 @@ type errorsApplicationPageHTTPResponse struct {
 
 func errorsApplicationLookup(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	fetch := func(page int) (*errorsApplicationPageHTTPResponse, error) {
-		res, err := meta.(*client).GetWithBaseURL(ctx, meta.(*client).ErrorsBaseURL(), fmt.Sprintf("/api/v1/applications?page=%d", page))
+		res, err := meta.(*client).GetWithBaseURL(ctx, meta.(*client).ErrorsBaseURL(), fmt.Sprintf("/api/v2/applications?page=%d", page))
 		if err != nil {
 			return nil, err
 		}

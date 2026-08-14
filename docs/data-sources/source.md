@@ -112,9 +112,8 @@ When importing an existing source, leave `data_region` unset in your configurati
 - `team_name` (String) Used to specify the team the resource should be created in when using global tokens. You can't update this value later.
 - `token` (String) The token of this source. This token is used to identify and route the data you will send to Better Stack.
 - `updated_at` (String) The time when this monitor group was updated.
-- `vrl_transformation` (String, Deprecated) Deprecated alias for `vrl_transformation_logs`. VRL transformation applied to logs on Better Stack's servers during ingestion. Read more about [VRL transformations](https://betterstack.com/docs/logs/using-logtail/transforming-ingested-data/logs-vrl/).
-- `vrl_transformation_logs` (String) VRL transformation applied to logs on Better Stack's servers during ingestion. Read more about [VRL transformations](https://betterstack.com/docs/logs/using-logtail/transforming-ingested-data/logs-vrl/).
-- `vrl_transformation_spans` (String) VRL transformation applied to traces (spans) on Better Stack's servers during ingestion. Read more about [VRL transformations](https://betterstack.com/docs/logs/using-logtail/transforming-ingested-data/logs-vrl/).
+- `vrl_transformation_logs` (String) VRL transformation applied to logs on Better Stack's servers during ingestion. Leave unset to keep the transformation unmanaged (reading back whatever is configured, including platform defaults); set to an empty string to remove it. Read more about [VRL transformations](https://betterstack.com/docs/logs/using-logtail/transforming-ingested-data/logs-vrl/).
+- `vrl_transformation_spans` (String) VRL transformation applied to traces (spans) on Better Stack's servers during ingestion. Leave unset to keep the transformation unmanaged; set to an empty string to remove it. Read more about [VRL transformations](https://betterstack.com/docs/logs/using-logtail/transforming-ingested-data/logs-vrl/).
 
 <a id="nestedatt--custom_bucket"></a>
 ### Nested Schema for `custom_bucket`

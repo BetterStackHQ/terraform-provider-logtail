@@ -28,7 +28,7 @@ func TestResourceSource(t *testing.T) {
 			t.Fatal("Not authorized: " + r.Header.Get("Authorization"))
 		}
 
-		prefix := "/api/v1/sources"
+		prefix := "/api/v2/sources"
 		id := "1"
 
 		switch {
@@ -979,7 +979,7 @@ func TestResourceSource(t *testing.T) {
 				resource "logtail_source" "this" {
 					name     = "%s"
 					platform = "%s"
-					vrl_transformation = <<EOT
+					vrl_transformation_logs = <<EOT
 					# Expected msg format: [svc:router] GET /api/health succeeded in 12.345ms
 					.duration_ms = extract(.message, "in (\d+(?:\.\d+)?)ms")
 					.service_name = extract(.message, "\[svc:([a-zA-Z_-])\]")
@@ -990,7 +990,7 @@ func TestResourceSource(t *testing.T) {
 					resource.TestCheckResourceAttrSet("logtail_source.this", "id"),
 					resource.TestCheckResourceAttr("logtail_source.this", "name", name),
 					resource.TestCheckResourceAttr("logtail_source.this", "platform", platform),
-					resource.TestCheckResourceAttrSet("logtail_source.this", "vrl_transformation"),
+					resource.TestCheckResourceAttrSet("logtail_source.this", "vrl_transformation_logs"),
 				),
 			},
 			// Step 2 - update VRL transformation with different formatting (should not cause diff due to normalization)
@@ -1003,7 +1003,7 @@ func TestResourceSource(t *testing.T) {
 				resource "logtail_source" "this" {
 					name     = "%s"
 					platform = "%s"
-					vrl_transformation = <<EOT
+					vrl_transformation_logs = <<EOT
 					# Expected msg format: [svc:router] GET /api/health succeeded in 12.345ms
 					
 					.duration_ms = extract(.message, "in (\d+(?:\.\d+)?)ms") .
@@ -1024,7 +1024,7 @@ func TestResourceSource(t *testing.T) {
 				resource "logtail_source" "this" {
 					name     = "%s"
 					platform = "%s"
-					vrl_transformation = <<EOT
+					vrl_transformation_logs = <<EOT
 					# Updated VRL transformation
 					.duration_ms = extract(.message, "in (\d+(?:\.\d+)?)ms")
 					.service_name = extract(.message, "\[svc:([a-zA-Z_-]+)\]")
@@ -1033,7 +1033,7 @@ func TestResourceSource(t *testing.T) {
 				}
 				`, name, platform),
 				Check: resource.ComposeTestCheckFunc(
-					resource.TestCheckResourceAttrSet("logtail_source.this", "vrl_transformation"),
+					resource.TestCheckResourceAttrSet("logtail_source.this", "vrl_transformation_logs"),
 				),
 			},
 			// Step 4 - remove VRL transformation (set to empty)
@@ -1046,11 +1046,11 @@ func TestResourceSource(t *testing.T) {
 				resource "logtail_source" "this" {
 					name     = "%s"
 					platform = "%s"
-					vrl_transformation = ""
+					vrl_transformation_logs = ""
 				}
 				`, name, platform),
 				Check: resource.ComposeTestCheckFunc(
-					resource.TestCheckResourceAttr("logtail_source.this", "vrl_transformation", ""),
+					resource.TestCheckResourceAttr("logtail_source.this", "vrl_transformation_logs", ""),
 				),
 			},
 		},
@@ -1059,12 +1059,13 @@ func TestResourceSource(t *testing.T) {
 
 func TestResourceSourcePerTypeVrl(t *testing.T) {
 	var data atomic.Value
+	seededDefault := ".parsed = parse_json!(.message)\n."
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.Header.Get("Authorization") != "Bearer foo" {
 			t.Fatal("Not authorized: " + r.Header.Get("Authorization"))
 		}
 
-		prefix := "/api/v1/sources"
+		prefix := "/api/v2/sources"
 		id := "1"
 
 		switch {
@@ -1077,16 +1078,14 @@ func TestResourceSourcePerTypeVrl(t *testing.T) {
 			body = inject(t, body, "ingesting_host", "in.logs.betterstack.com")
 			body = inject(t, body, "table_name", "test_source")
 			body = inject(t, body, "team_id", 123456)
-			// Mirror the real serializer: vrl_transformation is the deprecated alias for
-			// vrl_transformation_logs, so the API returns both populated with the logs value.
+			// Mirror the v2 serializer: the effective program is returned verbatim, and a source
+			// created without a custom program carries its platform-seeded default.
 			var attrs map[string]interface{}
 			if err := json.Unmarshal(body, &attrs); err != nil {
 				t.Fatal(err)
 			}
-			if logs, ok := attrs["vrl_transformation_logs"]; ok {
-				body = inject(t, body, "vrl_transformation", logs)
-			} else if alias, ok := attrs["vrl_transformation"]; ok {
-				body = inject(t, body, "vrl_transformation_logs", alias)
+			if _, ok := attrs["vrl_transformation_logs"]; !ok {
+				body = inject(t, body, "vrl_transformation_logs", seededDefault)
 			}
 			data.Store(body)
 			w.WriteHeader(http.StatusCreated)
@@ -1104,9 +1103,6 @@ func TestResourceSourcePerTypeVrl(t *testing.T) {
 			}
 			if err := json.Unmarshal(body, &merged); err != nil {
 				t.Fatal(err)
-			}
-			if logs, ok := merged["vrl_transformation_logs"]; ok {
-				merged["vrl_transformation"] = logs
 			}
 			patched, err := json.Marshal(merged)
 			if err != nil {
@@ -1134,7 +1130,7 @@ func TestResourceSourcePerTypeVrl(t *testing.T) {
 			},
 		},
 		Steps: []resource.TestStep{
-			// vrl_transformation and vrl_transformation_logs are mutually exclusive (deprecated alias).
+			// The deprecated vrl_transformation alias is gone in v11.
 			{
 				Config: fmt.Sprintf(`
 				provider "logtail" {
@@ -1142,13 +1138,43 @@ func TestResourceSourcePerTypeVrl(t *testing.T) {
 				}
 
 				resource "logtail_source" "this" {
-					name                    = "%s"
-					platform                = "%s"
-					vrl_transformation      = ".a = 1\n."
-					vrl_transformation_logs = ".b = 2\n."
+					name               = "%s"
+					platform           = "%s"
+					vrl_transformation = ".a = 1\n."
 				}
 				`, name, platform),
-				ExpectError: regexp.MustCompile(`(?s)conflicts with`),
+				ExpectError: regexp.MustCompile(`(?s)Unsupported argument|not expected here`),
+			},
+			// An unmanaged transformation is readable from state: the platform-seeded default
+			// lands in the computed attribute without being config-managed.
+			{
+				Config: fmt.Sprintf(`
+				provider "logtail" {
+					api_token = "foo"
+				}
+
+				resource "logtail_source" "this" {
+					name     = "%s"
+					platform = "%s"
+				}
+				`, name, platform),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr("logtail_source.this", "vrl_transformation_logs", seededDefault),
+				),
+			},
+			// ...and never registers as drift.
+			{
+				Config: fmt.Sprintf(`
+				provider "logtail" {
+					api_token = "foo"
+				}
+
+				resource "logtail_source" "this" {
+					name     = "%s"
+					platform = "%s"
+				}
+				`, name, platform),
+				PlanOnly: true,
 			},
 			// Per-type logs + spans VRL round-trips independently.
 			{
@@ -1165,12 +1191,12 @@ func TestResourceSourcePerTypeVrl(t *testing.T) {
 				}
 				`, name, platform),
 				Check: resource.ComposeTestCheckFunc(
-					resource.TestCheckResourceAttrSet("logtail_source.this", "vrl_transformation_logs"),
-					resource.TestCheckResourceAttrSet("logtail_source.this", "vrl_transformation_spans"),
+					resource.TestCheckResourceAttr("logtail_source.this", "vrl_transformation_logs", ".message = upcase!(.message)\n."),
+					resource.TestCheckResourceAttr("logtail_source.this", "vrl_transformation_spans", ".name = downcase!(.name)\n."),
 				),
 			},
-			// Clearing a per-type VRL with "" takes effect (the config-aware suppressor lets the
-			// empty value through; Computed would have kept the old value).
+			// Clearing a per-type VRL with "" takes effect (customizeDiffVRL forces the empty
+			// value through the plan; Computed alone would have kept the old value).
 			{
 				Config: fmt.Sprintf(`
 				provider "logtail" {
@@ -1187,6 +1213,20 @@ func TestResourceSourcePerTypeVrl(t *testing.T) {
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("logtail_source.this", "vrl_transformation_logs", ""),
 				),
+			},
+			// Dropping the attributes from config leaves the API-side values untouched.
+			{
+				Config: fmt.Sprintf(`
+				provider "logtail" {
+					api_token = "foo"
+				}
+
+				resource "logtail_source" "this" {
+					name     = "%s"
+					platform = "%s"
+				}
+				`, name, platform),
+				PlanOnly: true,
 			},
 		},
 	})
@@ -1210,7 +1250,7 @@ func TestResourceSourceBlockedMetrics(t *testing.T) {
 			t.Fatal("Not authorized: " + r.Header.Get("Authorization"))
 		}
 
-		prefix := "/api/v1/sources"
+		prefix := "/api/v2/sources"
 		id := "1"
 
 		switch {
@@ -1331,7 +1371,7 @@ func TestResourceSourceCodeMapping(t *testing.T) {
 			t.Fatal("Not authorized: " + r.Header.Get("Authorization"))
 		}
 
-		prefix := "/api/v1/sources"
+		prefix := "/api/v2/sources"
 		id := "1"
 
 		switch {
@@ -1442,7 +1482,7 @@ func TestResourceSourceImportDataRegion(t *testing.T) {
 			t.Fatal("Not authorized: " + r.Header.Get("Authorization"))
 		}
 
-		prefix := "/api/v1/sources"
+		prefix := "/api/v2/sources"
 		id := "1"
 
 		switch {
