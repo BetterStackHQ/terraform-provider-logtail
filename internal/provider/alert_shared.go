@@ -16,7 +16,7 @@ func validateAlert(_ context.Context, diff *schema.ResourceDiff, _ interface{}) 
 	// The API treats series_names / series_names_except as one setting: writing either one
 	// clears the other. Mirror that in the plan, so switching between the two fields - or
 	// explicitly emptying the configured one - plans the update that resets the sibling.
-	if raw := diff.GetRawConfig(); !raw.IsNull() && diff.Id() != "" {
+	if raw := diff.GetRawConfig(); !raw.IsNull() && raw.IsKnown() && diff.Id() != "" {
 		if !raw.GetAttr("series_names").IsNull() {
 			if err := diff.SetNew("series_names_except", []interface{}{}); err != nil {
 				return err
@@ -49,7 +49,7 @@ func validateAlert(_ context.Context, diff *schema.ResourceDiff, _ interface{}) 
 	}
 	// Both fields are Computed, so state carries API-returned values; only what
 	// is literally set in the configuration should fail the type check.
-	if raw := diff.GetRawConfig(); !raw.IsNull() {
+	if raw := diff.GetRawConfig(); !raw.IsNull() && raw.IsKnown() {
 		if alertType == "anomaly_rrcf" && !raw.GetAttr("on_missing_data").IsNull() {
 			return fmt.Errorf("on_missing_data is only supported for threshold and relative alerts")
 		}
@@ -60,14 +60,23 @@ func validateAlert(_ context.Context, diff *schema.ResourceDiff, _ interface{}) 
 	// The nested condition objects normalize the pair server-side by silently
 	// preferring series_names_except; reject the ambiguity here instead
 	// (ConflictsWith cannot reference attributes inside a list element).
-	if raw := diff.GetRawConfig(); !raw.IsNull() {
+	// Values still unknown at plan time - a list derived from a resource that has not
+	// been applied yet - are skipped: cty panics on ElementIterator and LengthInt for
+	// those, and there is nothing to compare until apply.
+	if raw := diff.GetRawConfig(); !raw.IsNull() && raw.IsKnown() {
 		conds := raw.GetAttr("additional_conditions")
-		if !conds.IsNull() {
+		if !conds.IsNull() && conds.IsKnown() {
 			for it := conds.ElementIterator(); it.Next(); {
 				_, el := it.Element()
+				if !el.IsKnown() {
+					continue
+				}
 				names := el.GetAttr("series_names")
 				except := el.GetAttr("series_names_except")
-				if !names.IsNull() && names.LengthInt() > 0 && !except.IsNull() && except.LengthInt() > 0 {
+				if names.IsNull() || !names.IsKnown() || except.IsNull() || !except.IsKnown() {
+					continue
+				}
+				if names.LengthInt() > 0 && except.LengthInt() > 0 {
 					return fmt.Errorf("an additional condition cannot set both series_names and series_names_except")
 				}
 			}

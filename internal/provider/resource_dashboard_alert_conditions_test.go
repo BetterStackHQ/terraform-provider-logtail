@@ -239,3 +239,129 @@ func TestResourceDashboardAlertAdditionalConditions(t *testing.T) {
 		},
 	})
 }
+
+// A condition's series_names may reference an attribute of a resource that has not
+// been created yet, so the raw config carries an unknown value at plan time. cty
+// panics on ElementIterator/LengthInt for those, so validateAlert must skip them.
+func TestResourceDashboardAlertConditionsUnknownSeriesNames(t *testing.T) {
+	var alertData atomic.Value
+
+	// The API echoes every alert normalized to all keys; mirror enough of that so
+	// the post-apply plan is empty and the test fails only on the panic.
+	normalizeAlert := func(body []byte) []byte {
+		var attrs map[string]interface{}
+		if err := json.Unmarshal(body, &attrs); err != nil {
+			t.Fatal(err)
+		}
+		for _, key := range []string{"series_names", "series_names_except", "source_platforms"} {
+			if _, ok := attrs[key]; !ok {
+				attrs[key] = []string{}
+			}
+		}
+		for _, item := range attrs["additional_conditions"].([]interface{}) {
+			cond := item.(map[string]interface{})
+			for _, key := range []string{"alert_type", "operator", "value", "string_value"} {
+				if _, ok := cond[key]; !ok {
+					cond[key] = nil
+				}
+			}
+			for _, key := range []string{"series_names", "series_names_except"} {
+				if _, ok := cond[key]; !ok {
+					cond[key] = []string{}
+				}
+			}
+		}
+		out, err := json.Marshal(attrs)
+		if err != nil {
+			t.Fatal(err)
+		}
+		return out
+	}
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		t.Log("Received " + r.Method + " " + r.RequestURI)
+
+		if r.Header.Get("Authorization") != "Bearer foo" {
+			t.Fatal("Not authorized: " + r.Header.Get("Authorization"))
+		}
+
+		alertPrefix := "/api/v2/dashboards/1/charts/10/alerts"
+
+		switch {
+		case r.Method == http.MethodPost && r.RequestURI == "/api/v1/source-groups":
+			body, err := io.ReadAll(r.Body)
+			if err != nil {
+				t.Fatal(err)
+			}
+			w.WriteHeader(http.StatusCreated)
+			_, _ = w.Write([]byte(fmt.Sprintf(`{"data":{"id":"7","attributes":%s}}`, body)))
+		case r.Method == http.MethodGet && r.RequestURI == "/api/v1/source-groups/7":
+			_, _ = w.Write([]byte(`{"data":{"id":"7","attributes":{"name":"Unknown series group"}}}`))
+		case r.Method == http.MethodDelete && r.RequestURI == "/api/v1/source-groups/7":
+			w.WriteHeader(http.StatusNoContent)
+
+		case r.Method == http.MethodPost && r.RequestURI == alertPrefix:
+			body, err := io.ReadAll(r.Body)
+			if err != nil {
+				t.Fatal(err)
+			}
+			body = normalizeAlert(body)
+			alertData.Store(body)
+			w.WriteHeader(http.StatusCreated)
+			_, _ = w.Write([]byte(fmt.Sprintf(`{"data":{"id":"100","attributes":%s}}`, body)))
+		case r.Method == http.MethodGet && r.RequestURI == alertPrefix+"/100":
+			_, _ = w.Write([]byte(fmt.Sprintf(`{"data":{"id":"100","attributes":%s}}`, alertData.Load().([]byte))))
+		case r.Method == http.MethodDelete && strings.HasPrefix(r.RequestURI, alertPrefix+"/"):
+			w.WriteHeader(http.StatusNoContent)
+
+		default:
+			t.Fatal("Unexpected " + r.Method + " " + r.RequestURI)
+		}
+	}))
+	defer server.Close()
+
+	resource.Test(t, resource.TestCase{
+		IsUnitTest: true,
+		ProviderFactories: map[string]func() (*schema.Provider, error){
+			"logtail": func() (*schema.Provider, error) {
+				return New(WithURL(server.URL)), nil
+			},
+		},
+		Steps: []resource.TestStep{
+			{
+				Config: `
+				provider "logtail" {
+					api_token = "foo"
+				}
+
+				resource "logtail_source_group" "this" {
+					name = "Unknown series group"
+				}
+
+				resource "logtail_dashboard_alert" "this" {
+					dashboard_id = "1"
+					chart_id     = "10"
+					name         = "Unknown series"
+					alert_type   = "threshold"
+					operator     = "higher_than"
+					value        = 100
+					check_period = 300
+
+					additional_conditions {
+						alert_type   = "threshold"
+						operator     = "lower_than"
+						value        = 10000
+						# Branches of differing length keep the whole list unknown at plan time
+						# (a same-length conditional would only leave the element unknown).
+						series_names = logtail_source_group.this.id == "7" ? ["production"] : ["production", "staging"]
+					}
+				}
+				`,
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr("logtail_dashboard_alert.this", "additional_conditions.#", "1"),
+					resource.TestCheckResourceAttr("logtail_dashboard_alert.this", "additional_conditions.0.series_names.0", "production"),
+				),
+			},
+		},
+	})
+}
