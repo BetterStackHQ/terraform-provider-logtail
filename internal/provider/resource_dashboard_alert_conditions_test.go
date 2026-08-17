@@ -16,10 +16,17 @@ import (
 )
 
 // normalizeConditions mirrors ChartAlert::Condition#to_h: all six keys, wire nulls.
+// A request that omits additional_conditions entirely leaves the stored conditions
+// untouched server-side, so there is nothing to normalize; anything other than an
+// array under that key is a provider bug and fails the test.
 func normalizeConditions(t *testing.T, reqData map[string]interface{}) {
-	raw, ok := reqData["additional_conditions"].([]interface{})
-	if !ok {
+	value, present := reqData["additional_conditions"]
+	if !present {
 		return
+	}
+	raw, ok := value.([]interface{})
+	if !ok {
+		t.Fatalf("additional_conditions is not an array: %#v", value)
 	}
 	for i, item := range raw {
 		cond, ok := item.(map[string]interface{})
