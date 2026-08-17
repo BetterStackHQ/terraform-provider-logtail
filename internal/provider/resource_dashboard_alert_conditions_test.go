@@ -15,6 +15,30 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
+// normalizeConditions mirrors ChartAlert::Condition#to_h: all six keys, wire nulls.
+func normalizeConditions(t *testing.T, reqData map[string]interface{}) {
+	raw, ok := reqData["additional_conditions"].([]interface{})
+	if !ok {
+		return
+	}
+	for i, item := range raw {
+		cond, ok := item.(map[string]interface{})
+		if !ok {
+			t.Fatalf("condition %d is not an object: %v", i, item)
+		}
+		for _, key := range []string{"alert_type", "operator", "value", "string_value"} {
+			if _, ok := cond[key]; !ok {
+				cond[key] = nil
+			}
+		}
+		for _, key := range []string{"series_names", "series_names_except"} {
+			if _, ok := cond[key]; !ok {
+				cond[key] = []string{}
+			}
+		}
+	}
+}
+
 // additional_conditions contract: the array holds conditions 2..5 combined with the main
 // condition by logical AND; each object carries only the attributes the user set (a string
 // condition must not leak "value": 0), while the API echoes every condition normalized to
@@ -22,30 +46,6 @@ import (
 // leaves them untouched, so removing every block must still send []. The mock mirrors that.
 func TestResourceDashboardAlertAdditionalConditions(t *testing.T) {
 	var alertData atomic.Value
-
-	// normalizeConditions mirrors ChartAlert::Condition#to_h: all six keys, wire nulls.
-	normalizeConditions := func(reqData map[string]interface{}) {
-		raw, ok := reqData["additional_conditions"].([]interface{})
-		if !ok {
-			return
-		}
-		for i, item := range raw {
-			cond, ok := item.(map[string]interface{})
-			if !ok {
-				t.Fatalf("condition %d is not an object: %v", i, item)
-			}
-			for _, key := range []string{"alert_type", "operator", "value", "string_value"} {
-				if _, ok := cond[key]; !ok {
-					cond[key] = nil
-				}
-			}
-			for _, key := range []string{"series_names", "series_names_except"} {
-				if _, ok := cond[key]; !ok {
-					cond[key] = []string{}
-				}
-			}
-		}
-	}
 
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		t.Log("Received " + r.Method + " " + r.RequestURI)
@@ -77,7 +77,7 @@ func TestResourceDashboardAlertAdditionalConditions(t *testing.T) {
 			if len(cond) != 3 || cond["alert_type"] != "threshold" || cond["operator"] != "lower_than" || cond["value"] != float64(10000) {
 				t.Fatalf("unexpected condition payload: %v", cond)
 			}
-			normalizeConditions(reqData)
+			normalizeConditions(t, reqData)
 			reqData["series_names"] = []string{}
 			reqData["series_names_except"] = []string{}
 			reqData["source_platforms"] = []string{}
@@ -110,7 +110,7 @@ func TestResourceDashboardAlertAdditionalConditions(t *testing.T) {
 			if err = json.Unmarshal(body, &patchReq); err != nil {
 				t.Fatal(err)
 			}
-			normalizeConditions(patchReq)
+			normalizeConditions(t, patchReq)
 			patch := make(map[string]interface{})
 			if err = json.Unmarshal(alertData.Load().([]byte), &patch); err != nil {
 				t.Fatal(err)
@@ -244,6 +244,7 @@ func TestResourceDashboardAlertAdditionalConditions(t *testing.T) {
 // been created yet, so the raw config carries an unknown value at plan time. cty
 // panics on ElementIterator/LengthInt for those, so validateAlert must skip them.
 func TestResourceDashboardAlertConditionsUnknownSeriesNames(t *testing.T) {
+	var groupData atomic.Value
 	var alertData atomic.Value
 
 	// The API echoes every alert normalized to all keys; mirror enough of that so
@@ -258,19 +259,7 @@ func TestResourceDashboardAlertConditionsUnknownSeriesNames(t *testing.T) {
 				attrs[key] = []string{}
 			}
 		}
-		for _, item := range attrs["additional_conditions"].([]interface{}) {
-			cond := item.(map[string]interface{})
-			for _, key := range []string{"alert_type", "operator", "value", "string_value"} {
-				if _, ok := cond[key]; !ok {
-					cond[key] = nil
-				}
-			}
-			for _, key := range []string{"series_names", "series_names_except"} {
-				if _, ok := cond[key]; !ok {
-					cond[key] = []string{}
-				}
-			}
-		}
+		normalizeConditions(t, attrs)
 		out, err := json.Marshal(attrs)
 		if err != nil {
 			t.Fatal(err)
@@ -285,20 +274,25 @@ func TestResourceDashboardAlertConditionsUnknownSeriesNames(t *testing.T) {
 			t.Fatal("Not authorized: " + r.Header.Get("Authorization"))
 		}
 
+		groupPrefix := "/api/v1/source-groups"
+		groupID := "7"
 		alertPrefix := "/api/v2/dashboards/1/charts/10/alerts"
+		alertID := "100"
 
 		switch {
-		case r.Method == http.MethodPost && r.RequestURI == "/api/v1/source-groups":
+		case r.Method == http.MethodPost && r.RequestURI == groupPrefix:
 			body, err := io.ReadAll(r.Body)
 			if err != nil {
 				t.Fatal(err)
 			}
+			groupData.Store(body)
 			w.WriteHeader(http.StatusCreated)
-			_, _ = w.Write([]byte(fmt.Sprintf(`{"data":{"id":"7","attributes":%s}}`, body)))
-		case r.Method == http.MethodGet && r.RequestURI == "/api/v1/source-groups/7":
-			_, _ = w.Write([]byte(`{"data":{"id":"7","attributes":{"name":"Unknown series group"}}}`))
-		case r.Method == http.MethodDelete && r.RequestURI == "/api/v1/source-groups/7":
+			_, _ = w.Write([]byte(fmt.Sprintf(`{"data":{"id":%q,"attributes":%s}}`, groupID, body)))
+		case r.Method == http.MethodGet && r.RequestURI == groupPrefix+"/"+groupID:
+			_, _ = w.Write([]byte(fmt.Sprintf(`{"data":{"id":%q,"attributes":%s}}`, groupID, groupData.Load().([]byte))))
+		case r.Method == http.MethodDelete && r.RequestURI == groupPrefix+"/"+groupID:
 			w.WriteHeader(http.StatusNoContent)
+			groupData.Store([]byte(nil))
 
 		case r.Method == http.MethodPost && r.RequestURI == alertPrefix:
 			body, err := io.ReadAll(r.Body)
@@ -308,11 +302,12 @@ func TestResourceDashboardAlertConditionsUnknownSeriesNames(t *testing.T) {
 			body = normalizeAlert(body)
 			alertData.Store(body)
 			w.WriteHeader(http.StatusCreated)
-			_, _ = w.Write([]byte(fmt.Sprintf(`{"data":{"id":"100","attributes":%s}}`, body)))
-		case r.Method == http.MethodGet && r.RequestURI == alertPrefix+"/100":
-			_, _ = w.Write([]byte(fmt.Sprintf(`{"data":{"id":"100","attributes":%s}}`, alertData.Load().([]byte))))
-		case r.Method == http.MethodDelete && strings.HasPrefix(r.RequestURI, alertPrefix+"/"):
+			_, _ = w.Write([]byte(fmt.Sprintf(`{"data":{"id":%q,"attributes":%s}}`, alertID, body)))
+		case r.Method == http.MethodGet && r.RequestURI == alertPrefix+"/"+alertID:
+			_, _ = w.Write([]byte(fmt.Sprintf(`{"data":{"id":%q,"attributes":%s}}`, alertID, alertData.Load().([]byte))))
+		case r.Method == http.MethodDelete && r.RequestURI == alertPrefix+"/"+alertID:
 			w.WriteHeader(http.StatusNoContent)
+			alertData.Store([]byte(nil))
 
 		default:
 			t.Fatal("Unexpected " + r.Method + " " + r.RequestURI)
@@ -348,12 +343,15 @@ func TestResourceDashboardAlertConditionsUnknownSeriesNames(t *testing.T) {
 					check_period = 300
 
 					additional_conditions {
-						alert_type   = "threshold"
-						operator     = "lower_than"
-						value        = 10000
+						alert_type = "threshold"
+						operator   = "lower_than"
+						value      = 10000
 						# Branches of differing length keep the whole list unknown at plan time
 						# (a same-length conditional would only leave the element unknown).
-						series_names = logtail_source_group.this.id == "7" ? ["production"] : ["production", "staging"]
+						series_names = logtail_source_group.this.id != "" ? ["production"] : ["production", "staging"]
+						# Set but empty, so the null shortcut cannot skip the pair check and the
+						# unknown series_names above reaches the length comparison.
+						series_names_except = []
 					}
 				}
 				`,
