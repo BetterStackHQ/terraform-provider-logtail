@@ -96,10 +96,10 @@ func TestResourceDashboardAlertAdditionalConditions(t *testing.T) {
 			respData, _ := json.Marshal(reqData)
 			alertData.Store(respData)
 			w.WriteHeader(http.StatusCreated)
-			_, _ = w.Write([]byte(fmt.Sprintf(`{"data":{"id":%q,"attributes":%s}}`, alertID, respData)))
+			_, _ = fmt.Fprintf(w, `{"data":{"id":%q,"attributes":%s}}`, alertID, respData)
 
 		case r.Method == http.MethodGet && r.RequestURI == alertPrefix+"/"+alertID:
-			_, _ = w.Write([]byte(fmt.Sprintf(`{"data":{"id":%q,"attributes":%s}}`, alertID, alertData.Load().([]byte))))
+			_, _ = fmt.Fprintf(w, `{"data":{"id":%q,"attributes":%s}}`, alertID, alertData.Load().([]byte))
 
 		case r.Method == http.MethodPatch && strings.HasPrefix(r.RequestURI, alertPrefix+"/"):
 			body, err := io.ReadAll(r.Body)
@@ -120,7 +120,7 @@ func TestResourceDashboardAlertAdditionalConditions(t *testing.T) {
 			}
 			patched, _ := json.Marshal(patch)
 			alertData.Store(patched)
-			_, _ = w.Write([]byte(fmt.Sprintf(`{"data":{"id":%q,"attributes":%s}}`, alertID, patched)))
+			_, _ = fmt.Fprintf(w, `{"data":{"id":%q,"attributes":%s}}`, alertID, patched)
 
 		case r.Method == http.MethodDelete && strings.HasPrefix(r.RequestURI, alertPrefix+"/"):
 			w.WriteHeader(http.StatusNoContent)
@@ -287,9 +287,9 @@ func TestResourceDashboardAlertConditionsUnknownSeriesNames(t *testing.T) {
 			}
 			groupData.Store(body)
 			w.WriteHeader(http.StatusCreated)
-			_, _ = w.Write([]byte(fmt.Sprintf(`{"data":{"id":%q,"attributes":%s}}`, groupID, body)))
+			_, _ = fmt.Fprintf(w, `{"data":{"id":%q,"attributes":%s}}`, groupID, body)
 		case r.Method == http.MethodGet && r.RequestURI == groupPrefix+"/"+groupID:
-			_, _ = w.Write([]byte(fmt.Sprintf(`{"data":{"id":%q,"attributes":%s}}`, groupID, groupData.Load().([]byte))))
+			_, _ = fmt.Fprintf(w, `{"data":{"id":%q,"attributes":%s}}`, groupID, groupData.Load().([]byte))
 		case r.Method == http.MethodDelete && r.RequestURI == groupPrefix+"/"+groupID:
 			w.WriteHeader(http.StatusNoContent)
 			groupData.Store([]byte(nil))
@@ -302,9 +302,9 @@ func TestResourceDashboardAlertConditionsUnknownSeriesNames(t *testing.T) {
 			body = normalizeAlert(body)
 			alertData.Store(body)
 			w.WriteHeader(http.StatusCreated)
-			_, _ = w.Write([]byte(fmt.Sprintf(`{"data":{"id":%q,"attributes":%s}}`, alertID, body)))
+			_, _ = fmt.Fprintf(w, `{"data":{"id":%q,"attributes":%s}}`, alertID, body)
 		case r.Method == http.MethodGet && r.RequestURI == alertPrefix+"/"+alertID:
-			_, _ = w.Write([]byte(fmt.Sprintf(`{"data":{"id":%q,"attributes":%s}}`, alertID, alertData.Load().([]byte))))
+			_, _ = fmt.Fprintf(w, `{"data":{"id":%q,"attributes":%s}}`, alertID, alertData.Load().([]byte))
 		case r.Method == http.MethodDelete && r.RequestURI == alertPrefix+"/"+alertID:
 			w.WriteHeader(http.StatusNoContent)
 			alertData.Store([]byte(nil))
