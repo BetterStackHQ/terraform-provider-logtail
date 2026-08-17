@@ -3,11 +3,41 @@ package provider
 import (
 	"net/http"
 	"net/http/httptest"
+	"slices"
 	"testing"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
+
+// The data source derives its schema from the resource's and shares
+// connectionCopyAttrs with it, so every attribute the copier writes must be
+// declared by the data source unless connectionLookupOmits skips it. The two key
+// sets drifting apart is what made a data-source read panic on `password`.
+func TestDataSourceConnectionSchemaMatchesCopiedAttrs(t *testing.T) {
+	s := newConnectionDataSource().Schema
+
+	copied := []string{"created_by", "data_sources"}
+	for _, e := range connectionRef(&connection{}) {
+		copied = append(copied, e.k)
+	}
+
+	for _, k := range copied {
+		_, declared := s[k]
+		switch {
+		case slices.Contains(connectionLookupOmits, k) && declared:
+			t.Errorf("%q is skipped by the data source read but still declared in its schema", k)
+		case !slices.Contains(connectionLookupOmits, k) && !declared:
+			t.Errorf("connectionCopyAttrs sets %q, but the data source schema does not declare it", k)
+		}
+	}
+
+	for k := range s {
+		if _, ok := connectionSchema[k]; !ok {
+			t.Errorf("data source declares %q, which the resource schema does not", k)
+		}
+	}
+}
 
 func TestDataSourceConnection(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

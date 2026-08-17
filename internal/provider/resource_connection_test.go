@@ -38,6 +38,12 @@ func TestResourceConnection(t *testing.T) {
 			body = inject(t, body, "sample_query", "curl command example")
 			body = inject(t, body, "created_by", map[string]interface{}{"id": "123", "email": "test@example.com"})
 			body = inject(t, body, "data_sources", []interface{}{})
+			// The API reports its own data_region - resolved to a private cluster name
+			// here, and present even when the configuration omitted one - and reformats
+			// valid_until. Neither may leak into state; both are ForceNew, so a single
+			// leaked value would recreate the connection on every apply.
+			body = inject(t, body, "data_region", "us-east-9")
+			body = inject(t, body, "valid_until", "2025-12-31T23:59:59.000Z")
 
 			data.Store(body)
 			w.WriteHeader(http.StatusCreated)
@@ -98,6 +104,28 @@ func TestResourceConnection(t *testing.T) {
 					resource.TestCheckResourceAttr("logtail_connection.this", "password", "XNFT7RaKtjCyZiQIeR782kykeAxOa4U1eLaKxyd7KDN58xlgCwZ0wEkr7YdoBvXh"),
 					resource.TestCheckResourceAttr("logtail_connection.this", "created_at", "2025-11-26T14:00:00.000Z"),
 					resource.TestCheckResourceAttr("logtail_connection.this", "sample_query", "curl command example"),
+				),
+			},
+			// Step 2 - recreate without data_region and valid_until. The API reports a
+			// data_region regardless; state must stay empty, or the follow-up plan this
+			// step runs would show a ForceNew diff.
+			{
+				Config: `
+				provider "logtail" {
+					api_token = "foo"
+				}
+
+				resource "logtail_connection" "this" {
+					client_type  = "clickhouse"
+					team_names   = ["Test Team"]
+					ip_allowlist = ["192.168.1.0/24", "10.0.0.1"]
+					note         = "Test connection"
+				}
+				`,
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckNoResourceAttr("logtail_connection.this", "data_region"),
+					resource.TestCheckNoResourceAttr("logtail_connection.this", "valid_until"),
+					resource.TestCheckResourceAttr("logtail_connection.this", "password", "XNFT7RaKtjCyZiQIeR782kykeAxOa4U1eLaKxyd7KDN58xlgCwZ0wEkr7YdoBvXh"),
 				),
 			},
 		},

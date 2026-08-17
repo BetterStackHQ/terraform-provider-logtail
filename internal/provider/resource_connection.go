@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/url"
 	"reflect"
+	"slices"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
@@ -201,10 +202,6 @@ func newConnectionResource() *schema.Resource {
 }
 
 func connectionCreate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	// Store original user values before API call
-	originalDataRegion := d.Get("data_region").(string)
-	originalValidUntil := d.Get("valid_until").(string)
-
 	var in connection
 	for _, e := range connectionRef(&in) {
 		load(d, e.k, e.v)
@@ -215,30 +212,10 @@ func connectionCreate(ctx context.Context, d *schema.ResourceData, meta interfac
 		return err
 	}
 	d.SetId(out.Data.ID)
-
-	// Copy attributes but preserve user-specified values
-	derr := connectionCopyAttrs(d, &out.Data.Attributes)
-
-	// Restore user-specified values that might have been normalized by API
-	if originalDataRegion != "" {
-		if err := d.Set("data_region", originalDataRegion); err != nil {
-			derr = append(derr, diag.FromErr(err)[0])
-		}
-	}
-	if originalValidUntil != "" {
-		if err := d.Set("valid_until", originalValidUntil); err != nil {
-			derr = append(derr, diag.FromErr(err)[0])
-		}
-	}
-
-	return derr
+	return connectionResourceCopyAttrs(d, &out.Data.Attributes, true)
 }
 
 func connectionRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	// Store current user values before API call
-	currentDataRegion := d.Get("data_region").(string)
-	currentValidUntil := d.Get("valid_until").(string)
-
 	var out connectionHTTPResponse
 	if err, ok := resourceReadWithBaseURL(ctx, meta, meta.(*client).TelemetryBaseURL(), fmt.Sprintf("/api/v1/connections/%s", url.PathEscape(d.Id())), &out); err != nil {
 		if !ok {
@@ -247,66 +224,57 @@ func connectionRead(ctx context.Context, d *schema.ResourceData, meta interface{
 		}
 		return err
 	}
-
-	// Copy attributes but preserve user-specified values
-	derr := connectionCopyAttrs(d, &out.Data.Attributes)
-
-	// Restore user-specified values that might have been normalized by API
-	if currentDataRegion != "" {
-		if err := d.Set("data_region", currentDataRegion); err != nil {
-			derr = append(derr, diag.FromErr(err)[0])
-		}
-	}
-	if currentValidUntil != "" {
-		if err := d.Set("valid_until", currentValidUntil); err != nil {
-			derr = append(derr, diag.FromErr(err)[0])
-		}
-	}
-
-	return derr
+	return connectionResourceCopyAttrs(d, &out.Data.Attributes, false)
 }
 
 func connectionDelete(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	return resourceDelete(ctx, meta, fmt.Sprintf("/api/v1/connections/%s", url.PathEscape(d.Id())))
 }
 
-func connectionCopyAttrs(d *schema.ResourceData, in *connection) diag.Diagnostics {
+// connectionResourceCopyAttrs copies the API response into resource state, keeping
+// the values the practitioner authored where the API would otherwise overwrite them.
+//
+// data_region and valid_until are configuration-only: the API echoes them normalized
+// (a private cluster name resolved to its region, a reformatted timestamp) and fills
+// data_region in even when none was configured. Since neither is Computed and both
+// are ForceNew on a resource that has no Update, writing the API value into state
+// yields a permanent diff that destroys and recreates the connection on every apply -
+// so state must always keep what the configuration says.
+//
+// password is returned by create only; a read has none and would blank the secret.
+func connectionResourceCopyAttrs(d *schema.ResourceData, in *connection, created bool) diag.Diagnostics {
+	skip := []string{"data_region", "valid_until"}
+	if !created {
+		skip = append(skip, "password")
+	}
+	return connectionCopyAttrs(d, in, skip...)
+}
+
+// connectionCopyAttrs copies the API response into state. It is shared with the data
+// source, which has no prior configuration to preserve and declares no `password`
+// attribute; skip lists the attributes the caller sets itself or does not declare.
+func connectionCopyAttrs(d *schema.ResourceData, in *connection, skip ...string) diag.Diagnostics {
 	var derr diag.Diagnostics
-	for _, e := range connectionRef(in) {
-		// This is shared with the data source, whose schema omits `password`. d.Get
-		// returns an untyped nil for an attribute the schema doesn't declare (a set
-		// one always yields at least its zero value), so skip those outright.
-		current := d.Get(e.k)
-		if current == nil {
-			continue
+	set := func(k string, v interface{}) {
+		if slices.Contains(skip, k) {
+			return
 		}
-		if e.k == "password" && current.(string) != "" {
-			// Don't update password from API if it's already set - password is only returned during creation
-			continue
-		} else if e.k == "data_region" && current.(string) != "" {
-			// Preserve user-specified data_region over API-normalized value
-			continue
-		} else if e.k == "valid_until" && current.(string) != "" {
-			// Preserve user-specified valid_until over API-formatted value
-			continue
-		} else if err := d.Set(e.k, reflect.Indirect(reflect.ValueOf(e.v)).Interface()); err != nil {
+		if err := d.Set(k, v); err != nil {
 			derr = append(derr, diag.FromErr(err)[0])
 		}
 	}
 
-	// Handle complex fields
-	if err := d.Set("created_by", in.CreatedBy); err != nil {
-		derr = append(derr, diag.FromErr(err)[0])
+	for _, e := range connectionRef(in) {
+		set(e.k, reflect.Indirect(reflect.ValueOf(e.v)).Interface())
 	}
+
+	// Handle complex fields
+	set("created_by", in.CreatedBy)
 	in.DataSources = dropUnknownKeys(in.DataSources, connectionDataSourceSchema)
 	if in.DataSources != nil && *in.DataSources != nil {
-		if err := d.Set("data_sources", *in.DataSources); err != nil {
-			derr = append(derr, diag.FromErr(err)[0])
-		}
+		set("data_sources", *in.DataSources)
 	} else {
-		if err := d.Set("data_sources", []interface{}{}); err != nil {
-			derr = append(derr, diag.FromErr(err)[0])
-		}
+		set("data_sources", []interface{}{})
 	}
 
 	return derr

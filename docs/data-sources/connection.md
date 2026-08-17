@@ -28,20 +28,20 @@ data "logtail_connection" "example" {
 
 ### Read-Only
 
-- `client_type` (String) Type of client connection.
+- `client_type` (String) Type of client connection. Currently only `clickhouse` is supported.
 - `created_at` (String) The time when this connection was created.
 - `created_by` (Map of String) Information about the user who created this connection.
-- `data_region` (String) Data region of the connection.
+- `data_region` (String) Data region or private cluster name. Permitted values for most plans are: `us_west`, `germany`, `singapore`.
 - `data_sources` (List of Object) List of available data sources for this connection. (see [below for nested schema](#nestedatt--data_sources))
 - `host` (String) The connection hostname.
-- `ip_allowlist` (List of String) Array of IP addresses allowed to use this connection.
-- `note` (String) Descriptive note for the connection.
+- `ip_allowlist` (List of String) Array of IP addresses or CIDR ranges that are allowed to use this connection.
+- `note` (String) A descriptive note for the connection.
 - `port` (Number) The connection port.
 - `sample_query` (String) A sample query showing how to use this connection.
-- `team_ids` (List of Number) Array of team IDs associated with the connection.
-- `team_names` (List of String) Array of team names associated with the connection.
+- `team_ids` (List of Number) Array of team IDs to associate with the connection. Only one of `team_names` or `team_ids` should be provided.
+- `team_names` (List of String) Array of team names to associate with the connection. Only one of `team_names` or `team_ids` should be provided.
 - `username` (String) The connection username.
-- `valid_until` (String) Timestamp when the connection expires.
+- `valid_until` (String) ISO 8601 timestamp when the connection expires.
 
 <a id="nestedatt--data_sources"></a>
 ### Nested Schema for `data_sources`
