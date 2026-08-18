@@ -273,13 +273,20 @@ func connectionDelete(ctx context.Context, d *schema.ResourceData, meta interfac
 func connectionCopyAttrs(d *schema.ResourceData, in *connection) diag.Diagnostics {
 	var derr diag.Diagnostics
 	for _, e := range connectionRef(in) {
-		if e.k == "password" && d.Get("password").(string) != "" {
+		// This is shared with the data source, whose schema omits `password`. d.Get
+		// returns an untyped nil for an attribute the schema doesn't declare (a set
+		// one always yields at least its zero value), so skip those outright.
+		current := d.Get(e.k)
+		if current == nil {
+			continue
+		}
+		if e.k == "password" && current.(string) != "" {
 			// Don't update password from API if it's already set - password is only returned during creation
 			continue
-		} else if e.k == "data_region" && d.Get("data_region").(string) != "" {
+		} else if e.k == "data_region" && current.(string) != "" {
 			// Preserve user-specified data_region over API-normalized value
 			continue
-		} else if e.k == "valid_until" && d.Get("valid_until").(string) != "" {
+		} else if e.k == "valid_until" && current.(string) != "" {
 			// Preserve user-specified valid_until over API-formatted value
 			continue
 		} else if err := d.Set(e.k, reflect.Indirect(reflect.ValueOf(e.v)).Interface()); err != nil {
