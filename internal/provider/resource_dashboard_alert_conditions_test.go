@@ -15,6 +15,37 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
+// normalizeConditions mirrors ChartAlert::Condition#to_h: all six keys, wire nulls.
+// A request that omits additional_conditions entirely leaves the stored conditions
+// untouched server-side, so there is nothing to normalize; anything other than an
+// array under that key is a provider bug and fails the test.
+func normalizeConditions(t *testing.T, reqData map[string]interface{}) {
+	value, present := reqData["additional_conditions"]
+	if !present {
+		return
+	}
+	raw, ok := value.([]interface{})
+	if !ok {
+		t.Fatalf("additional_conditions is not an array: %#v", value)
+	}
+	for i, item := range raw {
+		cond, ok := item.(map[string]interface{})
+		if !ok {
+			t.Fatalf("condition %d is not an object: %v", i, item)
+		}
+		for _, key := range []string{"alert_type", "operator", "value", "string_value"} {
+			if _, ok := cond[key]; !ok {
+				cond[key] = nil
+			}
+		}
+		for _, key := range []string{"series_names", "series_names_except"} {
+			if _, ok := cond[key]; !ok {
+				cond[key] = []string{}
+			}
+		}
+	}
+}
+
 // additional_conditions contract: the array holds conditions 2..5 combined with the main
 // condition by logical AND; each object carries only the attributes the user set (a string
 // condition must not leak "value": 0), while the API echoes every condition normalized to
@@ -22,30 +53,6 @@ import (
 // leaves them untouched, so removing every block must still send []. The mock mirrors that.
 func TestResourceDashboardAlertAdditionalConditions(t *testing.T) {
 	var alertData atomic.Value
-
-	// normalizeConditions mirrors ChartAlert::Condition#to_h: all six keys, wire nulls.
-	normalizeConditions := func(reqData map[string]interface{}) {
-		raw, ok := reqData["additional_conditions"].([]interface{})
-		if !ok {
-			return
-		}
-		for i, item := range raw {
-			cond, ok := item.(map[string]interface{})
-			if !ok {
-				t.Fatalf("condition %d is not an object: %v", i, item)
-			}
-			for _, key := range []string{"alert_type", "operator", "value", "string_value"} {
-				if _, ok := cond[key]; !ok {
-					cond[key] = nil
-				}
-			}
-			for _, key := range []string{"series_names", "series_names_except"} {
-				if _, ok := cond[key]; !ok {
-					cond[key] = []string{}
-				}
-			}
-		}
-	}
 
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		t.Log("Received " + r.Method + " " + r.RequestURI)
@@ -77,7 +84,7 @@ func TestResourceDashboardAlertAdditionalConditions(t *testing.T) {
 			if len(cond) != 3 || cond["alert_type"] != "threshold" || cond["operator"] != "lower_than" || cond["value"] != float64(10000) {
 				t.Fatalf("unexpected condition payload: %v", cond)
 			}
-			normalizeConditions(reqData)
+			normalizeConditions(t, reqData)
 			reqData["series_names"] = []string{}
 			reqData["series_names_except"] = []string{}
 			reqData["source_platforms"] = []string{}
@@ -96,10 +103,10 @@ func TestResourceDashboardAlertAdditionalConditions(t *testing.T) {
 			respData, _ := json.Marshal(reqData)
 			alertData.Store(respData)
 			w.WriteHeader(http.StatusCreated)
-			_, _ = w.Write([]byte(fmt.Sprintf(`{"data":{"id":%q,"attributes":%s}}`, alertID, respData)))
+			_, _ = fmt.Fprintf(w, `{"data":{"id":%q,"attributes":%s}}`, alertID, respData)
 
 		case r.Method == http.MethodGet && r.RequestURI == alertPrefix+"/"+alertID:
-			_, _ = w.Write([]byte(fmt.Sprintf(`{"data":{"id":%q,"attributes":%s}}`, alertID, alertData.Load().([]byte))))
+			_, _ = fmt.Fprintf(w, `{"data":{"id":%q,"attributes":%s}}`, alertID, alertData.Load().([]byte))
 
 		case r.Method == http.MethodPatch && strings.HasPrefix(r.RequestURI, alertPrefix+"/"):
 			body, err := io.ReadAll(r.Body)
@@ -110,7 +117,7 @@ func TestResourceDashboardAlertAdditionalConditions(t *testing.T) {
 			if err = json.Unmarshal(body, &patchReq); err != nil {
 				t.Fatal(err)
 			}
-			normalizeConditions(patchReq)
+			normalizeConditions(t, patchReq)
 			patch := make(map[string]interface{})
 			if err = json.Unmarshal(alertData.Load().([]byte), &patch); err != nil {
 				t.Fatal(err)
@@ -120,7 +127,7 @@ func TestResourceDashboardAlertAdditionalConditions(t *testing.T) {
 			}
 			patched, _ := json.Marshal(patch)
 			alertData.Store(patched)
-			_, _ = w.Write([]byte(fmt.Sprintf(`{"data":{"id":%q,"attributes":%s}}`, alertID, patched)))
+			_, _ = fmt.Fprintf(w, `{"data":{"id":%q,"attributes":%s}}`, alertID, patched)
 
 		case r.Method == http.MethodDelete && strings.HasPrefix(r.RequestURI, alertPrefix+"/"):
 			w.WriteHeader(http.StatusNoContent)
@@ -235,6 +242,130 @@ func TestResourceDashboardAlertAdditionalConditions(t *testing.T) {
 					}
 				`),
 				ExpectError: regexp.MustCompile("cannot set both series_names and series_names_except"),
+			},
+		},
+	})
+}
+
+// A condition's series_names may reference an attribute of a resource that has not
+// been created yet, so the raw config carries an unknown value at plan time. cty
+// panics on ElementIterator/LengthInt for those, so validateAlert must skip them.
+func TestResourceDashboardAlertConditionsUnknownSeriesNames(t *testing.T) {
+	var groupData atomic.Value
+	var alertData atomic.Value
+
+	// The API echoes every alert normalized to all keys; mirror enough of that so
+	// the post-apply plan is empty and the test fails only on the panic.
+	normalizeAlert := func(body []byte) []byte {
+		var attrs map[string]interface{}
+		if err := json.Unmarshal(body, &attrs); err != nil {
+			t.Fatal(err)
+		}
+		for _, key := range []string{"series_names", "series_names_except", "source_platforms"} {
+			if _, ok := attrs[key]; !ok {
+				attrs[key] = []string{}
+			}
+		}
+		normalizeConditions(t, attrs)
+		out, err := json.Marshal(attrs)
+		if err != nil {
+			t.Fatal(err)
+		}
+		return out
+	}
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		t.Log("Received " + r.Method + " " + r.RequestURI)
+
+		if r.Header.Get("Authorization") != "Bearer foo" {
+			t.Fatal("Not authorized: " + r.Header.Get("Authorization"))
+		}
+
+		groupPrefix := "/api/v1/source-groups"
+		groupID := "7"
+		alertPrefix := "/api/v2/dashboards/1/charts/10/alerts"
+		alertID := "100"
+
+		switch {
+		case r.Method == http.MethodPost && r.RequestURI == groupPrefix:
+			body, err := io.ReadAll(r.Body)
+			if err != nil {
+				t.Fatal(err)
+			}
+			groupData.Store(body)
+			w.WriteHeader(http.StatusCreated)
+			_, _ = fmt.Fprintf(w, `{"data":{"id":%q,"attributes":%s}}`, groupID, body)
+		case r.Method == http.MethodGet && r.RequestURI == groupPrefix+"/"+groupID:
+			_, _ = fmt.Fprintf(w, `{"data":{"id":%q,"attributes":%s}}`, groupID, groupData.Load().([]byte))
+		case r.Method == http.MethodDelete && r.RequestURI == groupPrefix+"/"+groupID:
+			w.WriteHeader(http.StatusNoContent)
+			groupData.Store([]byte(nil))
+
+		case r.Method == http.MethodPost && r.RequestURI == alertPrefix:
+			body, err := io.ReadAll(r.Body)
+			if err != nil {
+				t.Fatal(err)
+			}
+			body = normalizeAlert(body)
+			alertData.Store(body)
+			w.WriteHeader(http.StatusCreated)
+			_, _ = fmt.Fprintf(w, `{"data":{"id":%q,"attributes":%s}}`, alertID, body)
+		case r.Method == http.MethodGet && r.RequestURI == alertPrefix+"/"+alertID:
+			_, _ = fmt.Fprintf(w, `{"data":{"id":%q,"attributes":%s}}`, alertID, alertData.Load().([]byte))
+		case r.Method == http.MethodDelete && r.RequestURI == alertPrefix+"/"+alertID:
+			w.WriteHeader(http.StatusNoContent)
+			alertData.Store([]byte(nil))
+
+		default:
+			t.Fatal("Unexpected " + r.Method + " " + r.RequestURI)
+		}
+	}))
+	defer server.Close()
+
+	resource.Test(t, resource.TestCase{
+		IsUnitTest: true,
+		ProviderFactories: map[string]func() (*schema.Provider, error){
+			"logtail": func() (*schema.Provider, error) {
+				return New(WithURL(server.URL)), nil
+			},
+		},
+		Steps: []resource.TestStep{
+			{
+				Config: `
+				provider "logtail" {
+					api_token = "foo"
+				}
+
+				resource "logtail_source_group" "this" {
+					name = "Unknown series group"
+				}
+
+				resource "logtail_dashboard_alert" "this" {
+					dashboard_id = "1"
+					chart_id     = "10"
+					name         = "Unknown series"
+					alert_type   = "threshold"
+					operator     = "higher_than"
+					value        = 100
+					check_period = 300
+
+					additional_conditions {
+						alert_type = "threshold"
+						operator   = "lower_than"
+						value      = 10000
+						# Branches of differing length keep the whole list unknown at plan time
+						# (a same-length conditional would only leave the element unknown).
+						series_names = logtail_source_group.this.id != "" ? ["production"] : ["production", "staging"]
+						# Set but empty, so the null shortcut cannot skip the pair check and the
+						# unknown series_names above reaches the length comparison.
+						series_names_except = []
+					}
+				}
+				`,
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr("logtail_dashboard_alert.this", "additional_conditions.#", "1"),
+					resource.TestCheckResourceAttr("logtail_dashboard_alert.this", "additional_conditions.0.series_names.0", "production"),
+				),
 			},
 		},
 	})
