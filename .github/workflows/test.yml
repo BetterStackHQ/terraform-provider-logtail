@@ -132,10 +132,10 @@ jobs:
             case "$(basename "$f")" in main.tf | outputs.tf) continue ;; esac
             cp "$f" "combined-e2e/$(basename "$f")"
           done
-          # Flatten in every documented example, except: source_aws_account (needs AWS
-          # credentials), source_gcp_project (needs GCP credentials) and connection
+          # Flatten in every documented example, except: AWS account and log-group resources
+          # (need AWS credentials), source_gcp_project (needs GCP credentials), and connection
           # (needs a global token; see examples/connection).
-          deny=" logtail_source_aws_account logtail_source_gcp_project logtail_connection "
+          deny=" logtail_source_aws_account logtail_source_aws_log_group logtail_source_gcp_project logtail_connection "
           for f in examples/resources/*/*.tf examples/data-sources/*/*.tf; do
             dir="$(basename "$(dirname "$f")")"
             case "$deny" in *" $dir "*) continue ;; esac

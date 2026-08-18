@@ -48,9 +48,10 @@ resource "aws_cloudformation_stack" "better_stack" {
 }
 
 resource "logtail_source_aws_account" "aws" {
-  source_id       = logtail_source.aws.id
-  aws_role_arn    = aws_cloudformation_stack.better_stack.outputs["IntegrationRoleArn"]
-  aws_external_id = aws_cloudformation_stack.better_stack.outputs["ExternalId"]
+  source_id                 = logtail_source.aws.id
+  aws_role_arn              = aws_cloudformation_stack.better_stack.outputs["IntegrationRoleArn"]
+  aws_external_id           = aws_cloudformation_stack.better_stack.outputs["ExternalId"]
+  auto_subscribe_log_groups = false
 }
 ```
 
@@ -63,6 +64,7 @@ resource "logtail_source_aws_account" "aws" {
 
 ### Optional
 
+- `auto_subscribe_log_groups` (Boolean) Whether Better Stack automatically subscribes CloudWatch log groups without an explicit override. When omitted, the current API setting is preserved.
 - `aws_account_id` (String) The ID of an existing connected AWS account to link this source to. Provide this instead of `aws_role_arn`/`aws_external_id` to reuse an account you've already connected. Write-only: the API does not return it, so it isn't refreshed from state.
 - `aws_external_id` (String, Sensitive) The external ID used for the STS assume-role trust - the `ExternalId` output of the Better Stack CloudFormation stack. Provide together with `aws_role_arn`. Write-only: the API does not return it, so it isn't refreshed from state.
 - `aws_role_arn` (String) The IAM role ARN to connect your AWS account - the `IntegrationRoleArn` output of the Better Stack CloudFormation stack. Provide together with `aws_external_id`. Write-only: the API does not return it, so it isn't refreshed from state.

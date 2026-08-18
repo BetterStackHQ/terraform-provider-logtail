@@ -30,7 +30,8 @@ resource "aws_cloudformation_stack" "better_stack" {
 }
 
 resource "logtail_source_aws_account" "aws" {
-  source_id       = logtail_source.aws.id
-  aws_role_arn    = aws_cloudformation_stack.better_stack.outputs["IntegrationRoleArn"]
-  aws_external_id = aws_cloudformation_stack.better_stack.outputs["ExternalId"]
+  source_id                 = logtail_source.aws.id
+  aws_role_arn              = aws_cloudformation_stack.better_stack.outputs["IntegrationRoleArn"]
+  aws_external_id           = aws_cloudformation_stack.better_stack.outputs["ExternalId"]
+  auto_subscribe_log_groups = false
 }

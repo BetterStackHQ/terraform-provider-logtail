@@ -102,6 +102,7 @@ func New(opts ...Option) *schema.Provider {
 		ResourcesMap: map[string]*schema.Resource{
 			"logtail_source":                   newSourceResource(),
 			"logtail_source_aws_account":       newSourceAWSAccountResource(),
+			"logtail_source_aws_log_group":     newSourceAWSLogGroupResource(),
 			"logtail_source_gcp_project":       newSourceGCPProjectResource(),
 			"logtail_metric":                   newMetricResource(),
 			"logtail_source_group":             newSourceGroupResource(),

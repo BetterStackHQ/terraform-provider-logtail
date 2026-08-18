@@ -46,6 +46,7 @@ func TestResourceSourceAWSAccount(t *testing.T) {
 			body = inject(t, body, "ingesting_host", "in.logs.betterstack.com")
 			body = inject(t, body, "table_name", "test_source")
 			body = inject(t, body, "team_id", 123456)
+			body = inject(t, body, "aws_auto_sub_log_groups", true)
 			data.Store(body)
 			w.WriteHeader(http.StatusCreated)
 			_, _ = w.Write([]byte(fmt.Sprintf(`{"data":{"id":%q,"attributes":%s}}`, id, body)))
@@ -90,6 +91,16 @@ func TestResourceSourceAWSAccount(t *testing.T) {
 		}
 	}
 
+	patchBodyDoesNotContain := func(needle string) resource.TestCheckFunc {
+		return func(s *terraform.State) error {
+			body := string(lastPatchBody.Load().([]byte))
+			if strings.Contains(body, needle) {
+				return fmt.Errorf("PATCH body should not contain %s, got: %s", needle, body)
+			}
+			return nil
+		}
+	}
+
 	resource.Test(t, resource.TestCase{
 		IsUnitTest: true,
 		ProviderFactories: map[string]func() (*schema.Provider, error){
@@ -122,6 +133,8 @@ func TestResourceSourceAWSAccount(t *testing.T) {
 					resource.TestCheckResourceAttr("logtail_source_aws_account.aws", "aws_role_arn", "arn:aws:iam::123456789012:role/BetterStackIntegrationRole"),
 					patchBodyContains(`"aws_role_arn":"arn:aws:iam::123456789012:role/BetterStackIntegrationRole"`),
 					patchBodyContains(`"aws_external_id":"ext-123"`),
+					resource.TestCheckResourceAttr("logtail_source_aws_account.aws", "auto_subscribe_log_groups", "true"),
+					patchBodyDoesNotContain(`"aws_auto_sub_log_groups"`),
 				),
 			},
 			// Step 2 - rotate the credentials in place; the PATCH must carry the new values.
@@ -140,11 +153,14 @@ func TestResourceSourceAWSAccount(t *testing.T) {
 					source_id       = logtail_source.aws.id
 					aws_role_arn    = "arn:aws:iam::123456789012:role/RotatedRole"
 					aws_external_id = "ext-456"
+					auto_subscribe_log_groups = false
 				}
 				`,
 				Check: resource.ComposeTestCheckFunc(
 					patchBodyContains(`"aws_role_arn":"arn:aws:iam::123456789012:role/RotatedRole"`),
 					patchBodyContains(`"aws_external_id":"ext-456"`),
+					resource.TestCheckResourceAttr("logtail_source_aws_account.aws", "auto_subscribe_log_groups", "false"),
+					patchBodyContains(`"aws_auto_sub_log_groups":false`),
 				),
 			},
 			// Step 3 - drop the linkage resource (keep the source). Delete is state-only:
