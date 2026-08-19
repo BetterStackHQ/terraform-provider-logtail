@@ -379,6 +379,7 @@ type source struct {
 	TeamId                         *StringOrInt              `json:"team_id,omitempty"`
 	TableName                      *string                   `json:"table_name,omitempty"`
 	Platform                       *string                   `json:"platform,omitempty"`
+	AWSAutoSubLogGroups            *bool                     `json:"aws_auto_sub_log_groups,omitempty"`
 	IngestingHost                  *string                   `json:"ingesting_host,omitempty"`
 	IngestingPaused                *bool                     `json:"ingesting_paused,omitempty"`
 	LogsRetention                  *int                      `json:"logs_retention,omitempty"`

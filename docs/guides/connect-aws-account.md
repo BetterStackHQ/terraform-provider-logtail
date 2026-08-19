@@ -34,11 +34,23 @@ resource "aws_cloudformation_stack" "better_stack" {
 }
 
 resource "logtail_source_aws_account" "aws" {
-  source_id       = logtail_source.aws.id
-  aws_role_arn    = aws_cloudformation_stack.better_stack.outputs["IntegrationRoleArn"]
-  aws_external_id = aws_cloudformation_stack.better_stack.outputs["ExternalId"]
+  source_id                 = logtail_source.aws.id
+  aws_role_arn              = aws_cloudformation_stack.better_stack.outputs["IntegrationRoleArn"]
+  aws_external_id           = aws_cloudformation_stack.better_stack.outputs["ExternalId"]
+  auto_subscribe_log_groups = false
+}
+
+resource "logtail_source_aws_log_group" "application" {
+  source_id  = logtail_source_aws_account.aws.source_id
+  region     = "us-east-1"
+  name       = "/aws/lambda/application"
+  subscribed = true
 }
 ```
+
+`auto_subscribe_log_groups` controls newly discovered groups that have no explicit override. Each `logtail_source_aws_log_group` manages one `(region, name)` override; set `subscribed = false` to exclude a group while automatic subscription is enabled, or remove the resource to return that group to automatic behavior.
+
+Overrides are stored even when the first AWS sync has not discovered the group yet. This lets the account link and its log-group choices complete in one apply; Better Stack applies each pending override when discovery finds the group.
 
 ## When the ARN comes from a variable
 

@@ -133,7 +133,7 @@ jobs:
             cp "$f" "combined-e2e/$(basename "$f")"
           done
           # Flatten in every documented example, except: source_aws_account (needs AWS
-          # credentials), source_gcp_project (needs GCP credentials) and connection
+          # credentials), source_gcp_project (needs GCP credentials), and connection
           # (needs a global token; see examples/connection).
           deny=" logtail_source_aws_account logtail_source_gcp_project logtail_connection "
           for f in examples/resources/*/*.tf examples/data-sources/*/*.tf; do
@@ -190,6 +190,7 @@ jobs:
             echo "No planned changes detected after first apply. Success!"
           else
             echo "$CHANGES planned changes detected after first apply. Failure!"
+            jq -r '.resource_changes[]? | select(.change.actions != ["no-op"]) | "\(.address): \(.change.actions | join(", "))"' "combined-e2e/tfplan.json"
             exit 1
           fi
         env:

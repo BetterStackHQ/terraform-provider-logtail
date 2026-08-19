@@ -16,6 +16,12 @@ var sourceAWSAccountSchema = map[string]*schema.Schema{
 		Required:    true,
 		ForceNew:    true,
 	},
+	"auto_subscribe_log_groups": {
+		Description: "Whether Better Stack automatically subscribes CloudWatch log groups without an explicit override. When omitted, the current API setting is preserved.",
+		Type:        schema.TypeBool,
+		Optional:    true,
+		Computed:    true,
+	},
 	"aws_account_id": {
 		Description:  "The ID of an existing connected AWS account to link this source to. Provide this instead of `aws_role_arn`/`aws_external_id` to reuse an account you've already connected. Write-only: the API does not return it, so it isn't refreshed from state.",
 		Type:         schema.TypeString,
@@ -55,23 +61,23 @@ func newSourceAWSAccountResource() *schema.Resource {
 	}
 }
 
-// sourceAWSAccountPayload is the PATCH body for the AWS account linkage. These are the
-// write-only params the public Sources API consumes to run AwsIntegration::SourceManager;
-// they are never returned as source attributes, so they live only on this request struct.
+// sourceAWSAccountPayload is the PATCH body for account linkage and its log-group default.
+// Credentials are write-only; the auto-subscribe setting is returned by the Sources API.
 type sourceAWSAccountPayload struct {
-	AwsAccountID  *string `json:"aws_account_id,omitempty"`
-	AwsRoleArn    *string `json:"aws_role_arn,omitempty"`
-	AwsExternalID *string `json:"aws_external_id,omitempty"`
+	AwsAccountID        *string `json:"aws_account_id,omitempty"`
+	AwsRoleArn          *string `json:"aws_role_arn,omitempty"`
+	AwsExternalID       *string `json:"aws_external_id,omitempty"`
+	AWSAutoSubLogGroups *bool   `json:"aws_auto_sub_log_groups,omitempty"`
 }
 
-// patchSourceAWSAccount PATCHes the configured AWS credentials onto the source. The full
-// configured set is always sent (not just changed keys) because the connect manager needs
-// the role ARN / external ID together - a partial PATCH would be rejected server-side.
+// patchSourceAWSAccount sends the configured account settings. The full credential set is
+// always sent because the connect manager rejects a partial role ARN / external ID pair.
 func patchSourceAWSAccount(ctx context.Context, d *schema.ResourceData, meta interface{}, sourceID string) diag.Diagnostics {
 	in := sourceAWSAccountPayload{
-		AwsAccountID:  stringFromResourceData(d, "aws_account_id"),
-		AwsRoleArn:    stringFromResourceData(d, "aws_role_arn"),
-		AwsExternalID: stringFromResourceData(d, "aws_external_id"),
+		AwsAccountID:        stringFromResourceData(d, "aws_account_id"),
+		AwsRoleArn:          stringFromResourceData(d, "aws_role_arn"),
+		AwsExternalID:       stringFromResourceData(d, "aws_external_id"),
+		AWSAutoSubLogGroups: boolFromResourceData(d, "auto_subscribe_log_groups"),
 	}
 	return resourceUpdate(ctx, meta, fmt.Sprintf("/api/v2/sources/%s", url.PathEscape(sourceID)), &in)
 }
@@ -93,8 +99,12 @@ func sourceAWSAccountRead(ctx context.Context, d *schema.ResourceData, meta inte
 		d.SetId("") // Source gone -> linkage gone.
 		return nil
 	}
-	// The credentials are write-only (never returned by the API), so there's nothing to
-	// refresh - we only confirm the underlying source still exists and keep source_id in sync.
+	// Credentials are write-only; refresh the readable setting and confirm the source still exists.
+	if out.Data.Attributes.AWSAutoSubLogGroups != nil {
+		if err := d.Set("auto_subscribe_log_groups", *out.Data.Attributes.AWSAutoSubLogGroups); err != nil {
+			return diag.FromErr(err)
+		}
+	}
 	return diag.FromErr(d.Set("source_id", d.Id()))
 }
 
