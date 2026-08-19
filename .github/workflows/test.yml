@@ -190,6 +190,7 @@ jobs:
             echo "No planned changes detected after first apply. Success!"
           else
             echo "$CHANGES planned changes detected after first apply. Failure!"
+            jq -r '.resource_changes[]? | select(.change.actions != ["no-op"]) | "\(.address): \(.change.actions | join(", "))"' "combined-e2e/tfplan.json"
             exit 1
           fi
         env:
