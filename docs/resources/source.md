@@ -19,6 +19,12 @@ resource "logtail_source" "this" {
   platform = "http"
 }
 
+# AWS account connection and log-group choices can be managed separately
+resource "logtail_source" "aws" {
+  name     = "AWS production"
+  platform = "aws"
+}
+
 # Server-side VRL transforms run per telemetry type during ingestion
 # blocked_metrics drops spam metrics before they are billed
 resource "logtail_source" "transformed" {
