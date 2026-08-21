@@ -34,6 +34,11 @@ func TestResourceSourceAWSLogGroup(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
+			if strings.Contains(string(body), `"created_at"`) || strings.Contains(string(body), `"updated_at"`) {
+				t.Fatalf("POST body must omit read-only timestamps, got: %s", body)
+			}
+			body = inject(t, body, "created_at", "2026-08-18T10:00:00.000Z")
+			body = inject(t, body, "updated_at", "2026-08-18T10:00:00.000Z")
 			attributes.Store(body)
 			w.WriteHeader(http.StatusCreated)
 			_, _ = w.Write([]byte(fmt.Sprintf(`{"data":{"id":"7","attributes":%s}}`, body)))
@@ -100,6 +105,8 @@ func TestResourceSourceAWSLogGroup(t *testing.T) {
 					resource.TestCheckResourceAttr("logtail_source_aws_log_group.api", "region", "us-east-1"),
 					resource.TestCheckResourceAttr("logtail_source_aws_log_group.api", "name", "/aws/lambda/api"),
 					resource.TestCheckResourceAttr("logtail_source_aws_log_group.api", "subscribed", "true"),
+					resource.TestCheckResourceAttr("logtail_source_aws_log_group.api", "created_at", "2026-08-18T10:00:00.000Z"),
+					resource.TestCheckResourceAttr("logtail_source_aws_log_group.api", "updated_at", "2026-08-18T10:00:00.000Z"),
 				),
 			},
 			{
