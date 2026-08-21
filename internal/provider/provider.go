@@ -108,6 +108,7 @@ func New(opts ...Option) *schema.Provider {
 			"logtail_source_group":             newSourceGroupResource(),
 			"logtail_errors_application":       newErrorsApplicationResource(),
 			"logtail_errors_application_group": newErrorsApplicationGroupResource(),
+			"logtail_errors_release":           newErrorsReleaseResource(),
 			"logtail_connection":               newConnectionResource(),
 			"logtail_dashboard":                newDashboardResource(),
 			"logtail_dashboard_group":          newDashboardGroupResource(),
