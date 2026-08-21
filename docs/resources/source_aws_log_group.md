@@ -43,4 +43,6 @@ resource "logtail_source_aws_log_group" "excluded" {
 
 ### Read-Only
 
+- `created_at` (String) The time when this log-group subscription override was created.
 - `id` (String) The ID of this resource.
+- `updated_at` (String) The time when this log-group subscription override was last updated.

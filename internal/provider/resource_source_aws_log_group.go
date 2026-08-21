@@ -35,12 +35,24 @@ var sourceAWSLogGroupSchema = map[string]*schema.Schema{
 		Optional:    true,
 		Default:     true,
 	},
+	"created_at": {
+		Description: "The time when this log-group subscription override was created.",
+		Type:        schema.TypeString,
+		Computed:    true,
+	},
+	"updated_at": {
+		Description: "The time when this log-group subscription override was last updated.",
+		Type:        schema.TypeString,
+		Computed:    true,
+	},
 }
 
 type sourceAWSLogGroup struct {
 	Region     string `json:"region"`
 	Name       string `json:"name"`
 	Subscribed bool   `json:"subscribed"`
+	CreatedAt  string `json:"created_at,omitempty"`
+	UpdatedAt  string `json:"updated_at,omitempty"`
 }
 
 type sourceAWSLogGroupHTTPResponse struct {
@@ -139,5 +151,11 @@ func sourceAWSLogGroupCopyAttrs(d *schema.ResourceData, in *sourceAWSLogGroup) d
 	if err := d.Set("name", in.Name); err != nil {
 		return diag.FromErr(err)
 	}
-	return diag.FromErr(d.Set("subscribed", in.Subscribed))
+	if err := d.Set("subscribed", in.Subscribed); err != nil {
+		return diag.FromErr(err)
+	}
+	if err := d.Set("created_at", in.CreatedAt); err != nil {
+		return diag.FromErr(err)
+	}
+	return diag.FromErr(d.Set("updated_at", in.UpdatedAt))
 }
