@@ -92,7 +92,26 @@ func dashboardChartLookup(ctx context.Context, d *schema.ResourceData, meta inte
 				return diag.FromErr(err)
 			}
 
-			return dashboardChartCopyAttrs(d, &item.Attributes)
+			if diags := dashboardChartCopyAttrs(d, &item.Attributes); diags != nil {
+				return diags
+			}
+
+			// Unlike the resource, surface every variable: a data source cannot
+			// drift, and the inherited dashboard variables are informative here.
+			if item.Attributes.Variables != nil {
+				variableData := make([]interface{}, 0, len(*item.Attributes.Variables))
+				for _, variable := range *item.Attributes.Variables {
+					if variable.Name == nil {
+						continue
+					}
+					variableData = append(variableData, chartVariableAttributes(*variable.Name, variable))
+				}
+				if err := d.Set("variable", variableData); err != nil {
+					return diag.FromErr(err)
+				}
+			}
+
+			return nil
 		}
 	}
 

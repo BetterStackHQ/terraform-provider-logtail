@@ -143,6 +143,48 @@ var dashboardChartSchema = map[string]*schema.Schema{
 			},
 		},
 	},
+	"variable": {
+		Description: "Variables for this chart. Values are chart-specific and are used when evaluating chart alerts. Charts inherit the dashboard's variables (including the auto-created time, start_time, end_time, and source); Terraform surfaces and manages only the variables declared in this block.",
+		Type:        schema.TypeList,
+		Optional:    true,
+		Elem: &schema.Resource{
+			Schema: map[string]*schema.Schema{
+				"name": {
+					Description: "The name of the variable (used as {{name}} in queries).",
+					Type:        schema.TypeString,
+					Required:    true,
+				},
+				"variable_type": {
+					Description:  "The type of variable: 'source', 'string', 'number', 'date', 'datetime', 'boolean', 'sql_expression', 'select_value', 'select_with_sql', or 'multi_select_with_sql'.",
+					Type:         schema.TypeString,
+					Required:     true,
+					ValidateFunc: validation.StringInSlice([]string{"source", "string", "number", "date", "datetime", "boolean", "sql_expression", "select_value", "select_with_sql", "multi_select_with_sql"}, false),
+				},
+				"values": {
+					Description: "The selected values used to render this chart and evaluate its alerts.",
+					Type:        schema.TypeList,
+					Optional:    true,
+					Elem:        &schema.Schema{Type: schema.TypeString},
+				},
+				"default_values": {
+					Description: "Fallback values or predefined options, depending on the variable type.",
+					Type:        schema.TypeList,
+					Optional:    true,
+					Elem:        &schema.Schema{Type: schema.TypeString},
+				},
+				"sql_definition": {
+					Description: "SQL definition for 'select_with_sql' or 'multi_select_with_sql' variables.",
+					Type:        schema.TypeString,
+					Optional:    true,
+				},
+				"allow_multiple_values": {
+					Description: "Whether 'select_value' or 'select_with_sql' accepts multiple selected values.",
+					Type:        schema.TypeBool,
+					Optional:    true,
+				},
+			},
+		},
+	},
 	"created_at": {
 		Description: "The time when this chart was created.",
 		Type:        schema.TypeString,
@@ -181,18 +223,39 @@ type dashboardChartQuery struct {
 	SourceVariable *string `json:"source_variable,omitempty"`
 }
 
+type dashboardChartVariable struct {
+	Name                *string  `json:"name,omitempty"`
+	VariableType        *string  `json:"variable_type,omitempty"`
+	Values              []string `json:"values,omitempty"`
+	DefaultValues       []string `json:"default_values,omitempty"`
+	SQLDefinition       *string  `json:"sql_definition,omitempty"`
+	AllowMultipleValues *bool    `json:"allow_multiple_values,omitempty"`
+}
+
+func stringValues(raw interface{}) []string {
+	values, _ := raw.([]interface{})
+	result := make([]string, 0, len(values))
+	for _, value := range values {
+		if value, ok := value.(string); ok {
+			result = append(result, value)
+		}
+	}
+	return result
+}
+
 type dashboardChart struct {
-	ChartType   *string                `json:"chart_type,omitempty"`
-	Name        *string                `json:"name,omitempty"`
-	Description *string                `json:"description,omitempty"`
-	X           *int                   `json:"x,omitempty"`
-	Y           *int                   `json:"y,omitempty"`
-	W           *int                   `json:"w,omitempty"`
-	H           *int                   `json:"h,omitempty"`
-	Settings    map[string]interface{} `json:"settings,omitempty"`
-	Queries     []dashboardChartQuery  `json:"queries,omitempty"`
-	CreatedAt   *string                `json:"created_at,omitempty"`
-	UpdatedAt   *string                `json:"updated_at,omitempty"`
+	ChartType   *string                   `json:"chart_type,omitempty"`
+	Name        *string                   `json:"name,omitempty"`
+	Description *string                   `json:"description,omitempty"`
+	X           *int                      `json:"x,omitempty"`
+	Y           *int                      `json:"y,omitempty"`
+	W           *int                      `json:"w,omitempty"`
+	H           *int                      `json:"h,omitempty"`
+	Settings    map[string]interface{}    `json:"settings,omitempty"`
+	Queries     []dashboardChartQuery     `json:"queries,omitempty"`
+	Variables   *[]dashboardChartVariable `json:"variables,omitempty"`
+	CreatedAt   *string                   `json:"created_at,omitempty"`
+	UpdatedAt   *string                   `json:"updated_at,omitempty"`
 }
 
 type dashboardChartHTTPResponse struct {
@@ -340,6 +403,33 @@ func loadDashboardChart(d *schema.ResourceData) dashboardChart {
 		in.Queries = queries
 	}
 
+	if variableData, ok := d.GetOk("variable"); ok {
+		variables := make([]dashboardChartVariable, 0, len(variableData.([]interface{})))
+		for _, rawVariable := range variableData.([]interface{}) {
+			variableMap := rawVariable.(map[string]interface{})
+			variable := dashboardChartVariable{}
+			if value, ok := variableMap["name"].(string); ok {
+				variable.Name = &value
+			}
+			if value, ok := variableMap["variable_type"].(string); ok {
+				variable.VariableType = &value
+			}
+			variable.Values = stringValues(variableMap["values"])
+			variable.DefaultValues = stringValues(variableMap["default_values"])
+			if value, ok := variableMap["sql_definition"].(string); ok && value != "" {
+				variable.SQLDefinition = &value
+			}
+			if value, ok := variableMap["allow_multiple_values"].(bool); ok {
+				variable.AllowMultipleValues = &value
+			}
+			variables = append(variables, variable)
+		}
+		in.Variables = &variables
+	} else if d.HasChange("variable") {
+		variables := []dashboardChartVariable{}
+		in.Variables = &variables
+	}
+
 	return in
 }
 
@@ -437,6 +527,32 @@ func dashboardChartCopyAttrs(d *schema.ResourceData, in *dashboardChart) diag.Di
 		}
 	}
 
+	if in.Variables != nil {
+		apiVariables := make(map[string]dashboardChartVariable, len(*in.Variables))
+		for _, variable := range *in.Variables {
+			if variable.Name != nil {
+				apiVariables[*variable.Name] = variable
+			}
+		}
+
+		// The chart preset inherits every dashboard variable, so the API returns
+		// variables this configuration never declared. Read back only the declared
+		// ones: surfacing inherited variables would plan their removal forever and
+		// strip them from the chart on apply.
+		variableData := make([]interface{}, 0)
+		if configuredVariables, ok := d.GetOk("variable"); ok {
+			for _, configuredVariable := range configuredVariables.([]interface{}) {
+				name := configuredVariable.(map[string]interface{})["name"].(string)
+				if variable, ok := apiVariables[name]; ok {
+					variableData = append(variableData, chartVariableAttributes(name, variable))
+				}
+			}
+		}
+		if err := d.Set("variable", variableData); err != nil {
+			derr = append(derr, diag.FromErr(err)[0])
+		}
+	}
+
 	if in.CreatedAt != nil {
 		if err := d.Set("created_at", *in.CreatedAt); err != nil {
 			derr = append(derr, diag.FromErr(err)[0])
@@ -449,4 +565,20 @@ func dashboardChartCopyAttrs(d *schema.ResourceData, in *dashboardChart) diag.Di
 	}
 
 	return derr
+}
+
+func chartVariableAttributes(name string, variable dashboardChartVariable) map[string]interface{} {
+	values := map[string]interface{}{"name": name}
+	if variable.VariableType != nil {
+		values["variable_type"] = *variable.VariableType
+	}
+	values["values"] = variable.Values
+	values["default_values"] = variable.DefaultValues
+	if variable.SQLDefinition != nil {
+		values["sql_definition"] = *variable.SQLDefinition
+	}
+	if variable.AllowMultipleValues != nil {
+		values["allow_multiple_values"] = *variable.AllowMultipleValues
+	}
+	return values
 }
