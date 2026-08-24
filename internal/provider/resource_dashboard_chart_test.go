@@ -112,13 +112,19 @@ func TestResourceDashboardChart(t *testing.T) {
 					}
 				}
 			}
-			systemVariables := []interface{}{
+			// The chart preset duplicates the dashboard preset, so the API returns system
+			// variables and inherited dashboard variables the request never carried.
+			presetVariables := []interface{}{
 				map[string]interface{}{"name": "time", "variable_type": "datetime", "values": []interface{}{}},
 				map[string]interface{}{"name": "start_time", "variable_type": "datetime", "values": []interface{}{}},
 				map[string]interface{}{"name": "end_time", "variable_type": "datetime", "values": []interface{}{}},
 				map[string]interface{}{"name": "source", "variable_type": "source", "values": []interface{}{"42"}},
+				map[string]interface{}{"name": "environment", "variable_type": "select_value", "values": []interface{}{"production"}, "default_values": []interface{}{"production", "staging"}},
 			}
-			reqData["variables"] = append(systemVariables, reqData["variables"].([]interface{})...)
+			if reqVariables, ok := reqData["variables"].([]interface{}); ok {
+				presetVariables = append(presetVariables, reqVariables...)
+			}
+			reqData["variables"] = presetVariables
 			respData, _ := json.Marshal(reqData)
 			chartData.Store(respData)
 			w.WriteHeader(http.StatusCreated)
@@ -170,7 +176,36 @@ func TestResourceDashboardChart(t *testing.T) {
 			},
 		},
 		Steps: []resource.TestStep{
-			// Step 1 - create chart
+			// Step 1 - create chart without declared variables; inherited dashboard
+			// variables returned by the API must stay out of state
+			{
+				Config: `
+				provider "logtail" {
+					api_token = "foo"
+				}
+
+				resource "logtail_dashboard" "this" {
+					name = "Test Dashboard"
+				}
+
+				resource "logtail_dashboard_chart" "this" {
+					dashboard_id = logtail_dashboard.this.id
+					chart_type   = "line_chart"
+					name         = "Request Rate"
+					x = 0
+					y = 0
+					w = 6
+					h = 4
+
+					query {
+						query_type = "sql_expression"
+						sql_query  = "SELECT count(*) AS value FROM logs"
+					}
+				}
+				`,
+				Check: resource.TestCheckResourceAttr("logtail_dashboard_chart.this", "variable.#", "0"),
+			},
+			// Step 2 - declare a chart variable
 			{
 				Config: `
 				provider "logtail" {
@@ -219,7 +254,7 @@ func TestResourceDashboardChart(t *testing.T) {
 					resource.TestCheckResourceAttr("logtail_dashboard_chart.this", "variable.0.allow_multiple_values", "true"),
 				),
 			},
-			// Step 2 - update chart
+			// Step 3 - update the chart variable
 			{
 				Config: `
 				provider "logtail" {
@@ -263,16 +298,19 @@ func TestResourceDashboardChart(t *testing.T) {
 					resource.TestCheckResourceAttr("logtail_dashboard_chart.this", "variable.0.allow_multiple_values", "false"),
 				),
 			},
-			// Step 3 - import
+			// Step 4 - import
 			{
 				ResourceName:      "logtail_dashboard_chart.this",
 				ImportState:       true,
 				ImportStateVerify: true,
+				// Import cannot tell declared variables from inherited dashboard
+				// variables, so none are imported.
+				ImportStateVerifyIgnore: []string{"variable"},
 				ImportStateIdFunc: func(s *terraform.State) (string, error) {
 					return "1/10", nil
 				},
 			},
-			// Step 4 - remove chart variables
+			// Step 5 - remove chart variables
 			{
 				Config: `
 				provider "logtail" {

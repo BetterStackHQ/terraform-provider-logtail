@@ -144,7 +144,7 @@ var dashboardChartSchema = map[string]*schema.Schema{
 		},
 	},
 	"variable": {
-		Description: "Variables for this chart. The API auto-creates time, start_time, end_time, and source variables; Terraform only surfaces and manages them when explicitly declared. Values are chart-specific and are used when evaluating chart alerts.",
+		Description: "Variables for this chart. Values are chart-specific and are used when evaluating chart alerts. Charts inherit the dashboard's variables (including the auto-created time, start_time, end_time, and source); Terraform surfaces and manages only the variables declared in this block.",
 		Type:        schema.TypeList,
 		Optional:    true,
 		Elem: &schema.Resource{
@@ -535,42 +535,18 @@ func dashboardChartCopyAttrs(d *schema.ResourceData, in *dashboardChart) diag.Di
 			}
 		}
 
-		var names []string
+		// The chart preset inherits every dashboard variable, so the API returns
+		// variables this configuration never declared. Read back only the declared
+		// ones: surfacing inherited variables would plan their removal forever and
+		// strip them from the chart on apply.
+		variableData := make([]interface{}, 0)
 		if configuredVariables, ok := d.GetOk("variable"); ok {
 			for _, configuredVariable := range configuredVariables.([]interface{}) {
-				names = append(names, configuredVariable.(map[string]interface{})["name"].(string))
-			}
-		} else {
-			for _, variable := range *in.Variables {
-				if variable.Name == nil || *variable.Name == "time" || *variable.Name == "start_time" || *variable.Name == "end_time" || *variable.Name == "source" {
-					continue
+				name := configuredVariable.(map[string]interface{})["name"].(string)
+				if variable, ok := apiVariables[name]; ok {
+					variableData = append(variableData, chartVariableAttributes(name, variable))
 				}
-				if len(variable.Values) == 0 && len(variable.DefaultValues) == 0 && variable.SQLDefinition == nil {
-					continue
-				}
-				names = append(names, *variable.Name)
 			}
-		}
-
-		variableData := make([]interface{}, 0, len(names))
-		for _, name := range names {
-			variable, ok := apiVariables[name]
-			if !ok {
-				continue
-			}
-			values := map[string]interface{}{"name": name}
-			if variable.VariableType != nil {
-				values["variable_type"] = *variable.VariableType
-			}
-			values["values"] = variable.Values
-			values["default_values"] = variable.DefaultValues
-			if variable.SQLDefinition != nil {
-				values["sql_definition"] = *variable.SQLDefinition
-			}
-			if variable.AllowMultipleValues != nil {
-				values["allow_multiple_values"] = *variable.AllowMultipleValues
-			}
-			variableData = append(variableData, values)
 		}
 		if err := d.Set("variable", variableData); err != nil {
 			derr = append(derr, diag.FromErr(err)[0])
@@ -589,4 +565,20 @@ func dashboardChartCopyAttrs(d *schema.ResourceData, in *dashboardChart) diag.Di
 	}
 
 	return derr
+}
+
+func chartVariableAttributes(name string, variable dashboardChartVariable) map[string]interface{} {
+	values := map[string]interface{}{"name": name}
+	if variable.VariableType != nil {
+		values["variable_type"] = *variable.VariableType
+	}
+	values["values"] = variable.Values
+	values["default_values"] = variable.DefaultValues
+	if variable.SQLDefinition != nil {
+		values["sql_definition"] = *variable.SQLDefinition
+	}
+	if variable.AllowMultipleValues != nil {
+		values["allow_multiple_values"] = *variable.AllowMultipleValues
+	}
+	return values
 }
