@@ -112,6 +112,13 @@ func TestResourceDashboardChart(t *testing.T) {
 					}
 				}
 			}
+			systemVariables := []interface{}{
+				map[string]interface{}{"name": "time", "variable_type": "datetime", "values": []interface{}{}},
+				map[string]interface{}{"name": "start_time", "variable_type": "datetime", "values": []interface{}{}},
+				map[string]interface{}{"name": "end_time", "variable_type": "datetime", "values": []interface{}{}},
+				map[string]interface{}{"name": "source", "variable_type": "source", "values": []interface{}{"42"}},
+			}
+			reqData["variables"] = append(systemVariables, reqData["variables"].([]interface{})...)
 			respData, _ := json.Marshal(reqData)
 			chartData.Store(respData)
 			w.WriteHeader(http.StatusCreated)
@@ -131,6 +138,15 @@ func TestResourceDashboardChart(t *testing.T) {
 			}
 			if err = json.Unmarshal(body, &patch); err != nil {
 				t.Fatal(err)
+			}
+			if variables, ok := patch["variables"].([]interface{}); ok {
+				systemVariables := []interface{}{
+					map[string]interface{}{"name": "time", "variable_type": "datetime", "values": []interface{}{}},
+					map[string]interface{}{"name": "start_time", "variable_type": "datetime", "values": []interface{}{}},
+					map[string]interface{}{"name": "end_time", "variable_type": "datetime", "values": []interface{}{}},
+					map[string]interface{}{"name": "source", "variable_type": "source", "values": []interface{}{"42"}},
+				}
+				patch["variables"] = append(systemVariables, variables...)
 			}
 			patch["updated_at"] = "2023-01-02T00:00:00Z"
 			patched, _ := json.Marshal(patch)
@@ -178,6 +194,14 @@ func TestResourceDashboardChart(t *testing.T) {
 						query_type = "sql_expression"
 						sql_query  = "SELECT count(*) AS value FROM logs"
 					}
+
+					variable {
+						name                  = "level"
+						variable_type         = "select_value"
+						values                = ["error"]
+						default_values        = ["info", "error"]
+						allow_multiple_values = true
+					}
 				}
 				`,
 				Check: resource.ComposeTestCheckFunc(
@@ -189,6 +213,10 @@ func TestResourceDashboardChart(t *testing.T) {
 					resource.TestCheckResourceAttr("logtail_dashboard_chart.this", "w", "6"),
 					resource.TestCheckResourceAttr("logtail_dashboard_chart.this", "h", "4"),
 					resource.TestCheckResourceAttrSet("logtail_dashboard_chart.this", "created_at"),
+					resource.TestCheckResourceAttr("logtail_dashboard_chart.this", "variable.#", "1"),
+					resource.TestCheckResourceAttr("logtail_dashboard_chart.this", "variable.0.name", "level"),
+					resource.TestCheckResourceAttr("logtail_dashboard_chart.this", "variable.0.values.0", "error"),
+					resource.TestCheckResourceAttr("logtail_dashboard_chart.this", "variable.0.allow_multiple_values", "true"),
 				),
 			},
 			// Step 2 - update chart
@@ -215,6 +243,14 @@ func TestResourceDashboardChart(t *testing.T) {
 						query_type = "sql_expression"
 						sql_query  = "SELECT count(*) AS value FROM logs WHERE level = 'error'"
 					}
+
+					variable {
+						name                  = "level"
+						variable_type         = "select_value"
+						values                = ["info"]
+						default_values        = ["info", "error"]
+						allow_multiple_values = false
+					}
 				}
 				`,
 				Check: resource.ComposeTestCheckFunc(
@@ -222,6 +258,9 @@ func TestResourceDashboardChart(t *testing.T) {
 					resource.TestCheckResourceAttr("logtail_dashboard_chart.this", "name", "Request Rate Updated"),
 					resource.TestCheckResourceAttr("logtail_dashboard_chart.this", "w", "12"),
 					resource.TestCheckResourceAttr("logtail_dashboard_chart.this", "h", "6"),
+					resource.TestCheckResourceAttr("logtail_dashboard_chart.this", "variable.#", "1"),
+					resource.TestCheckResourceAttr("logtail_dashboard_chart.this", "variable.0.values.0", "info"),
+					resource.TestCheckResourceAttr("logtail_dashboard_chart.this", "variable.0.allow_multiple_values", "false"),
 				),
 			},
 			// Step 3 - import
@@ -232,6 +271,34 @@ func TestResourceDashboardChart(t *testing.T) {
 				ImportStateIdFunc: func(s *terraform.State) (string, error) {
 					return "1/10", nil
 				},
+			},
+			// Step 4 - remove chart variables
+			{
+				Config: `
+				provider "logtail" {
+					api_token = "foo"
+				}
+
+				resource "logtail_dashboard" "this" {
+					name = "Test Dashboard"
+				}
+
+				resource "logtail_dashboard_chart" "this" {
+					dashboard_id = logtail_dashboard.this.id
+					chart_type   = "line_chart"
+					name         = "Request Rate Updated"
+					x = 0
+					y = 0
+					w = 12
+					h = 6
+
+					query {
+						query_type = "sql_expression"
+						sql_query  = "SELECT count(*) AS value FROM logs WHERE level = 'error'"
+					}
+				}
+				`,
+				Check: resource.TestCheckResourceAttr("logtail_dashboard_chart.this", "variable.#", "0"),
 			},
 		},
 	})

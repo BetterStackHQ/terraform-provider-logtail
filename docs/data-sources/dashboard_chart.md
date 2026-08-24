@@ -43,6 +43,7 @@ output "existing_chart_type" {
 - `query` (List of Object) The queries for this chart. At least one query is required. (see [below for nested schema](#nestedatt--query))
 - `settings` (String) Chart settings as a JSON string. Settings vary by chart type and include options like unit, decimal_places, legend, stacking, etc.
 - `updated_at` (String) The time when this chart was updated.
+- `variable` (List of Object) Variables for this chart. The API auto-creates time, start_time, end_time, and source variables; Terraform only surfaces and manages them when explicitly declared. Values are chart-specific and are used when evaluating chart alerts. (see [below for nested schema](#nestedatt--variable))
 - `w` (Number) The width of this chart in grid units (1-12).
 - `x` (Number) The horizontal position of this chart in the dashboard grid (0-11).
 - `y` (Number) The vertical position of this chart in the dashboard grid.
@@ -59,3 +60,16 @@ Read-Only:
 - `sql_query` (String)
 - `static_text` (String)
 - `where_condition` (String)
+
+
+<a id="nestedatt--variable"></a>
+### Nested Schema for `variable`
+
+Read-Only:
+
+- `allow_multiple_values` (Boolean)
+- `default_values` (List of String)
+- `name` (String)
+- `sql_definition` (String)
+- `values` (List of String)
+- `variable_type` (String)
