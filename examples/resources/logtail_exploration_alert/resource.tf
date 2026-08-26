@@ -1,7 +1,7 @@
 # Threshold alert notifying the team by e-mail and push
 # fires when the value crosses a fixed limit
 resource "logtail_exploration_alert" "errors_high" {
-  exploration_id      = logtail_exploration.level_breakdown.id
+  exploration_id      = logtail_exploration.this.id
   name                = "Too many errors"
   alert_type          = "threshold"
   operator            = "higher_than"

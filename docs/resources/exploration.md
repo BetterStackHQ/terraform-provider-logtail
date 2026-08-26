@@ -13,7 +13,8 @@ This resource allows you to create, modify, and delete Explorations in Better St
 ## Example Usage
 
 ```terraform
-# Bar chart over a source, grouped by status
+# Bar chart over a source, grouped by status, with a user-selectable filter
+# variable that alerts can pin to their own value
 resource "logtail_exploration" "this" {
   name = "Requests by status"
 
@@ -23,7 +24,7 @@ resource "logtail_exploration" "this" {
 
   query {
     query_type      = "sql_expression"
-    sql_query       = "SELECT {{time}} AS time, JSONExtractString(raw, 'status') AS series, count(*) AS value FROM {{source}} WHERE time BETWEEN {{start_time}} AND {{end_time}} GROUP BY time, series"
+    sql_query       = "SELECT {{time}} AS time, JSONExtractString(raw, 'status') AS series, count(*) AS value FROM {{source}} WHERE time BETWEEN {{start_time}} AND {{end_time}} [[ AND JSONExtractString(raw, 'level') = {{level}} ]] GROUP BY time, series"
     source_variable = "source"
   }
 
@@ -32,6 +33,12 @@ resource "logtail_exploration" "this" {
     name          = "source"
     variable_type = "source"
     values        = [logtail_source.this.id]
+  }
+
+  variable {
+    name           = "level"
+    variable_type  = "select_with_sql"
+    sql_definition = "JSONExtractString(raw, 'level')"
   }
 }
 
