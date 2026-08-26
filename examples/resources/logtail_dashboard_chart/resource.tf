@@ -102,21 +102,6 @@ resource "logtail_dashboard_chart" "tuned_events" {
     query_type = "sql_expression"
     sql_query  = "SELECT {{time}} AS time, countMerge(events_count) AS value FROM {{source}} WHERE {{time}} BETWEEN {{start_time}} AND {{end_time}} [[ AND label('environment') = {{environment}} ]] [[ AND label('level') = {{level}} ]] GROUP BY time ORDER BY time"
   }
-
-  variable {
-    name           = "environment"
-    variable_type  = "select_value"
-    default_values = ["production", "staging", "development"]
-    values         = ["staging"]
-  }
-
-  variable {
-    name                  = "level"
-    variable_type         = "select_with_sql"
-    sql_definition        = "label('level')"
-    values                = ["error", "warning"]
-    allow_multiple_values = true
-  }
 }
 
 # Error count for the selected environment

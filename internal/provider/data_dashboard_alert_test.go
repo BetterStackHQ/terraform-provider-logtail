@@ -19,7 +19,7 @@ func TestDataSourceDashboardAlert(t *testing.T) {
 
 		switch {
 		case r.Method == http.MethodGet && r.RequestURI == "/api/v2/dashboards/1/charts/10/alerts":
-			_, _ = w.Write([]byte(`{"data":[{"id":"100","attributes":{"name":"High Error Rate","alert_type":"threshold","operator":"higher_than","value":100,"query_period":300,"confirmation_period":60,"recovery_period":0,"check_period":300,"series_names":[],"source_mode":"source_variable","source_platforms":[],"paused":false,"call":false,"sms":false,"email":true,"push":true,"critical_alert":false,"incident_per_series":false,"created_at":"2023-01-01T00:00:00Z","updated_at":"2023-01-01T00:00:00Z"}}]}`))
+			_, _ = w.Write([]byte(`{"data":[{"id":"100","attributes":{"name":"High Error Rate","alert_type":"threshold","operator":"higher_than","value":100,"query_period":300,"confirmation_period":60,"recovery_period":0,"check_period":300,"series_names":[],"source_mode":"source_variable","source_platforms":[],"variable_values":[{"name":"environment","values":["production"],"selected_label":"Production"},{"name":"level","values":[]}],"paused":false,"call":false,"sms":false,"email":true,"push":true,"critical_alert":false,"incident_per_series":false,"created_at":"2023-01-01T00:00:00Z","updated_at":"2023-01-01T00:00:00Z"}}]}`))
 		default:
 			t.Fatal("Unexpected " + r.Method + " " + r.RequestURI)
 		}
@@ -54,6 +54,11 @@ func TestDataSourceDashboardAlert(t *testing.T) {
 					resource.TestCheckResourceAttr("data.logtail_dashboard_alert.this", "operator", "higher_than"),
 					resource.TestCheckResourceAttr("data.logtail_dashboard_alert.this", "value", "100"),
 					resource.TestCheckResourceAttr("data.logtail_dashboard_alert.this", "email", "true"),
+					resource.TestCheckResourceAttr("data.logtail_dashboard_alert.this", "variable_values.#", "2"),
+					resource.TestCheckResourceAttr("data.logtail_dashboard_alert.this", "variable_values.0.name", "environment"),
+					resource.TestCheckResourceAttr("data.logtail_dashboard_alert.this", "variable_values.0.values.0", "production"),
+					resource.TestCheckResourceAttr("data.logtail_dashboard_alert.this", "variable_values.0.selected_label", "Production"),
+					resource.TestCheckResourceAttr("data.logtail_dashboard_alert.this", "variable_values.1.values.#", "0"),
 				),
 			},
 			{

@@ -48,6 +48,9 @@ func newDashboardAlertDataSource() *schema.Resource {
 		s[k] = &cp
 	}
 
+	delete(s, "variable_value")
+	s["variable_values"] = alertVariableValuesDataSourceSchema()
+
 	return &schema.Resource{
 		ReadContext: dashboardAlertLookup,
 		Description: "This data source allows you to get information about an Alert on a Dashboard Chart in Better Stack Telemetry.",
@@ -107,7 +110,7 @@ func dashboardAlertLookup(ctx context.Context, d *schema.ResourceData, meta inte
 			// data source during the plan walk and reports a "read" change whenever
 			// the alert was touched in between.
 
-			return alertCopyAttrs(d, &item.Attributes)
+			return alertCopyAttrs(d, &item.Attributes, "variable_values")
 		}
 	}
 

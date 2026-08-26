@@ -6,6 +6,7 @@ import (
 	"io"
 	"net/http"
 	"net/http/httptest"
+	"reflect"
 	"regexp"
 	"strings"
 	"sync/atomic"
@@ -20,6 +21,7 @@ func TestResourceDashboardAlert(t *testing.T) {
 	var dashboardData atomic.Value
 	var chartData atomic.Value
 	var alertData atomic.Value
+	var variableValuesWrites atomic.Int32
 
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		t.Log("Received " + r.Method + " " + r.RequestURI)
@@ -136,6 +138,14 @@ func TestResourceDashboardAlert(t *testing.T) {
 			if err := json.Unmarshal(body, &reqData); err != nil {
 				t.Fatal(err)
 			}
+			wantVariableValues := []interface{}{
+				map[string]interface{}{"name": "environment", "values": []interface{}{"production"}, "selected_label": "Production"},
+				map[string]interface{}{"name": "level", "values": []interface{}{"error", "warning"}},
+			}
+			if !reflect.DeepEqual(reqData["variable_values"], wantVariableValues) {
+				t.Fatalf("create variable_values = %#v, want %#v", reqData["variable_values"], wantVariableValues)
+			}
+			variableValuesWrites.Add(1)
 			reqData["created_at"] = "2023-01-01T00:00:00Z"
 			reqData["updated_at"] = "2023-01-01T00:00:00Z"
 			reqData["series_names"] = []string{}
@@ -197,6 +207,24 @@ func TestResourceDashboardAlert(t *testing.T) {
 			var patchReq map[string]interface{}
 			if err = json.Unmarshal(body, &patchReq); err != nil {
 				t.Fatal(err)
+			}
+			if variableValues, ok := patchReq["variable_values"]; ok {
+				switch variableValuesWrites.Add(1) {
+				case 2:
+					want := []interface{}{
+						map[string]interface{}{"name": "environment", "values": []interface{}{"staging"}, "selected_label": "Staging"},
+						map[string]interface{}{"name": "level", "values": []interface{}{}},
+					}
+					if !reflect.DeepEqual(variableValues, want) {
+						t.Fatalf("update variable_values = %#v, want %#v", variableValues, want)
+					}
+				case 3:
+					if !reflect.DeepEqual(variableValues, []interface{}{}) {
+						t.Fatalf("removed variable_values = %#v, want []", variableValues)
+					}
+				default:
+					t.Fatalf("unexpected variable_values write: %#v", variableValues)
+				}
 			}
 			// The API treats the series fields as one setting: sending either one clears the other
 			_, hasSeriesNames := patchReq["series_names"]
@@ -268,6 +296,17 @@ func TestResourceDashboardAlert(t *testing.T) {
 					query_period        = 300
 					confirmation_period = 60
 
+
+					variable_value {
+						name           = "environment"
+						values         = ["production"]
+						selected_label = "Production"
+					}
+
+					variable_value {
+						name   = "level"
+						values = ["error", "warning"]
+					}
 					email = true
 					push  = true
 				}
@@ -282,6 +321,10 @@ func TestResourceDashboardAlert(t *testing.T) {
 					resource.TestCheckResourceAttr("logtail_dashboard_alert.this", "confirmation_period", "60"),
 					resource.TestCheckResourceAttr("logtail_dashboard_alert.this", "email", "true"),
 					resource.TestCheckResourceAttr("logtail_dashboard_alert.this", "push", "true"),
+					resource.TestCheckResourceAttr("logtail_dashboard_alert.this", "variable_value.#", "2"),
+					resource.TestCheckResourceAttr("logtail_dashboard_alert.this", "variable_value.0.name", "environment"),
+					resource.TestCheckResourceAttr("logtail_dashboard_alert.this", "variable_value.0.values.0", "production"),
+					resource.TestCheckResourceAttr("logtail_dashboard_alert.this", "variable_value.0.selected_label", "Production"),
 					resource.TestCheckResourceAttrSet("logtail_dashboard_alert.this", "created_at"),
 				),
 			},
@@ -333,6 +376,16 @@ func TestResourceDashboardAlert(t *testing.T) {
 					metadata = {
 						severity = "high"
 					}
+
+					variable_value {
+						name           = "environment"
+						values         = ["staging"]
+						selected_label = "Staging"
+					}
+
+					variable_value {
+						name = "level"
+					}
 				}
 				`,
 				Check: resource.ComposeTestCheckFunc(
@@ -345,6 +398,9 @@ func TestResourceDashboardAlert(t *testing.T) {
 					resource.TestCheckResourceAttr("logtail_dashboard_alert.this", "on_missing_data", "dont_fire"),
 					resource.TestCheckResourceAttr("logtail_dashboard_alert.this", "series_names_except.0", "staging"),
 					resource.TestCheckResourceAttr("logtail_dashboard_alert.this", "metadata.severity", "high"),
+					resource.TestCheckResourceAttr("logtail_dashboard_alert.this", "variable_value.#", "2"),
+					resource.TestCheckResourceAttr("logtail_dashboard_alert.this", "variable_value.0.values.0", "staging"),
+					resource.TestCheckResourceAttr("logtail_dashboard_alert.this", "variable_value.1.values.#", "0"),
 				),
 			},
 			// Step 3 - an explicitly empty series_names resets the alert to any-series
@@ -400,6 +456,7 @@ func TestResourceDashboardAlert(t *testing.T) {
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("logtail_dashboard_alert.this", "series_names.#", "0"),
 					resource.TestCheckResourceAttr("logtail_dashboard_alert.this", "series_names_except.#", "0"),
+					resource.TestCheckResourceAttr("logtail_dashboard_alert.this", "variable_value.#", "0"),
 				),
 			},
 			// Step 4 - import

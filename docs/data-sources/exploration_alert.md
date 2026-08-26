@@ -68,6 +68,7 @@ output "existing_exploration_alert_type" {
 - `string_value` (String) The string threshold value (only for threshold alerts with 'equal' or 'not_equal' operators).
 - `updated_at` (String) The time when this alert was updated.
 - `value` (Number) The numeric threshold value. Required for threshold and relative alerts.
+- `variable_values` (List of Object) Variable values pinned for this alert. (see [below for nested schema](#nestedatt--variable_values))
 
 <a id="nestedatt--additional_conditions"></a>
 ### Nested Schema for `additional_conditions`
@@ -91,3 +92,13 @@ Read-Only:
 - `policy_name` (String)
 - `team_id` (Number)
 - `team_name` (String)
+
+
+<a id="nestedatt--variable_values"></a>
+### Nested Schema for `variable_values`
+
+Read-Only:
+
+- `name` (String)
+- `selected_label` (String)
+- `values` (List of String)

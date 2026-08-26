@@ -1,7 +1,7 @@
 # Threshold alert notifying the team by e-mail and push
 # fires when the value crosses a fixed limit
 resource "logtail_exploration_alert" "errors_high" {
-  exploration_id      = logtail_exploration.this.id
+  exploration_id      = logtail_exploration.level_breakdown.id
   name                = "Too many errors"
   alert_type          = "threshold"
   operator            = "higher_than"
@@ -13,6 +13,12 @@ resource "logtail_exploration_alert" "errors_high" {
   # What to do when the query returns no data:
   # treat_as_zero / dont_fire / treat_as_previous / start_incident
   on_missing_data = "dont_fire"
+
+  # Pin the exploration's level variable for this alert
+  variable_value {
+    name   = "level"
+    values = ["error"]
+  }
 
   # Fire only when every additional condition holds together with the main
   # condition (logical AND on the same series and time bucket, up to 4)

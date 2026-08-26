@@ -46,6 +46,9 @@ func newExplorationAlertDataSource() *schema.Resource {
 		s[k] = &cp
 	}
 
+	delete(s, "variable_value")
+	s["variable_values"] = alertVariableValuesDataSourceSchema()
+
 	return &schema.Resource{
 		ReadContext: explorationAlertLookup,
 		Description: "This data source allows you to get information about an Alert on an Exploration in Better Stack Telemetry.",
@@ -99,7 +102,7 @@ func explorationAlertLookup(ctx context.Context, d *schema.ResourceData, meta in
 				return diag.FromErr(err)
 			}
 
-			return alertCopyAttrs(d, &item.Attributes)
+			return alertCopyAttrs(d, &item.Attributes, "variable_values")
 		}
 	}
 

@@ -3,12 +3,12 @@
 page_title: "logtail_dashboard_chart Resource - terraform-provider-logtail"
 subcategory: ""
 description: |-
-  This resource allows you to create, modify, and delete Charts in a Dashboard in Better Stack Telemetry.
+  This resource allows you to create, modify, and delete Charts in a Dashboard in Better Stack Telemetry. Chart-level variables are no longer supported. Define variables and saved values with variable blocks on logtail_dashboard, then pin per-alert values with variable_value blocks on logtail_dashboard_alert.
 ---
 
 # logtail_dashboard_chart (Resource)
 
-This resource allows you to create, modify, and delete Charts in a Dashboard in Better Stack Telemetry.
+This resource allows you to create, modify, and delete Charts in a Dashboard in Better Stack Telemetry. Chart-level variables are no longer supported. Define variables and saved values with `variable` blocks on `logtail_dashboard`, then pin per-alert values with `variable_value` blocks on `logtail_dashboard_alert`.
 
 ## Example Usage
 
@@ -117,21 +117,6 @@ resource "logtail_dashboard_chart" "tuned_events" {
     query_type = "sql_expression"
     sql_query  = "SELECT {{time}} AS time, countMerge(events_count) AS value FROM {{source}} WHERE {{time}} BETWEEN {{start_time}} AND {{end_time}} [[ AND label('environment') = {{environment}} ]] [[ AND label('level') = {{level}} ]] GROUP BY time ORDER BY time"
   }
-
-  variable {
-    name           = "environment"
-    variable_type  = "select_value"
-    default_values = ["production", "staging", "development"]
-    values         = ["staging"]
-  }
-
-  variable {
-    name                  = "level"
-    variable_type         = "select_with_sql"
-    sql_definition        = "label('level')"
-    values                = ["error", "warning"]
-    allow_multiple_values = true
-  }
 }
 
 # Error count for the selected environment
@@ -184,7 +169,6 @@ resource "logtail_dashboard_chart" "live_errors" {
 - `description` (String) The description of this chart.
 - `h` (Number) The height of this chart in grid units.
 - `settings` (String) Chart settings as a JSON string. Settings vary by chart type and include options like unit, decimal_places, legend, stacking, etc.
-- `variable` (Block List) Variables for this chart. Values are chart-specific and are used when evaluating chart alerts. Charts inherit the dashboard's variables (including the auto-created time, start_time, end_time, and source); Terraform surfaces and manages only the variables declared in this block. (see [below for nested schema](#nestedblock--variable))
 - `w` (Number) The width of this chart in grid units (1-12).
 - `x` (Number) The horizontal position of this chart in the dashboard grid (0-11).
 - `y` (Number) The vertical position of this chart in the dashboard grid.
@@ -213,19 +197,3 @@ Optional:
 Read-Only:
 
 - `id` (Number) The ID of this query (read-only).
-
-
-<a id="nestedblock--variable"></a>
-### Nested Schema for `variable`
-
-Required:
-
-- `name` (String) The name of the variable (used as {{name}} in queries).
-- `variable_type` (String) The type of variable: 'source', 'string', 'number', 'date', 'datetime', 'boolean', 'sql_expression', 'select_value', 'select_with_sql', or 'multi_select_with_sql'.
-
-Optional:
-
-- `allow_multiple_values` (Boolean) Whether 'select_value' or 'select_with_sql' accepts multiple selected values.
-- `default_values` (List of String) Fallback values or predefined options, depending on the variable type.
-- `sql_definition` (String) SQL definition for 'select_with_sql' or 'multi_select_with_sql' variables.
-- `values` (List of String) The selected values used to render this chart and evaluate its alerts.

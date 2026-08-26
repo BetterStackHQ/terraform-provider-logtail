@@ -72,7 +72,7 @@ func dashboardAlertCreate(ctx context.Context, d *schema.ResourceData, meta inte
 	}
 
 	d.SetId(fmt.Sprintf("%s/%s/%s", dashboardID, chartID, out.Data.ID))
-	return alertCopyAttrs(d, &out.Data.Attributes)
+	return alertCopyAttrs(d, &out.Data.Attributes, "variable_value")
 }
 
 func dashboardAlertRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
@@ -98,7 +98,7 @@ func dashboardAlertRead(ctx context.Context, d *schema.ResourceData, meta interf
 		return diag.FromErr(err)
 	}
 
-	return alertCopyAttrs(d, &out.Data.Attributes)
+	return alertCopyAttrs(d, &out.Data.Attributes, "variable_value")
 }
 
 func dashboardAlertUpdate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
