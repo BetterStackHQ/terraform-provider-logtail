@@ -14,8 +14,8 @@ This data source allows you to get information about an Alert on a Dashboard Cha
 
 ```terraform
 data "logtail_dashboard_alert" "high_error_rate" {
-  dashboard_id = logtail_dashboard.production.id
-  chart_id     = logtail_dashboard_chart.request_rate.id
+  dashboard_id = logtail_dashboard.tuned.id
+  chart_id     = logtail_dashboard_chart.tuned_errors.id
   name         = "High Error Rate"
 
   depends_on = [logtail_dashboard_alert.high_error_rate]
@@ -70,6 +70,7 @@ output "existing_dashboard_alert_type" {
 - `string_value` (String) The string threshold value (only for threshold alerts with 'equal' or 'not_equal' operators).
 - `updated_at` (String) The time when this alert was updated.
 - `value` (Number) The numeric threshold value. Required for threshold and relative alerts.
+- `variable_values` (List of Object) Variable values pinned for this alert. (see [below for nested schema](#nestedatt--variable_values))
 
 <a id="nestedatt--additional_conditions"></a>
 ### Nested Schema for `additional_conditions`
@@ -93,3 +94,13 @@ Read-Only:
 - `policy_name` (String)
 - `team_id` (Number)
 - `team_name` (String)
+
+
+<a id="nestedatt--variable_values"></a>
+### Nested Schema for `variable_values`
+
+Read-Only:
+
+- `name` (String)
+- `selected_label` (String)
+- `values` (List of String)

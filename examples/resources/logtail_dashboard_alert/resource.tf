@@ -1,8 +1,8 @@
 # Threshold alert notifying the team by e-mail and push
 # fires when a chart value crosses a fixed limit
 resource "logtail_dashboard_alert" "high_error_rate" {
-  dashboard_id        = logtail_dashboard.production.id
-  chart_id            = logtail_dashboard_chart.request_rate.id
+  dashboard_id        = logtail_dashboard.tuned.id
+  chart_id            = logtail_dashboard_chart.tuned_errors.id
   name                = "High Error Rate"
   alert_type          = "threshold"
   operator            = "higher_than"
@@ -17,6 +17,12 @@ resource "logtail_dashboard_alert" "high_error_rate" {
   # What to do when the query returns no data:
   # treat_as_zero / dont_fire / treat_as_previous / start_incident
   on_missing_data = "treat_as_zero"
+
+  # Pin the dashboard's environment variable for this alert
+  variable_value {
+    name   = "environment"
+    values = ["production"]
+  }
 
   # Fire only when every additional condition holds together with the main
   # condition (logical AND on the same series and time bucket, up to 4)

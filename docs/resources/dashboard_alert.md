@@ -16,8 +16,8 @@ This resource allows you to create, modify, and delete Alerts on Dashboard Chart
 # Threshold alert notifying the team by e-mail and push
 # fires when a chart value crosses a fixed limit
 resource "logtail_dashboard_alert" "high_error_rate" {
-  dashboard_id        = logtail_dashboard.production.id
-  chart_id            = logtail_dashboard_chart.request_rate.id
+  dashboard_id        = logtail_dashboard.tuned.id
+  chart_id            = logtail_dashboard_chart.tuned_errors.id
   name                = "High Error Rate"
   alert_type          = "threshold"
   operator            = "higher_than"
@@ -32,6 +32,12 @@ resource "logtail_dashboard_alert" "high_error_rate" {
   # What to do when the query returns no data:
   # treat_as_zero / dont_fire / treat_as_previous / start_incident
   on_missing_data = "treat_as_zero"
+
+  # Pin the dashboard's environment variable for this alert
+  variable_value {
+    name   = "environment"
+    values = ["production"]
+  }
 
   # Fire only when every additional condition holds together with the main
   # condition (logical AND on the same series and time bucket, up to 4)
@@ -160,6 +166,7 @@ resource "logtail_dashboard_alert" "service_down" {
 - `source_variable` (String) Source reference (format: 'source:table_name'). If omitted, derived from the parent resource's source variable.
 - `string_value` (String) The string threshold value (only for threshold alerts with 'equal' or 'not_equal' operators).
 - `value` (Number) The numeric threshold value. Required for threshold and relative alerts.
+- `variable_value` (Block List) Values pinned for a dashboard or exploration variable when evaluating this alert. (see [below for nested schema](#nestedblock--variable_value))
 
 ### Read-Only
 
@@ -193,3 +200,16 @@ Optional:
 - `policy_name` (String) The Better Stack escalation policy name.
 - `team_id` (Number) The Better Stack team ID to escalate to.
 - `team_name` (String) The Better Stack team name to escalate to.
+
+
+<a id="nestedblock--variable_value"></a>
+### Nested Schema for `variable_value`
+
+Required:
+
+- `name` (String) The name of an existing non-source dashboard or exploration variable.
+
+Optional:
+
+- `selected_label` (String) The selected label for a predefined SQL variable.
+- `values` (List of String) The values to use when evaluating this alert.

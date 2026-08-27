@@ -6,6 +6,7 @@ import (
 	"io"
 	"net/http"
 	"net/http/httptest"
+	"reflect"
 	"regexp"
 	"strings"
 	"sync/atomic"
@@ -19,6 +20,7 @@ import (
 func TestResourceExplorationAlert(t *testing.T) {
 	var explorationData atomic.Value
 	var alertData atomic.Value
+	var variableValuesWrites atomic.Int32
 
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		t.Log("Received " + r.Method + " " + r.RequestURI)
@@ -109,6 +111,13 @@ func TestResourceExplorationAlert(t *testing.T) {
 			if err := json.Unmarshal(body, &reqData); err != nil {
 				t.Fatal(err)
 			}
+			wantVariableValues := []interface{}{
+				map[string]interface{}{"name": "level", "values": []interface{}{"error"}, "selected_label": "Error"},
+			}
+			if !reflect.DeepEqual(reqData["variable_values"], wantVariableValues) {
+				t.Fatalf("create variable_values = %#v, want %#v", reqData["variable_values"], wantVariableValues)
+			}
+			variableValuesWrites.Add(1)
 			// Add API-computed fields (always present)
 			reqData["created_at"] = "2023-01-01T00:00:00Z"
 			reqData["updated_at"] = "2023-01-01T00:00:00Z"
@@ -190,6 +199,23 @@ func TestResourceExplorationAlert(t *testing.T) {
 			if err = json.Unmarshal(body, &patchReq); err != nil {
 				t.Fatal(err)
 			}
+			if variableValues, ok := patchReq["variable_values"]; ok {
+				switch variableValuesWrites.Add(1) {
+				case 2:
+					want := []interface{}{
+						map[string]interface{}{"name": "level", "values": []interface{}{"warning", "error"}, "selected_label": "Warning and error"},
+					}
+					if !reflect.DeepEqual(variableValues, want) {
+						t.Fatalf("update variable_values = %#v, want %#v", variableValues, want)
+					}
+				case 3:
+					if !reflect.DeepEqual(variableValues, []interface{}{}) {
+						t.Fatalf("removed variable_values = %#v, want []", variableValues)
+					}
+				default:
+					t.Fatalf("unexpected variable_values write: %#v", variableValues)
+				}
+			}
 			// The API treats the series fields as one setting: sending either one clears the other
 			_, hasSeriesNames := patchReq["series_names"]
 			_, hasSeriesNamesExcept := patchReq["series_names_except"]
@@ -258,6 +284,12 @@ func TestResourceExplorationAlert(t *testing.T) {
 					confirmation_period = 60
 					recovery_period     = 300
 
+
+					variable_value {
+						name           = "level"
+						values         = ["error"]
+						selected_label = "Error"
+					}
 					email = true
 					push  = true
 				}
@@ -273,6 +305,10 @@ func TestResourceExplorationAlert(t *testing.T) {
 					resource.TestCheckResourceAttr("logtail_exploration_alert.this", "confirmation_period", "60"),
 					resource.TestCheckResourceAttr("logtail_exploration_alert.this", "email", "true"),
 					resource.TestCheckResourceAttr("logtail_exploration_alert.this", "push", "true"),
+					resource.TestCheckResourceAttr("logtail_exploration_alert.this", "variable_value.#", "1"),
+					resource.TestCheckResourceAttr("logtail_exploration_alert.this", "variable_value.0.name", "level"),
+					resource.TestCheckResourceAttr("logtail_exploration_alert.this", "variable_value.0.values.0", "error"),
+					resource.TestCheckResourceAttr("logtail_exploration_alert.this", "variable_value.0.selected_label", "Error"),
 					resource.TestCheckResourceAttrSet("logtail_exploration_alert.this", "created_at"),
 				),
 			},
@@ -318,6 +354,12 @@ func TestResourceExplorationAlert(t *testing.T) {
 					metadata = {
 						severity = "high"
 					}
+
+					variable_value {
+						name           = "level"
+						values         = ["warning", "error"]
+						selected_label = "Warning and error"
+					}
 				}
 				`,
 				Check: resource.ComposeTestCheckFunc(
@@ -330,9 +372,58 @@ func TestResourceExplorationAlert(t *testing.T) {
 					resource.TestCheckResourceAttr("logtail_exploration_alert.this", "on_missing_data", "treat_as_previous"),
 					resource.TestCheckResourceAttr("logtail_exploration_alert.this", "series_names_except.0", "staging"),
 					resource.TestCheckResourceAttr("logtail_exploration_alert.this", "metadata.severity", "high"),
+					resource.TestCheckResourceAttr("logtail_exploration_alert.this", "variable_value.#", "1"),
+					resource.TestCheckResourceAttr("logtail_exploration_alert.this", "variable_value.0.values.#", "2"),
+					resource.TestCheckResourceAttr("logtail_exploration_alert.this", "variable_value.0.selected_label", "Warning and error"),
 				),
 			},
-			// Step 3 - import
+			// Step 3 - remove all variable values
+			{
+				Config: `
+				provider "logtail" {
+					api_token = "foo"
+				}
+
+				resource "logtail_exploration" "this" {
+					name = "Test Exploration"
+
+					chart {
+						chart_type = "line_chart"
+					}
+
+					query {
+						query_type = "sql_expression"
+						sql_query  = "SELECT {{time}} AS time, count(*) AS value FROM {{source}} WHERE time BETWEEN {{start_time}} AND {{end_time}} GROUP BY time"
+					}
+				}
+
+				resource "logtail_exploration_alert" "this" {
+					exploration_id      = logtail_exploration.this.id
+					name                = "Test Alert Updated"
+					alert_type          = "threshold"
+					operator            = "higher_than"
+					value               = 200
+					check_period        = 120
+					query_period        = 600
+					confirmation_period = 120
+					recovery_period     = 600
+
+					email          = true
+					push           = true
+					call           = true
+					critical_alert = true
+
+					on_missing_data     = "treat_as_previous"
+					series_names_except = ["staging"]
+
+					metadata = {
+						severity = "high"
+					}
+				}
+				`,
+				Check: resource.TestCheckResourceAttr("logtail_exploration_alert.this", "variable_value.#", "0"),
+			},
+			// Step 4 - import
 			{
 				ResourceName:      "logtail_exploration_alert.this",
 				ImportState:       true,

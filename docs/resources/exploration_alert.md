@@ -29,6 +29,12 @@ resource "logtail_exploration_alert" "errors_high" {
   # treat_as_zero / dont_fire / treat_as_previous / start_incident
   on_missing_data = "dont_fire"
 
+  # Pin the exploration's level variable for this alert
+  variable_value {
+    name   = "level"
+    values = ["error"]
+  }
+
   # Fire only when every additional condition holds together with the main
   # condition (logical AND on the same series and time bucket, up to 4)
   additional_conditions {
@@ -152,6 +158,7 @@ resource "logtail_exploration_alert" "all_http_errors" {
 - `source_variable` (String) Source reference (format: 'source:table_name'). If omitted, derived from the parent resource's source variable.
 - `string_value` (String) The string threshold value (only for threshold alerts with 'equal' or 'not_equal' operators).
 - `value` (Number) The numeric threshold value. Required for threshold and relative alerts.
+- `variable_value` (Block List) Values pinned for a dashboard or exploration variable when evaluating this alert. (see [below for nested schema](#nestedblock--variable_value))
 
 ### Read-Only
 
@@ -185,3 +192,16 @@ Optional:
 - `policy_name` (String) The Better Stack escalation policy name.
 - `team_id` (Number) The Better Stack team ID to escalate to.
 - `team_name` (String) The Better Stack team name to escalate to.
+
+
+<a id="nestedblock--variable_value"></a>
+### Nested Schema for `variable_value`
+
+Required:
+
+- `name` (String) The name of an existing non-source dashboard or exploration variable.
+
+Optional:
+
+- `selected_label` (String) The selected label for a predefined SQL variable.
+- `values` (List of String) The values to use when evaluating this alert.

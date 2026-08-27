@@ -180,6 +180,31 @@ var alertSchema = map[string]*schema.Schema{
 		Elem:          &schema.Schema{Type: schema.TypeString},
 		ConflictsWith: []string{"series_names"},
 	},
+	"variable_value": {
+		Description: "Values pinned for a dashboard or exploration variable when evaluating this alert.",
+		Type:        schema.TypeList,
+		Optional:    true,
+		Elem: &schema.Resource{
+			Schema: map[string]*schema.Schema{
+				"name": {
+					Description: "The name of an existing non-source dashboard or exploration variable.",
+					Type:        schema.TypeString,
+					Required:    true,
+				},
+				"values": {
+					Description: "The values to use when evaluating this alert.",
+					Type:        schema.TypeList,
+					Optional:    true,
+					Elem:        &schema.Schema{Type: schema.TypeString},
+				},
+				"selected_label": {
+					Description: "The selected label for a predefined SQL variable.",
+					Type:        schema.TypeString,
+					Optional:    true,
+				},
+			},
+		},
+	},
 	"additional_conditions": {
 		Description: "Additional conditions that must all be met together with the main alert condition for the alert to fire (logical AND, evaluated per series on the same time bucket). Up to 4 additional conditions; 'threshold' and 'relative' types only.",
 		Type:        schema.TypeList,
@@ -374,6 +399,34 @@ var alertSchema = map[string]*schema.Schema{
 	},
 }
 
+func alertVariableValuesDataSourceSchema() *schema.Schema {
+	return &schema.Schema{
+		Description: "Variable values pinned for this alert.",
+		Type:        schema.TypeList,
+		Computed:    true,
+		Elem: &schema.Resource{
+			Schema: map[string]*schema.Schema{
+				"name": {
+					Description: "The variable name.",
+					Type:        schema.TypeString,
+					Computed:    true,
+				},
+				"values": {
+					Description: "The values used when evaluating this alert.",
+					Type:        schema.TypeList,
+					Computed:    true,
+					Elem:        &schema.Schema{Type: schema.TypeString},
+				},
+				"selected_label": {
+					Description: "The selected label for a predefined SQL variable.",
+					Type:        schema.TypeString,
+					Computed:    true,
+				},
+			},
+		},
+	}
+}
+
 // alertMetadataValue represents a Better Stack alert metadata value, which may
 // be either a plain string or a JSON array of strings on the wire. The API
 // always returns arrays on reads but still accepts both shapes on writes.
@@ -508,6 +561,7 @@ type alert struct {
 	AnomalyTrigger           *string                       `json:"anomaly_trigger,omitempty"`
 	AnomalyTrainingRangeDays *int                          `json:"anomaly_training_range_days,omitempty"`
 	AdditionalConditions     *[]alertCondition             `json:"additional_conditions,omitempty"`
+	VariableValues           *[]alertVariableValue         `json:"variable_values,omitempty"`
 	EscalationTarget         alertEscalationTargetWrapper  `json:"escalation_target,omitempty"`
 	Metadata                 map[string]alertMetadataValue `json:"metadata,omitempty"`
 	CreatedAt                *string                       `json:"created_at,omitempty"`
@@ -530,6 +584,12 @@ type alertCondition struct {
 	StringValue       *string   `json:"string_value,omitempty"`
 	SeriesNames       *[]string `json:"series_names,omitempty"`
 	SeriesNamesExcept *[]string `json:"series_names_except,omitempty"`
+}
+
+type alertVariableValue struct {
+	Name          string   `json:"name"`
+	Values        []string `json:"values"`
+	SelectedLabel *string  `json:"selected_label,omitempty"`
 }
 
 // conditionsFromRawConfig converts the raw config list of additional_conditions
@@ -670,6 +730,30 @@ func loadAlert(d *schema.ResourceData) alert {
 			in.AdditionalConditions = conditionsFromRawConfig(conds)
 		}
 	}
+	if variableValueData, ok := d.GetOk("variable_value"); ok {
+		variableValues := make([]alertVariableValue, 0, len(variableValueData.([]interface{})))
+		for _, rawVariableValue := range variableValueData.([]interface{}) {
+			valueMap := rawVariableValue.(map[string]interface{})
+			variableValue := alertVariableValue{
+				Name:   valueMap["name"].(string),
+				Values: []string{},
+			}
+			if rawValues, ok := valueMap["values"].([]interface{}); ok {
+				variableValue.Values = make([]string, 0, len(rawValues))
+				for _, rawValue := range rawValues {
+					variableValue.Values = append(variableValue.Values, rawValue.(string))
+				}
+			}
+			if selectedLabel, ok := valueMap["selected_label"].(string); ok && selectedLabel != "" {
+				variableValue.SelectedLabel = &selectedLabel
+			}
+			variableValues = append(variableValues, variableValue)
+		}
+		in.VariableValues = &variableValues
+	} else if d.HasChange("variable_value") {
+		variableValues := []alertVariableValue{}
+		in.VariableValues = &variableValues
+	}
 	if v, ok := d.GetOk("source_platforms"); ok {
 		list := v.([]interface{})
 		platforms := make([]string, 0, len(list))
@@ -720,7 +804,7 @@ func loadAlert(d *schema.ResourceData) alert {
 	return in
 }
 
-func alertCopyAttrs(d *schema.ResourceData, in *alert) diag.Diagnostics {
+func alertCopyAttrs(d *schema.ResourceData, in *alert, variableValuesKey string) diag.Diagnostics {
 	var derr diag.Diagnostics
 
 	// Copy string fields
@@ -906,6 +990,22 @@ func alertCopyAttrs(d *schema.ResourceData, in *alert) diag.Diagnostics {
 			conds = append(conds, item)
 		}
 		if err := d.Set("additional_conditions", conds); err != nil {
+			derr = append(derr, diag.FromErr(err)[0])
+		}
+	}
+	if in.VariableValues != nil {
+		variableValues := make([]interface{}, 0, len(*in.VariableValues))
+		for _, value := range *in.VariableValues {
+			item := map[string]interface{}{
+				"name":   value.Name,
+				"values": value.Values,
+			}
+			if value.SelectedLabel != nil {
+				item["selected_label"] = *value.SelectedLabel
+			}
+			variableValues = append(variableValues, item)
+		}
+		if err := d.Set(variableValuesKey, variableValues); err != nil {
 			derr = append(derr, diag.FromErr(err)[0])
 		}
 	}

@@ -51,7 +51,7 @@ func explorationAlertCreate(ctx context.Context, d *schema.ResourceData, meta in
 
 	// Set composite ID: exploration_id/alert_id
 	d.SetId(fmt.Sprintf("%s/%s", explorationID, out.Data.ID))
-	return alertCopyAttrs(d, &out.Data.Attributes)
+	return alertCopyAttrs(d, &out.Data.Attributes, "variable_value")
 }
 
 func explorationAlertRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
@@ -74,7 +74,7 @@ func explorationAlertRead(ctx context.Context, d *schema.ResourceData, meta inte
 		return diag.FromErr(err)
 	}
 
-	return alertCopyAttrs(d, &out.Data.Attributes)
+	return alertCopyAttrs(d, &out.Data.Attributes, "variable_value")
 }
 
 func explorationAlertUpdate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
