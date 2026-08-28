@@ -96,7 +96,11 @@ resource "logtail_collector" "kubernetes" {
       ebpf_metrics             = true
       ebpf_red_metrics         = true
       ebpf_tracing_full        = true
-      metrics_databases        = true
+      metrics_cluster          = true
+      metrics_postgres         = true
+      metrics_mysql            = true
+      metrics_elasticsearch    = true
+      metrics_pgbouncer        = true
       metrics_nginx            = true
       metrics_apache           = true
       metrics_traefik          = true
@@ -233,8 +237,13 @@ Optional:
 - `logs_host` (Boolean) Collect host-level logs.
 - `logs_kubernetes` (Boolean) Collect Kubernetes logs.
 - `metrics_apache` (Boolean) Collect Apache metrics.
-- `metrics_databases` (Boolean) Collect database metrics via the cluster agent.
+- `metrics_cluster` (Boolean) Run the cluster agent for database metrics. Takes precedence over `metrics_databases` when both are set.
+- `metrics_databases` (Boolean, Deprecated) Run the cluster agent for database metrics.
+- `metrics_elasticsearch` (Boolean) Enable the Elasticsearch metrics exporter. Defaults to true.
+- `metrics_mysql` (Boolean) Enable the MySQL metrics exporter. Defaults to true.
 - `metrics_nginx` (Boolean) Collect Nginx metrics.
+- `metrics_pgbouncer` (Boolean) Enable the PgBouncer metrics exporter. Defaults to true.
+- `metrics_postgres` (Boolean) Enable the PostgreSQL metrics exporter. Defaults to true.
 - `metrics_traefik` (Boolean) Collect Traefik metrics.
 - `traces_opentelemetry` (Boolean) Accept OpenTelemetry SDK traces on ports 4317 (gRPC) and 4318 (HTTP).
 

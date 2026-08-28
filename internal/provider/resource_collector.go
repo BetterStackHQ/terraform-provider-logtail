@@ -246,7 +246,12 @@ var collectorSchema = map[string]*schema.Schema{
 							"logs_docker":              {Description: "Collect Docker container logs.", Type: schema.TypeBool, Optional: true, Computed: true},
 							"logs_kubernetes":          {Description: "Collect Kubernetes logs.", Type: schema.TypeBool, Optional: true, Computed: true},
 							"logs_collector_internals": {Description: "Collect internal collector logs.", Type: schema.TypeBool, Optional: true, Computed: true},
-							"metrics_databases":        {Description: "Collect database metrics via the cluster agent.", Type: schema.TypeBool, Optional: true, Computed: true},
+							"metrics_cluster":          {Description: "Run the cluster agent for database metrics. Takes precedence over `metrics_databases` when both are set.", Type: schema.TypeBool, Optional: true, Computed: true},
+							"metrics_databases":        {Description: "Run the cluster agent for database metrics.", Type: schema.TypeBool, Optional: true, Computed: true, Deprecated: "Use `metrics_cluster` instead."},
+							"metrics_postgres":         {Description: "Enable the PostgreSQL metrics exporter. Defaults to true.", Type: schema.TypeBool, Optional: true, Computed: true},
+							"metrics_mysql":            {Description: "Enable the MySQL metrics exporter. Defaults to true.", Type: schema.TypeBool, Optional: true, Computed: true},
+							"metrics_elasticsearch":    {Description: "Enable the Elasticsearch metrics exporter. Defaults to true.", Type: schema.TypeBool, Optional: true, Computed: true},
+							"metrics_pgbouncer":        {Description: "Enable the PgBouncer metrics exporter. Defaults to true.", Type: schema.TypeBool, Optional: true, Computed: true},
 							"metrics_nginx":            {Description: "Collect Nginx metrics.", Type: schema.TypeBool, Optional: true, Computed: true},
 							"metrics_apache":           {Description: "Collect Apache metrics.", Type: schema.TypeBool, Optional: true, Computed: true},
 							"metrics_traefik":          {Description: "Collect Traefik metrics.", Type: schema.TypeBool, Optional: true, Computed: true},
@@ -388,7 +393,12 @@ type collectorComponents struct {
 	LogsDocker            *bool `json:"logs_docker,omitempty"`
 	LogsKubernetes        *bool `json:"logs_kubernetes,omitempty"`
 	LogsCollectorInternal *bool `json:"logs_collector_internals,omitempty"`
+	MetricsCluster        *bool `json:"metrics_cluster,omitempty"`
 	MetricsDatabases      *bool `json:"metrics_databases,omitempty"`
+	MetricsPostgres       *bool `json:"metrics_postgres,omitempty"`
+	MetricsMySQL          *bool `json:"metrics_mysql,omitempty"`
+	MetricsElasticsearch  *bool `json:"metrics_elasticsearch,omitempty"`
+	MetricsPgBouncer      *bool `json:"metrics_pgbouncer,omitempty"`
 	MetricsNginx          *bool `json:"metrics_nginx,omitempty"`
 	MetricsApache         *bool `json:"metrics_apache,omitempty"`
 	MetricsTraefik        *bool `json:"metrics_traefik,omitempty"`
@@ -693,7 +703,7 @@ func loadCollectorConfiguration(d *schema.ResourceData) *collectorConfiguration 
 		cfg.TracesSampleRate = intPtr(v)
 	}
 
-	// Components (flat block with 10 boolean fields)
+	// Components (flat block with boolean fields)
 	if componentsData, ok := configMap["components"].([]interface{}); ok && len(componentsData) > 0 {
 		cm := componentsData[0].(map[string]interface{})
 		cfg.Components = &collectorComponents{
@@ -701,7 +711,12 @@ func loadCollectorConfiguration(d *schema.ResourceData) *collectorConfiguration 
 			LogsDocker:            boolPtrIfSet(cm, "logs_docker"),
 			LogsKubernetes:        boolPtrIfSet(cm, "logs_kubernetes"),
 			LogsCollectorInternal: boolPtrIfSet(cm, "logs_collector_internals"),
+			MetricsCluster:        boolPtrIfSet(cm, "metrics_cluster"),
 			MetricsDatabases:      boolPtrIfSet(cm, "metrics_databases"),
+			MetricsPostgres:       boolPtrIfSet(cm, "metrics_postgres"),
+			MetricsMySQL:          boolPtrIfSet(cm, "metrics_mysql"),
+			MetricsElasticsearch:  boolPtrIfSet(cm, "metrics_elasticsearch"),
+			MetricsPgBouncer:      boolPtrIfSet(cm, "metrics_pgbouncer"),
 			MetricsNginx:          boolPtrIfSet(cm, "metrics_nginx"),
 			MetricsApache:         boolPtrIfSet(cm, "metrics_apache"),
 			MetricsTraefik:        boolPtrIfSet(cm, "metrics_traefik"),
@@ -976,8 +991,23 @@ func collectorCopyAttrs(d *schema.ResourceData, in *collector) diag.Diagnostics 
 			if c.LogsCollectorInternal != nil {
 				componentsData["logs_collector_internals"] = *c.LogsCollectorInternal
 			}
+			if c.MetricsCluster != nil {
+				componentsData["metrics_cluster"] = *c.MetricsCluster
+			}
 			if c.MetricsDatabases != nil {
 				componentsData["metrics_databases"] = *c.MetricsDatabases
+			}
+			if c.MetricsPostgres != nil {
+				componentsData["metrics_postgres"] = *c.MetricsPostgres
+			}
+			if c.MetricsMySQL != nil {
+				componentsData["metrics_mysql"] = *c.MetricsMySQL
+			}
+			if c.MetricsElasticsearch != nil {
+				componentsData["metrics_elasticsearch"] = *c.MetricsElasticsearch
+			}
+			if c.MetricsPgBouncer != nil {
+				componentsData["metrics_pgbouncer"] = *c.MetricsPgBouncer
 			}
 			if c.MetricsNginx != nil {
 				componentsData["metrics_nginx"] = *c.MetricsNginx
