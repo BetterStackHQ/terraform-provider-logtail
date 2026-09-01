@@ -91,8 +91,13 @@ Read-Only:
 - `logs_host` (Boolean)
 - `logs_kubernetes` (Boolean)
 - `metrics_apache` (Boolean)
+- `metrics_cluster` (Boolean)
 - `metrics_databases` (Boolean)
+- `metrics_elasticsearch` (Boolean)
+- `metrics_mysql` (Boolean)
 - `metrics_nginx` (Boolean)
+- `metrics_pgbouncer` (Boolean)
+- `metrics_postgres` (Boolean)
 - `metrics_traefik` (Boolean)
 - `traces_opentelemetry` (Boolean)
 
