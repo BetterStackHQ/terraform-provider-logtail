@@ -3,17 +3,18 @@
 page_title: "logtail_errors_release Resource - terraform-provider-logtail"
 subcategory: ""
 description: |-
-  This resource allows you to register and remove releases of your Errors applications. Creating a release registers it the moment it deploys, before its first error arrives. Destroying a release is a hard delete: a release that is still receiving error events is re-detected automatically by the platform (about a minute after its next event).
+  This resource allows you to register releases of your Errors applications, the moment they deploy, before their first error arrives. Releases are append-only history: bumping version registers a new release and leaves the previous ones in place, and destroying the resource only drops it from Terraform state. Remove a release registered by accident from the Better Stack UI or with DELETE /api/v1/releases/{id}.
 ---
 
 # logtail_errors_release (Resource)
 
-This resource allows you to register and remove releases of your Errors applications. Creating a release registers it the moment it deploys, before its first error arrives. Destroying a release is a hard delete: a release that is still receiving error events is re-detected automatically by the platform (about a minute after its next event).
+This resource allows you to register releases of your Errors applications, the moment they deploy, before their first error arrives. Releases are append-only history: bumping `version` registers a new release and leaves the previous ones in place, and destroying the resource only drops it from Terraform state. Remove a release registered by accident from the Better Stack UI or with `DELETE /api/v1/releases/{id}`.
 
 ## Example Usage
 
 ```terraform
-# Register a release the moment it deploys, before its first error arrives
+# Register a release the moment it deploys, before its first error arrives.
+# Releases are append-only: bumping the version registers a new one and keeps the old.
 resource "logtail_errors_release" "this" {
   application_id = logtail_errors_application.this.id
   version        = "v1.0.0"

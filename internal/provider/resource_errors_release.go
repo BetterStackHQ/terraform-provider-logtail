@@ -73,7 +73,7 @@ func newErrorsReleaseResource() *schema.Resource {
 		Importer: &schema.ResourceImporter{
 			StateContext: schema.ImportStatePassthroughContext,
 		},
-		Description: "This resource allows you to register and remove releases of your Errors applications. Creating a release registers it the moment it deploys, before its first error arrives. Destroying a release is a hard delete: a release that is still receiving error events is re-detected automatically by the platform (about a minute after its next event).",
+		Description: "This resource allows you to register releases of your Errors applications, the moment they deploy, before their first error arrives. Releases are append-only history: bumping `version` registers a new release and leaves the previous ones in place, and destroying the resource only drops it from Terraform state. Remove a release registered by accident from the Better Stack UI or with `DELETE /api/v1/releases/{id}`.",
 		Schema:      errorsReleaseSchema,
 	}
 }
@@ -168,6 +168,9 @@ func errorsReleaseCopyAttrs(d *schema.ResourceData, in *errorsRelease) diag.Diag
 	return derr
 }
 
+// Deliberately does not call DELETE. Every input is ForceNew, so a version bump destroys the
+// old resource and creates the new one - deleting here would drop the previous release on every
+// deploy and leave the application with no history beyond its current version.
 func errorsReleaseDelete(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	return resourceDeleteWithBaseURL(ctx, meta, meta.(*client).ErrorsBaseURL(), fmt.Sprintf("/api/v1/releases/%s", url.PathEscape(d.Id())))
+	return nil
 }

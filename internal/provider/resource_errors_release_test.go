@@ -74,9 +74,8 @@ func errorsReleaseTestServer(t *testing.T, canonicalApplicationID int) *httptest
 				return
 			}
 			_, _ = w.Write([]byte(fmt.Sprintf(`{"data":{"id":%q,"type":"release","attributes":%s}}`, id, stored)))
-		case r.Method == http.MethodDelete && r.RequestURI == prefix+"/"+id:
-			w.WriteHeader(http.StatusNoContent)
-			data.Store([]byte(nil))
+		// No DELETE case on purpose: releases are append-only, so the provider must never
+		// remove one. A stray DELETE falls through to the default and fails the test.
 		default:
 			t.Fatal("Unexpected " + r.Method + " " + r.RequestURI)
 		}
