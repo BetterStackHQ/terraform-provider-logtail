@@ -35,6 +35,8 @@ resource "logtail_errors_release" "this" {
 
 ### Read-Only
 
+- `created_at` (String) The time when this release was created.
 - `first_seen_at` (String) The time when this release was first seen.
 - `id` (String) The ID of this release.
 - `origin` (String) How this release was detected, e.g. `reported` for releases registered via the API.
+- `updated_at` (String) The time when this release was last updated.

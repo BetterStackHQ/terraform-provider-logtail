@@ -61,7 +61,7 @@ func errorsReleaseTestServer(t *testing.T, canonicalApplicationID int) *httptest
 				t.Fatal(err)
 			}
 			data.Store([]byte(fmt.Sprintf(
-				`{"version":%q,"application_id":%d,"environments":%s,"first_seen_at":"2026-08-18T09:00:00.000Z","last_seen_at":null,"origin":"reported"}`,
+				`{"version":%q,"application_id":%d,"environments":%s,"first_seen_at":"2026-08-18T09:00:00.000Z","last_seen_at":null,"origin":"reported","created_at":"2026-08-18T09:00:00.000Z","updated_at":"2026-08-18T09:30:00.000Z"}`,
 				*in.Version, canonicalApplicationID, environments)))
 			w.WriteHeader(http.StatusCreated)
 			_, _ = w.Write([]byte(fmt.Sprintf(
@@ -117,6 +117,8 @@ func TestResourceErrorsRelease(t *testing.T) {
 					resource.TestCheckResourceAttr("logtail_errors_release.this", "environments.0", "production"),
 					resource.TestCheckResourceAttr("logtail_errors_release.this", "first_seen_at", "2026-08-18T09:00:00.000Z"),
 					resource.TestCheckResourceAttr("logtail_errors_release.this", "origin", "reported"),
+					resource.TestCheckResourceAttr("logtail_errors_release.this", "created_at", "2026-08-18T09:00:00.000Z"),
+					resource.TestCheckResourceAttr("logtail_errors_release.this", "updated_at", "2026-08-18T09:30:00.000Z"),
 				),
 			},
 			// Step 2 - change version (should force recreation, there is no update endpoint).

@@ -51,6 +51,18 @@ var errorsReleaseSchema = map[string]*schema.Schema{
 		Optional:    false,
 		Computed:    true,
 	},
+	"created_at": {
+		Description: "The time when this release was created.",
+		Type:        schema.TypeString,
+		Optional:    false,
+		Computed:    true,
+	},
+	"updated_at": {
+		Description: "The time when this release was last updated.",
+		Type:        schema.TypeString,
+		Optional:    false,
+		Computed:    true,
+	},
 }
 
 func newErrorsReleaseResource() *schema.Resource {
@@ -71,6 +83,8 @@ type errorsRelease struct {
 	ApplicationID *int    `json:"application_id,omitempty"`
 	FirstSeenAt   *string `json:"first_seen_at,omitempty"`
 	Origin        *string `json:"origin,omitempty"`
+	CreatedAt     *string `json:"created_at,omitempty"`
+	UpdatedAt     *string `json:"updated_at,omitempty"`
 }
 
 type errorsReleaseHTTPResponse struct {
@@ -108,6 +122,8 @@ func errorsReleaseRef(in *errorsRelease) []struct {
 		{k: "application_id", v: &in.ApplicationID},
 		{k: "first_seen_at", v: &in.FirstSeenAt},
 		{k: "origin", v: &in.Origin},
+		{k: "created_at", v: &in.CreatedAt},
+		{k: "updated_at", v: &in.UpdatedAt},
 	}
 }
 
