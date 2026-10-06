@@ -55,8 +55,8 @@ resource "logtail_exploration_alert" "errors_spike" {
   alert_type          = "relative"
   operator            = "increases_by"
   value               = 50
-  check_period        = 300
-  query_period        = 3600
+  check_period        = 600
+  query_period        = 1800
   recovery_period     = 300
   incident_per_series = true
   series_names        = ["500", "503"]
