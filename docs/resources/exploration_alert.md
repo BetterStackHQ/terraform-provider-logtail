@@ -48,15 +48,17 @@ resource "logtail_exploration_alert" "errors_high" {
 }
 
 # Relative alert escalating to an on-call policy
-# with per-series incidents, custom incident text and metadata
+# with per-series incidents, custom incident text and metadata.
+# Longer query windows need a longer check period - the API rejects
+# combinations that are too resource intensive to evaluate
 resource "logtail_exploration_alert" "errors_spike" {
   exploration_id      = logtail_exploration.this.id
   name                = "5xx spike"
   alert_type          = "relative"
   operator            = "increases_by"
   value               = 50
-  check_period        = 300
-  query_period        = 3600
+  check_period        = 600
+  query_period        = 1800
   recovery_period     = 300
   incident_per_series = true
   series_names        = ["500", "503"]
