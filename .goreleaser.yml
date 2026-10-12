@@ -30,6 +30,9 @@ builds:
       goarch: '386'
     - goos: windows
       goarch: arm64
+    # Go 1.26 removed the windows/arm (32-bit) port
+    - goos: windows
+      goarch: arm
   binary: '{{ .ProjectName }}_v{{ .Version }}'
 archives:
 - format: zip
