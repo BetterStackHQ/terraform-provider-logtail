@@ -45,7 +45,7 @@ func newDashboardAlertResource() *schema.Resource {
 			StateContext: dashboardAlertImportState,
 		},
 		CustomizeDiff: validateAlert,
-		Description:   "This resource allows you to create, modify, and delete Alerts on Dashboard Charts in Better Stack Telemetry.",
+		Description:   "This resource allows you to create, modify, and delete Alerts on Dashboard Charts in Better Stack Telemetry. New alerts can be created on line, bar, tail, and table charts; Number charts don't accept new alerts.",
 		Schema:        dashboardAlertSchema,
 	}
 }

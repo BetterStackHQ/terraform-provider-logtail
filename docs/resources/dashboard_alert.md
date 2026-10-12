@@ -3,21 +3,22 @@
 page_title: "logtail_dashboard_alert Resource - terraform-provider-logtail"
 subcategory: ""
 description: |-
-  This resource allows you to create, modify, and delete Alerts on Dashboard Charts in Better Stack Telemetry.
+  This resource allows you to create, modify, and delete Alerts on Dashboard Charts in Better Stack Telemetry. New alerts can be created on line, bar, tail, and table charts; Number charts don't accept new alerts.
 ---
 
 # logtail_dashboard_alert (Resource)
 
-This resource allows you to create, modify, and delete Alerts on Dashboard Charts in Better Stack Telemetry.
+This resource allows you to create, modify, and delete Alerts on Dashboard Charts in Better Stack Telemetry. New alerts can be created on line, bar, tail, and table charts; Number charts don't accept new alerts.
 
 ## Example Usage
 
 ```terraform
 # Threshold alert notifying the team by e-mail and push
-# fires when a chart value crosses a fixed limit
+# fires when a chart value crosses a fixed limit.
+# Alerts attach to line, bar, tail, or table charts - Number charts don't accept new alerts
 resource "logtail_dashboard_alert" "high_error_rate" {
   dashboard_id        = logtail_dashboard.tuned.id
-  chart_id            = logtail_dashboard_chart.tuned_errors.id
+  chart_id            = logtail_dashboard_chart.tuned_events.id
   name                = "High Error Rate"
   alert_type          = "threshold"
   operator            = "higher_than"

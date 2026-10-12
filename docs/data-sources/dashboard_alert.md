@@ -15,7 +15,7 @@ This data source allows you to get information about an Alert on a Dashboard Cha
 ```terraform
 data "logtail_dashboard_alert" "high_error_rate" {
   dashboard_id = logtail_dashboard.tuned.id
-  chart_id     = logtail_dashboard_chart.tuned_errors.id
+  chart_id     = logtail_dashboard_chart.tuned_events.id
   name         = "High Error Rate"
 
   depends_on = [logtail_dashboard_alert.high_error_rate]
