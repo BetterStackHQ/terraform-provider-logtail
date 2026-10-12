@@ -71,10 +71,11 @@ resource "logtail_dashboard_chart" "notes" {
   }
 }
 
-# Latest service status as a single value - read by the service_down alert
+# Latest service status in a table - read by the service_down alert
+# (a table chart, as Number charts don't accept new alerts)
 resource "logtail_dashboard_chart" "service_status" {
   dashboard_id = logtail_dashboard.production.id
-  chart_type   = "number_chart"
+  chart_type   = "table_chart"
   name         = "Service status"
   x            = 6
   y            = 4
