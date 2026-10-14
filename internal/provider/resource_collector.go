@@ -246,6 +246,7 @@ var collectorSchema = map[string]*schema.Schema{
 							"logs_docker":              {Description: "Collect Docker container logs.", Type: schema.TypeBool, Optional: true, Computed: true},
 							"logs_kubernetes":          {Description: "Collect Kubernetes logs.", Type: schema.TypeBool, Optional: true, Computed: true},
 							"logs_collector_internals": {Description: "Collect internal collector logs.", Type: schema.TypeBool, Optional: true, Computed: true},
+							"metrics_host_os":          {Description: "Collect CPU, memory, disk, filesystem and network metrics of the host with node_exporter, independently of `ebpf_metrics`. The API turns it on when omitted, but a `components` block that omits it on create turns it off, so set it explicitly.", Type: schema.TypeBool, Optional: true, Computed: true},
 							"metrics_cluster":          {Description: "Run the cluster agent for database metrics. Takes precedence over `metrics_databases` when both are set.", Type: schema.TypeBool, Optional: true, Computed: true},
 							"metrics_databases":        {Description: "Run the cluster agent for database metrics.", Type: schema.TypeBool, Optional: true, Computed: true, Deprecated: "Use `metrics_cluster` instead."},
 							"metrics_postgres":         {Description: "Enable the PostgreSQL metrics exporter. Defaults to true.", Type: schema.TypeBool, Optional: true, Computed: true},
@@ -258,6 +259,7 @@ var collectorSchema = map[string]*schema.Schema{
 							"ebpf_metrics":             {Description: "Enable eBPF-based metrics collection.", Type: schema.TypeBool, Optional: true, Computed: true},
 							"ebpf_tracing_basic":       {Description: "Enable basic eBPF tracing.", Type: schema.TypeBool, Optional: true, Computed: true},
 							"ebpf_tracing_full":        {Description: "Enable full eBPF tracing.", Type: schema.TypeBool, Optional: true, Computed: true},
+							"ebpf_java_agent":          {Description: "Inject the Java agent into JVMs for HTTPS visibility in eBPF traces. Requires eBPF tracing and collector v1.1.46+ on every host. Defaults to false.", Type: schema.TypeBool, Optional: true, Computed: true},
 							"traces_opentelemetry":     {Description: "Accept OpenTelemetry SDK traces on ports 4317 (gRPC) and 4318 (HTTP).", Type: schema.TypeBool, Optional: true, Computed: true},
 							"ebpf_red_metrics":         {Description: "Enable service map and RED (Requests, Error rate, Duration) metrics via eBPF.", Type: schema.TypeBool, Optional: true, Computed: true},
 						},
@@ -393,6 +395,7 @@ type collectorComponents struct {
 	LogsDocker            *bool `json:"logs_docker,omitempty"`
 	LogsKubernetes        *bool `json:"logs_kubernetes,omitempty"`
 	LogsCollectorInternal *bool `json:"logs_collector_internals,omitempty"`
+	MetricsHostOS         *bool `json:"metrics_host_os,omitempty"`
 	MetricsCluster        *bool `json:"metrics_cluster,omitempty"`
 	MetricsDatabases      *bool `json:"metrics_databases,omitempty"`
 	MetricsPostgres       *bool `json:"metrics_postgres,omitempty"`
@@ -405,6 +408,7 @@ type collectorComponents struct {
 	EbpfMetrics           *bool `json:"ebpf_metrics,omitempty"`
 	EbpfTracingBasic      *bool `json:"ebpf_tracing_basic,omitempty"`
 	EbpfTracingFull       *bool `json:"ebpf_tracing_full,omitempty"`
+	EbpfJavaAgent         *bool `json:"ebpf_java_agent,omitempty"`
 	TracesOpentelemetry   *bool `json:"traces_opentelemetry,omitempty"`
 	EbpfRedMetrics        *bool `json:"ebpf_red_metrics,omitempty"`
 }
@@ -711,6 +715,7 @@ func loadCollectorConfiguration(d *schema.ResourceData) *collectorConfiguration 
 			LogsDocker:            boolPtrIfSet(cm, "logs_docker"),
 			LogsKubernetes:        boolPtrIfSet(cm, "logs_kubernetes"),
 			LogsCollectorInternal: boolPtrIfSet(cm, "logs_collector_internals"),
+			MetricsHostOS:         boolPtrIfSet(cm, "metrics_host_os"),
 			MetricsCluster:        boolPtrIfSet(cm, "metrics_cluster"),
 			MetricsDatabases:      boolPtrIfSet(cm, "metrics_databases"),
 			MetricsPostgres:       boolPtrIfSet(cm, "metrics_postgres"),
@@ -723,6 +728,7 @@ func loadCollectorConfiguration(d *schema.ResourceData) *collectorConfiguration 
 			EbpfMetrics:           boolPtrIfSet(cm, "ebpf_metrics"),
 			EbpfTracingBasic:      boolPtrIfSet(cm, "ebpf_tracing_basic"),
 			EbpfTracingFull:       boolPtrIfSet(cm, "ebpf_tracing_full"),
+			EbpfJavaAgent:         boolPtrIfSet(cm, "ebpf_java_agent"),
 			TracesOpentelemetry:   boolPtrIfSet(cm, "traces_opentelemetry"),
 			EbpfRedMetrics:        boolPtrIfSet(cm, "ebpf_red_metrics"),
 		}
@@ -1018,6 +1024,9 @@ func collectorCopyAttrs(d *schema.ResourceData, in *collector) diag.Diagnostics 
 			if c.MetricsTraefik != nil {
 				componentsData["metrics_traefik"] = *c.MetricsTraefik
 			}
+			if c.MetricsHostOS != nil {
+				componentsData["metrics_host_os"] = *c.MetricsHostOS
+			}
 			if c.EbpfMetrics != nil {
 				componentsData["ebpf_metrics"] = *c.EbpfMetrics
 			}
@@ -1026,6 +1035,9 @@ func collectorCopyAttrs(d *schema.ResourceData, in *collector) diag.Diagnostics 
 			}
 			if c.EbpfTracingFull != nil {
 				componentsData["ebpf_tracing_full"] = *c.EbpfTracingFull
+			}
+			if c.EbpfJavaAgent != nil {
+				componentsData["ebpf_java_agent"] = *c.EbpfJavaAgent
 			}
 			if c.TracesOpentelemetry != nil {
 				componentsData["traces_opentelemetry"] = *c.TracesOpentelemetry

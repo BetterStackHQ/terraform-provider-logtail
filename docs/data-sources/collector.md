@@ -82,6 +82,7 @@ Read-Only:
 
 Read-Only:
 
+- `ebpf_java_agent` (Boolean)
 - `ebpf_metrics` (Boolean)
 - `ebpf_red_metrics` (Boolean)
 - `ebpf_tracing_basic` (Boolean)
@@ -94,6 +95,7 @@ Read-Only:
 - `metrics_cluster` (Boolean)
 - `metrics_databases` (Boolean)
 - `metrics_elasticsearch` (Boolean)
+- `metrics_host_os` (Boolean)
 - `metrics_mysql` (Boolean)
 - `metrics_nginx` (Boolean)
 - `metrics_pgbouncer` (Boolean)
