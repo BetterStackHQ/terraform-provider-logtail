@@ -96,6 +96,8 @@ resource "logtail_collector" "kubernetes" {
       ebpf_metrics             = true
       ebpf_red_metrics         = true
       ebpf_tracing_full        = true
+      ebpf_java_agent          = true
+      metrics_host_os          = true
       metrics_cluster          = true
       metrics_postgres         = true
       metrics_mysql            = true
@@ -228,6 +230,7 @@ Optional:
 
 Optional:
 
+- `ebpf_java_agent` (Boolean) Inject the Java agent into JVMs for HTTPS visibility in eBPF traces. Requires eBPF tracing and collector v1.1.46+ on every host. Defaults to false.
 - `ebpf_metrics` (Boolean) Enable eBPF-based metrics collection.
 - `ebpf_red_metrics` (Boolean) Enable service map and RED (Requests, Error rate, Duration) metrics via eBPF.
 - `ebpf_tracing_basic` (Boolean) Enable basic eBPF tracing.
@@ -240,6 +243,7 @@ Optional:
 - `metrics_cluster` (Boolean) Run the cluster agent for database metrics. Takes precedence over `metrics_databases` when both are set.
 - `metrics_databases` (Boolean, Deprecated) Run the cluster agent for database metrics.
 - `metrics_elasticsearch` (Boolean) Enable the Elasticsearch metrics exporter. Defaults to true.
+- `metrics_host_os` (Boolean) Collect CPU, memory, disk, filesystem and network metrics of the host with node_exporter, independently of `ebpf_metrics`. The API turns it on when omitted, but a `components` block that omits it on create turns it off, so set it explicitly.
 - `metrics_mysql` (Boolean) Enable the MySQL metrics exporter. Defaults to true.
 - `metrics_nginx` (Boolean) Collect Nginx metrics.
 - `metrics_pgbouncer` (Boolean) Enable the PgBouncer metrics exporter. Defaults to true.

@@ -81,6 +81,8 @@ resource "logtail_collector" "kubernetes" {
       ebpf_metrics             = true
       ebpf_red_metrics         = true
       ebpf_tracing_full        = true
+      ebpf_java_agent          = true
+      metrics_host_os          = true
       metrics_cluster          = true
       metrics_postgres         = true
       metrics_mysql            = true
