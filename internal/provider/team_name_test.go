@@ -15,7 +15,8 @@ import (
 
 // TestTeamNameCannotBeChangedAfterCreate verifies team_name handling after a resource exists:
 // clearing it is a silent no-op (no plan change), while changing it to a different, non-empty
-// value fails with a helpful error. team_name is only used when creating a resource with a
+// value fails with a helpful error. Setting it on a resource whose state has no team_name (created
+// without one, or imported) is allowed. team_name is only used when creating a resource with a
 // global token.
 func TestTeamNameCannotBeChangedAfterCreate(t *testing.T) {
 	var data atomic.Value
@@ -96,6 +97,29 @@ func TestTeamNameCannotBeChangedAfterCreate(t *testing.T) {
 				Config:      withTeamName("Second team"),
 				PlanOnly:    true,
 				ExpectError: regexp.MustCompile(`team_name cannot be changed after resource is created`),
+			},
+		},
+	})
+
+	// A resource created without team_name has nothing in state to compare against, so adding
+	// team_name later must not fail (e.g. a module that started passing it for new environments).
+	resource.Test(t, resource.TestCase{
+		IsUnitTest: true,
+		ProviderFactories: map[string]func() (*schema.Provider, error){
+			"logtail": func() (*schema.Provider, error) {
+				return New(WithURL(server.URL)), nil
+			},
+		},
+		Steps: []resource.TestStep{
+			{
+				Config: withoutTeamName,
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckNoResourceAttr("logtail_source_group.this", "team_name"),
+				),
+			},
+			{
+				Config:   withTeamName("First team"),
+				PlanOnly: true,
 			},
 		},
 	})
