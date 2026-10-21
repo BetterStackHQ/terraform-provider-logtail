@@ -886,7 +886,7 @@ func collectorRead(ctx context.Context, d *schema.ResourceData, meta interface{}
 		out.Data.Attributes.Databases = &databases
 	}
 
-	return collectorCopyAttrs(d, &out.Data.Attributes)
+	return append(fillTeamName(d, out.Data.Attributes.TeamName), collectorCopyAttrs(d, &out.Data.Attributes)...)
 }
 
 // userManagesDatabasesBlock reports whether the user's HCL declares any `databases` blocks

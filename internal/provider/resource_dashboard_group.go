@@ -104,7 +104,7 @@ func dashboardGroupRead(ctx context.Context, d *schema.ResourceData, meta interf
 		d.SetId("") // Force "create" on 404.
 		return nil
 	}
-	return dashboardGroupCopyAttrs(d, &out.Data.Attributes)
+	return append(fillTeamName(d, out.Data.Attributes.TeamName), dashboardGroupCopyAttrs(d, &out.Data.Attributes)...)
 }
 
 func dashboardGroupCopyAttrs(d *schema.ResourceData, in *dashboardGroup) diag.Diagnostics {

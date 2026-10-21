@@ -495,7 +495,7 @@ func errorsApplicationRead(ctx context.Context, d *schema.ResourceData, meta int
 		d.SetId("") // Force "create" on 404.
 		return nil
 	}
-	return errorsApplicationCopyAttrs(d, &out.Data.Attributes)
+	return append(fillTeamName(d, out.Data.Attributes.TeamName), errorsApplicationCopyAttrs(d, &out.Data.Attributes)...)
 }
 
 func errorsApplicationCopyAttrs(d *schema.ResourceData, in *errorsApplication) diag.Diagnostics {

@@ -104,7 +104,7 @@ func explorationGroupRead(ctx context.Context, d *schema.ResourceData, meta inte
 		d.SetId("") // Force "create" on 404.
 		return nil
 	}
-	return explorationGroupCopyAttrs(d, &out.Data.Attributes)
+	return append(fillTeamName(d, out.Data.Attributes.TeamName), explorationGroupCopyAttrs(d, &out.Data.Attributes)...)
 }
 
 func explorationGroupCopyAttrs(d *schema.ResourceData, in *explorationGroup) diag.Diagnostics {
