@@ -1,6 +1,7 @@
 package provider
 
 import (
+	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
@@ -15,8 +16,9 @@ import (
 
 // TestTeamNameCannotBeChangedAfterCreate verifies team_name handling after a resource exists:
 // clearing it is a silent no-op (no plan change), while changing it to a different, non-empty
-// value fails with a helpful error. team_name is only used when creating a resource with a
-// global token.
+// value fails with a helpful error. When state has no team_name (created without one, or
+// imported), Read fills in the team reported by the API, so a matching value is accepted and a
+// different one is rejected. team_name is only used when creating a resource with a global token.
 func TestTeamNameCannotBeChangedAfterCreate(t *testing.T) {
 	var data atomic.Value
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -39,7 +41,17 @@ func TestTeamNameCannotBeChangedAfterCreate(t *testing.T) {
 			w.WriteHeader(http.StatusCreated)
 			_, _ = w.Write([]byte(fmt.Sprintf(`{"data":{"id":%q,"attributes":%s}}`, id, body)))
 		case r.Method == http.MethodGet && r.RequestURI == prefix+"/"+id:
-			_, _ = w.Write([]byte(fmt.Sprintf(`{"data":{"id":%q,"attributes":%s}}`, id, data.Load().([]byte))))
+			// Like the API, report the resource's actual team, whether or not it was sent on create.
+			var attrs map[string]interface{}
+			if err := json.Unmarshal(data.Load().([]byte), &attrs); err != nil {
+				t.Fatal(err)
+			}
+			attrs["team_name"] = "First team"
+			body, err := json.Marshal(attrs)
+			if err != nil {
+				t.Fatal(err)
+			}
+			_, _ = w.Write([]byte(fmt.Sprintf(`{"data":{"id":%q,"attributes":%s}}`, id, body)))
 		case r.Method == http.MethodDelete && r.RequestURI == prefix+"/"+id:
 			w.WriteHeader(http.StatusNoContent)
 			data.Store([]byte(nil))
@@ -96,6 +108,41 @@ func TestTeamNameCannotBeChangedAfterCreate(t *testing.T) {
 				Config:      withTeamName("Second team"),
 				PlanOnly:    true,
 				ExpectError: regexp.MustCompile(`team_name cannot be changed after resource is created`),
+			},
+		},
+	})
+
+	// A resource created without team_name has none in state; refresh fills in the actual team, so
+	// adding the matching team_name later (e.g. a module that started passing it for new
+	// environments) is accepted, while a different team is still rejected.
+	resource.Test(t, resource.TestCase{
+		IsUnitTest: true,
+		ProviderFactories: map[string]func() (*schema.Provider, error){
+			"logtail": func() (*schema.Provider, error) {
+				return New(WithURL(server.URL)), nil
+			},
+		},
+		Steps: []resource.TestStep{
+			{
+				Config: withoutTeamName,
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckNoResourceAttr("logtail_source_group.this", "team_name"),
+				),
+			},
+			{
+				Config:   withTeamName("First team"),
+				PlanOnly: true,
+			},
+			{
+				Config:      withTeamName("Second team"),
+				PlanOnly:    true,
+				ExpectError: regexp.MustCompile(`team_name cannot be changed after resource is created`),
+			},
+			{
+				Config: withoutTeamName,
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr("logtail_source_group.this", "team_name", "First team"),
+				),
 			},
 		},
 	})

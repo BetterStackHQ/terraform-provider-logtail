@@ -288,7 +288,7 @@ func explorationRead(ctx context.Context, d *schema.ResourceData, meta interface
 		d.SetId("") // Force "create" on 404.
 		return nil
 	}
-	return explorationCopyAttrs(d, &out.Data.Attributes)
+	return append(fillTeamName(d, out.Data.Attributes.TeamName), explorationCopyAttrs(d, &out.Data.Attributes)...)
 }
 
 func explorationUpdate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {

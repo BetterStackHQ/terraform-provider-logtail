@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
@@ -27,6 +28,9 @@ func teamNameSchema() *schema.Schema {
 // resource has been created. team_name only selects the team when the resource is created with a
 // global API token and is ignored afterwards, so silently dropping the change ("No changes") was
 // confusing. Clearing the value remains a silent no-op (the diff is suppressed in teamNameSchema).
+//
+// When state has no team_name (imported, or created before team_name was configured), Read fills
+// it in from the API first (see fillTeamName), so the check compares against the actual team.
 //
 // The change is detected from the raw config and state rather than HasChange, because the
 // DiffSuppressFunc removes team_name from the computed diff before CustomizeDiff runs.
@@ -60,4 +64,14 @@ func validateTeamNameNotChanged(ctx context.Context, diff *schema.ResourceDiff, 
 		return fmt.Errorf("team_name cannot be changed after resource is created - it's only used to specify the team when creating it using a global token, you can safely remove it from your configuration now")
 	}
 	return nil
+}
+
+// fillTeamName stores the team name reported by the API when state has none, i.e. for resources
+// that were imported or created without team_name. A stored value is never overwritten, so
+// renaming a team doesn't make every resource in it fail validateTeamNameNotChanged.
+func fillTeamName(d *schema.ResourceData, apiName *string) diag.Diagnostics {
+	if apiName == nil || *apiName == "" || d.Get("team_name").(string) != "" {
+		return nil
+	}
+	return diag.FromErr(d.Set("team_name", *apiName))
 }

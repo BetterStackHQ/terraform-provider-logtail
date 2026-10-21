@@ -114,7 +114,7 @@ func errorsApplicationGroupRead(ctx context.Context, d *schema.ResourceData, met
 		d.SetId("") // Force "create" on 404.
 		return nil
 	}
-	return errorsApplicationGroupCopyAttrs(d, &out.Data.Attributes)
+	return append(fillTeamName(d, out.Data.Attributes.TeamName), errorsApplicationGroupCopyAttrs(d, &out.Data.Attributes)...)
 }
 
 func errorsApplicationGroupCopyAttrs(d *schema.ResourceData, in *errorsApplicationGroup) diag.Diagnostics {

@@ -305,6 +305,9 @@ func dashboardRead(ctx context.Context, d *schema.ResourceData, meta interface{}
 		d.SetId("")
 		return nil
 	}
+	if derr := fillTeamName(d, out.Data.Attributes.TeamName); derr != nil {
+		return derr
+	}
 
 	if isDashboardImportMode(d) {
 		return dashboardReadImportMode(d, &out.Data.Attributes)

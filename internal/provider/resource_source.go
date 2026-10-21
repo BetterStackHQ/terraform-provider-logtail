@@ -534,7 +534,7 @@ func sourceRead(ctx context.Context, d *schema.ResourceData, meta interface{}) d
 		d.SetId("") // Force "create" on 404.
 		return nil
 	}
-	return sourceCopyAttrs(d, &out.Data.Attributes)
+	return append(fillTeamName(d, out.Data.Attributes.TeamName), sourceCopyAttrs(d, &out.Data.Attributes)...)
 }
 
 func sourceCopyAttrs(d *schema.ResourceData, in *source) diag.Diagnostics {

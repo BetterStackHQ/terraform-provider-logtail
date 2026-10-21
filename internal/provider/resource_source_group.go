@@ -111,7 +111,7 @@ func sourceGroupRead(ctx context.Context, d *schema.ResourceData, meta interface
 		d.SetId("") // Force "create" on 404.
 		return nil
 	}
-	return sourceGroupCopyAttrs(d, &out.Data.Attributes)
+	return append(fillTeamName(d, out.Data.Attributes.TeamName), sourceGroupCopyAttrs(d, &out.Data.Attributes)...)
 }
 
 func sourceGroupCopyAttrs(d *schema.ResourceData, in *sourceGroup) diag.Diagnostics {
