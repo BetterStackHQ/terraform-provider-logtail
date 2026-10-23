@@ -60,6 +60,7 @@ resource "logtail_exploration_alert" "errors_spike" {
   recovery_period     = 300
   incident_per_series = true
   series_names        = ["500", "503"]
+  incident_name       = "5xx spike on {{series_name}}"
   incident_cause      = "{{series_name}} up {{value}} ({{operator}} {{threshold}})"
 
   # Pin the alert to a specific source by table name
