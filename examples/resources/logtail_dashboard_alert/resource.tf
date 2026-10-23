@@ -51,6 +51,7 @@ resource "logtail_dashboard_alert" "request_spike" {
   recovery_period     = 300
   incident_per_series = true
   series_names        = ["500", "503"]
+  incident_name       = "Request spike on {{series_name}}"
   incident_cause      = "{{series_name}} up {{value}} ({{operator}} {{threshold}})"
 
   # Pin the alert to a specific source by table name

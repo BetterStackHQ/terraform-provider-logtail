@@ -295,7 +295,7 @@ func TestResourceDashboardAlert(t *testing.T) {
 					check_period        = 60
 					query_period        = 300
 					confirmation_period = 60
-
+					incident_name       = "High request rate on {{series_name}}"
 
 					variable_value {
 						name           = "environment"
@@ -321,6 +321,7 @@ func TestResourceDashboardAlert(t *testing.T) {
 					resource.TestCheckResourceAttr("logtail_dashboard_alert.this", "confirmation_period", "60"),
 					resource.TestCheckResourceAttr("logtail_dashboard_alert.this", "email", "true"),
 					resource.TestCheckResourceAttr("logtail_dashboard_alert.this", "push", "true"),
+					resource.TestCheckResourceAttr("logtail_dashboard_alert.this", "incident_name", "High request rate on {{series_name}}"),
 					resource.TestCheckResourceAttr("logtail_dashboard_alert.this", "variable_value.#", "2"),
 					resource.TestCheckResourceAttr("logtail_dashboard_alert.this", "variable_value.0.name", "environment"),
 					resource.TestCheckResourceAttr("logtail_dashboard_alert.this", "variable_value.0.values.0", "production"),

@@ -276,6 +276,12 @@ var alertSchema = map[string]*schema.Schema{
 		Computed:    true,
 		Elem:        &schema.Schema{Type: schema.TypeString},
 	},
+	"incident_name": {
+		Description: "Incident name template (supports {{variable}} interpolation). Defaults to the dashboard or exploration name followed by the alert name.",
+		Type:        schema.TypeString,
+		Optional:    true,
+		Computed:    true,
+	},
 	"incident_cause": {
 		Description: "Incident description template (supports {{variable}} interpolation).",
 		Type:        schema.TypeString,
@@ -548,6 +554,7 @@ type alert struct {
 	SourceVariable           *string                       `json:"source_variable,omitempty"`
 	SourceMode               *string                       `json:"source_mode,omitempty"`
 	SourcePlatforms          []string                      `json:"source_platforms,omitempty"`
+	IncidentName             *string                       `json:"incident_name,omitempty"`
 	IncidentCause            *string                       `json:"incident_cause,omitempty"`
 	IncidentPerSeries        *bool                         `json:"incident_per_series,omitempty"`
 	Paused                   *bool                         `json:"paused,omitempty"`
@@ -675,6 +682,10 @@ func loadAlert(d *schema.ResourceData) alert {
 	if v, ok := d.GetOk("source_mode"); ok {
 		s := v.(string)
 		in.SourceMode = &s
+	}
+	if v, ok := d.GetOk("incident_name"); ok {
+		s := v.(string)
+		in.IncidentName = &s
 	}
 	if v, ok := d.GetOk("incident_cause"); ok {
 		s := v.(string)
@@ -835,6 +846,11 @@ func alertCopyAttrs(d *schema.ResourceData, in *alert, variableValuesKey string)
 	}
 	if in.SourceMode != nil {
 		if err := d.Set("source_mode", *in.SourceMode); err != nil {
+			derr = append(derr, diag.FromErr(err)[0])
+		}
+	}
+	if in.IncidentName != nil {
+		if err := d.Set("incident_name", *in.IncidentName); err != nil {
 			derr = append(derr, diag.FromErr(err)[0])
 		}
 	}
