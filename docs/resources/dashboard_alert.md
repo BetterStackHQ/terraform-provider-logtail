@@ -66,6 +66,7 @@ resource "logtail_dashboard_alert" "request_spike" {
   recovery_period     = 300
   incident_per_series = true
   series_names        = ["500", "503"]
+  incident_name       = "Request spike on {{series_name}}"
   incident_cause      = "{{series_name}} up {{value}} ({{operator}} {{threshold}})"
 
   # Pin the alert to a specific source by table name
@@ -151,6 +152,7 @@ resource "logtail_dashboard_alert" "service_down" {
 - `email` (Boolean) Enable email notifications.
 - `escalation_target` (Block List, Max: 1) The escalation target for this alert. Specify either team_id/team_name OR policy_id/policy_name. (see [below for nested schema](#nestedblock--escalation_target))
 - `incident_cause` (String) Incident description template (supports {{variable}} interpolation).
+- `incident_name` (String) Incident name template (supports {{variable}} interpolation). Defaults to the dashboard or exploration name followed by the alert name.
 - `incident_per_series` (Boolean) Create separate incidents per series.
 - `metadata` (Map of String) Custom metadata key-value pairs included in incident notifications. Use a plain string for a single value; for multiple values use jsonencode([...]).
 - `on_missing_data` (String) What to do when the monitored query returns no data: 'treat_as_zero', 'dont_fire', 'treat_as_previous', or 'start_incident'. Only for threshold and relative alerts.
