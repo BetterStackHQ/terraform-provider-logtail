@@ -240,14 +240,14 @@ Optional:
 - `logs_host` (Boolean) Collect host-level logs.
 - `logs_kubernetes` (Boolean) Collect Kubernetes logs.
 - `metrics_apache` (Boolean) Collect Apache metrics.
-- `metrics_cluster` (Boolean) Run the cluster agent for database metrics. Takes precedence over `metrics_databases` when both are set.
-- `metrics_databases` (Boolean, Deprecated) Run the cluster agent for database metrics.
-- `metrics_elasticsearch` (Boolean) Enable the Elasticsearch metrics exporter. Defaults to true.
+- `metrics_cluster` (Boolean) Collect Kubernetes cluster metrics. Takes precedence over `metrics_databases` when both are set.
+- `metrics_databases` (Boolean, Deprecated) Former name of `metrics_cluster`. Set without `metrics_cluster`, it also sets whichever of `metrics_postgres`, `metrics_mysql`, `metrics_elasticsearch` and `metrics_pgbouncer` you leave out.
+- `metrics_elasticsearch` (Boolean) Enable the Elasticsearch metrics exporter. Defaults to true on create; left out on update, it keeps its current value.
 - `metrics_host_os` (Boolean) Collect CPU, memory, disk, filesystem and network metrics of the host with node_exporter, independently of `ebpf_metrics`. The API turns it on when omitted, but a `components` block that omits it on create turns it off, so set it explicitly.
-- `metrics_mysql` (Boolean) Enable the MySQL metrics exporter. Defaults to true.
+- `metrics_mysql` (Boolean) Enable the MySQL metrics exporter. Defaults to true on create; left out on update, it keeps its current value.
 - `metrics_nginx` (Boolean) Collect Nginx metrics.
-- `metrics_pgbouncer` (Boolean) Enable the PgBouncer metrics exporter. Defaults to true.
-- `metrics_postgres` (Boolean) Enable the PostgreSQL metrics exporter. Defaults to true.
+- `metrics_pgbouncer` (Boolean) Enable the PgBouncer metrics exporter. Defaults to true on create; left out on update, it keeps its current value.
+- `metrics_postgres` (Boolean) Enable the PostgreSQL metrics exporter. Defaults to true on create; left out on update, it keeps its current value.
 - `metrics_traefik` (Boolean) Collect Traefik metrics.
 - `traces_opentelemetry` (Boolean) Accept OpenTelemetry SDK traces on ports 4317 (gRPC) and 4318 (HTTP).
 
