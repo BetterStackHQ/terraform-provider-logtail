@@ -115,6 +115,7 @@ resource "logtail_source" "configured" {
     - `aws_fargate`
     - `azure`
     - `azure_logs`
+    - `claude_platform`
     - `cloudflare_logpush`
     - `cloudflare_prometheus_exporter`
     - `cloudflare_worker`
