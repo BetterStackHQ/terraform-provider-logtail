@@ -12,6 +12,7 @@ import (
 	"sort"
 	"strings"
 
+	"github.com/hashicorp/go-cty/cty"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/customdiff"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
@@ -247,12 +248,12 @@ var collectorSchema = map[string]*schema.Schema{
 							"logs_kubernetes":          {Description: "Collect Kubernetes logs.", Type: schema.TypeBool, Optional: true, Computed: true},
 							"logs_collector_internals": {Description: "Collect internal collector logs.", Type: schema.TypeBool, Optional: true, Computed: true},
 							"metrics_host_os":          {Description: "Collect CPU, memory, disk, filesystem and network metrics of the host with node_exporter, independently of `ebpf_metrics`. The API turns it on when omitted, but a `components` block that omits it on create turns it off, so set it explicitly.", Type: schema.TypeBool, Optional: true, Computed: true},
-							"metrics_cluster":          {Description: "Run the cluster agent for database metrics. Takes precedence over `metrics_databases` when both are set.", Type: schema.TypeBool, Optional: true, Computed: true},
-							"metrics_databases":        {Description: "Run the cluster agent for database metrics.", Type: schema.TypeBool, Optional: true, Computed: true, Deprecated: "Use `metrics_cluster` instead."},
-							"metrics_postgres":         {Description: "Enable the PostgreSQL metrics exporter. Defaults to true.", Type: schema.TypeBool, Optional: true, Computed: true},
-							"metrics_mysql":            {Description: "Enable the MySQL metrics exporter. Defaults to true.", Type: schema.TypeBool, Optional: true, Computed: true},
-							"metrics_elasticsearch":    {Description: "Enable the Elasticsearch metrics exporter. Defaults to true.", Type: schema.TypeBool, Optional: true, Computed: true},
-							"metrics_pgbouncer":        {Description: "Enable the PgBouncer metrics exporter. Defaults to true.", Type: schema.TypeBool, Optional: true, Computed: true},
+							"metrics_cluster":          {Description: "Collect Kubernetes cluster metrics. Takes precedence over `metrics_databases` when both are set.", Type: schema.TypeBool, Optional: true, Computed: true},
+							"metrics_databases":        {Description: "Former name of `metrics_cluster`. Set without `metrics_cluster`, it also sets whichever of `metrics_postgres`, `metrics_mysql`, `metrics_elasticsearch` and `metrics_pgbouncer` you leave out.", Type: schema.TypeBool, Optional: true, Computed: true, Deprecated: "Use `metrics_cluster` instead."},
+							"metrics_postgres":         {Description: "Enable the PostgreSQL metrics exporter. Defaults to true on create; left out on update, it keeps its current value.", Type: schema.TypeBool, Optional: true, Computed: true},
+							"metrics_mysql":            {Description: "Enable the MySQL metrics exporter. Defaults to true on create; left out on update, it keeps its current value.", Type: schema.TypeBool, Optional: true, Computed: true},
+							"metrics_elasticsearch":    {Description: "Enable the Elasticsearch metrics exporter. Defaults to true on create; left out on update, it keeps its current value.", Type: schema.TypeBool, Optional: true, Computed: true},
+							"metrics_pgbouncer":        {Description: "Enable the PgBouncer metrics exporter. Defaults to true on create; left out on update, it keeps its current value.", Type: schema.TypeBool, Optional: true, Computed: true},
 							"metrics_nginx":            {Description: "Collect Nginx metrics.", Type: schema.TypeBool, Optional: true, Computed: true},
 							"metrics_apache":           {Description: "Collect Apache metrics.", Type: schema.TypeBool, Optional: true, Computed: true},
 							"metrics_traefik":          {Description: "Collect Traefik metrics.", Type: schema.TypeBool, Optional: true, Computed: true},
@@ -732,6 +733,17 @@ func loadCollectorConfiguration(d *schema.ResourceData) *collectorConfiguration 
 			TracesOpentelemetry:   boolPtrIfSet(cm, "traces_opentelemetry"),
 			EbpfRedMetrics:        boolPtrIfSet(cm, "ebpf_red_metrics"),
 		}
+		// An unset field arrives here as false. The API keeps a database exporter it isn't sent, and a
+		// metrics_databases sent without metrics_cluster sets the exporters left out, so don't send those.
+		c := cfg.Components
+		for key, field := range map[string]**bool{"metrics_postgres": &c.MetricsPostgres, "metrics_mysql": &c.MetricsMySQL, "metrics_elasticsearch": &c.MetricsElasticsearch, "metrics_pgbouncer": &c.MetricsPgBouncer} {
+			if !componentSetInConfig(d, key) {
+				*field = nil
+			}
+		}
+		if !componentSetInConfig(d, "metrics_cluster") && componentSetInConfig(d, "metrics_databases") {
+			c.MetricsCluster = nil
+		}
 	}
 
 	if v, ok := configMap["vrl_transformation"].(string); ok && v != "" {
@@ -790,6 +802,23 @@ func loadCollectorConfiguration(d *schema.ResourceData) *collectorConfiguration 
 	}
 
 	return cfg
+}
+
+// componentSetInConfig reports whether the configuration sets a `components` field rather than
+// leaving it out. Without a readable raw configuration it assumes set, the provider's old behaviour.
+func componentSetInConfig(d *schema.ResourceData, key string) bool {
+	raw := d.GetRawConfig()
+	if raw.IsNull() || !raw.IsKnown() {
+		return true
+	}
+	for _, block := range []string{"configuration", "components"} {
+		raw = raw.GetAttr(block)
+		if raw.IsNull() || !raw.IsKnown() || raw.LengthInt() == 0 {
+			return false
+		}
+		raw = raw.Index(cty.NumberIntVal(0))
+	}
+	return !raw.GetAttr(key).IsNull()
 }
 
 func collectorCreate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
