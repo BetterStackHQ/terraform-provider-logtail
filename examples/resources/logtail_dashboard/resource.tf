@@ -41,6 +41,13 @@ resource "logtail_dashboard" "tuned" {
     variable_type  = "select_with_sql"
     sql_definition = "label('level')"
   }
+
+  # SQL-driven dropdown where several options can be picked at once
+  variable {
+    name           = "hosts"
+    variable_type  = "multi_select_with_sql"
+    sql_definition = "label('host')"
+  }
 }
 
 # Clone a Better Stack dashboard template by passing its data through
