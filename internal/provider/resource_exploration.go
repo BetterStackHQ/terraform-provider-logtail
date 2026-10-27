@@ -242,11 +242,12 @@ type explorationQuery struct {
 }
 
 type explorationVariable struct {
-	Name          *string  `json:"name,omitempty"`
-	VariableType  *string  `json:"variable_type,omitempty"`
-	Values        []string `json:"values,omitempty"`
-	DefaultValues []string `json:"default_values,omitempty"`
-	SQLDefinition *string  `json:"sql_definition,omitempty"`
+	Name                *string  `json:"name,omitempty"`
+	VariableType        *string  `json:"variable_type,omitempty"`
+	Values              []string `json:"values,omitempty"`
+	DefaultValues       []string `json:"default_values,omitempty"`
+	SQLDefinition       *string  `json:"sql_definition,omitempty"`
+	AllowMultipleValues *bool    `json:"allow_multiple_values,omitempty"`
 }
 
 type exploration struct {
@@ -395,7 +396,7 @@ func loadExploration(d *schema.ResourceData) exploration {
 				variable.Name = &v
 			}
 			if v, ok := vMap["variable_type"].(string); ok && v != "" {
-				variable.VariableType = &v
+				variable.VariableType, variable.AllowMultipleValues = apiVariableType(v)
 			}
 			if v, ok := vMap["sql_definition"].(string); ok && v != "" {
 				variable.SQLDefinition = &v
@@ -597,7 +598,7 @@ func explorationCopyAttrs(d *schema.ResourceData, in *exploration) diag.Diagnost
 			vMap := make(map[string]interface{})
 			vMap["name"] = name
 			if apiVar.VariableType != nil {
-				vMap["variable_type"] = *apiVar.VariableType
+				vMap["variable_type"] = configuredVariableType(*apiVar.VariableType, apiVar.AllowMultipleValues)
 			}
 			if apiVar.SQLDefinition != nil {
 				vMap["sql_definition"] = *apiVar.SQLDefinition

@@ -139,11 +139,12 @@ var dashboardSchema = map[string]*schema.Schema{
 }
 
 type dashboardVariable struct {
-	Name          *string  `json:"name,omitempty"`
-	VariableType  *string  `json:"variable_type,omitempty"`
-	Values        []string `json:"values,omitempty"`
-	DefaultValues []string `json:"default_values,omitempty"`
-	SQLDefinition *string  `json:"sql_definition,omitempty"`
+	Name                *string  `json:"name,omitempty"`
+	VariableType        *string  `json:"variable_type,omitempty"`
+	Values              []string `json:"values,omitempty"`
+	DefaultValues       []string `json:"default_values,omitempty"`
+	SQLDefinition       *string  `json:"sql_definition,omitempty"`
+	AllowMultipleValues *bool    `json:"allow_multiple_values,omitempty"`
 }
 
 type dashboard struct {
@@ -391,7 +392,7 @@ func loadDashboardCRUD(d *schema.ResourceData) dashboard {
 				variable.Name = &v
 			}
 			if v, ok := vMap["variable_type"].(string); ok && v != "" {
-				variable.VariableType = &v
+				variable.VariableType, variable.AllowMultipleValues = apiVariableType(v)
 			}
 			if v, ok := vMap["sql_definition"].(string); ok && v != "" {
 				variable.SQLDefinition = &v
@@ -426,6 +427,9 @@ func loadDashboardCRUD(d *schema.ResourceData) dashboard {
 
 func dashboardCopyCRUDAttrs(d *schema.ResourceData, in *dashboard) diag.Diagnostics {
 	var derr diag.Diagnostics
+	// Only an import reads into a state without a name; a dashboard configured
+	// without variable blocks keeps its empty list on every other read.
+	importing := d.Get("name").(string) == ""
 
 	if in.Name != nil {
 		if err := d.Set("name", *in.Name); err != nil {
@@ -497,6 +501,21 @@ func dashboardCopyCRUDAttrs(d *schema.ResourceData, in *dashboard) diag.Diagnost
 				}
 			}
 		}
+		// On terraform import there is no prior config, so fall back to every
+		// variable the API returns that carries configuration, which leaves out
+		// the auto-created time variables and an unselected source variable.
+		if importing && len(userVarNames) == 0 {
+			for i := range in.Variables {
+				v := in.Variables[i]
+				if v.Name == nil || systemVars[*v.Name] {
+					continue
+				}
+				if len(v.Values) == 0 && len(v.DefaultValues) == 0 && (v.SQLDefinition == nil || *v.SQLDefinition == "") {
+					continue
+				}
+				userVarNames = append(userVarNames, *v.Name)
+			}
+		}
 
 		varData := make([]interface{}, 0, len(userVarNames))
 		for _, name := range userVarNames {
@@ -512,7 +531,7 @@ func dashboardCopyCRUDAttrs(d *schema.ResourceData, in *dashboard) diag.Diagnost
 			vMap := make(map[string]interface{})
 			vMap["name"] = name
 			if apiVar.VariableType != nil {
-				vMap["variable_type"] = *apiVar.VariableType
+				vMap["variable_type"] = configuredVariableType(*apiVar.VariableType, apiVar.AllowMultipleValues)
 			}
 			if apiVar.SQLDefinition != nil {
 				vMap["sql_definition"] = *apiVar.SQLDefinition

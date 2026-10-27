@@ -9,7 +9,7 @@ resource "logtail_exploration" "this" {
 
   query {
     query_type      = "sql_expression"
-    sql_query       = "SELECT {{time}} AS time, JSONExtractString(raw, 'status') AS series, count(*) AS value FROM {{source}} WHERE time BETWEEN {{start_time}} AND {{end_time}} [[ AND JSONExtractString(raw, 'level') = {{level}} ]] GROUP BY time, series"
+    sql_query       = "SELECT {{time}} AS time, JSONExtractString(raw, 'status') AS series, count(*) AS value FROM {{source}} WHERE time BETWEEN {{start_time}} AND {{end_time}} [[ AND JSONExtractString(raw, 'level') = {{level}} ]] [[ AND match(JSONExtractString(raw, 'host'), {{hosts}}) ]] GROUP BY time, series"
     source_variable = "source"
   }
 
@@ -24,6 +24,13 @@ resource "logtail_exploration" "this" {
     name           = "level"
     variable_type  = "select_with_sql"
     sql_definition = "JSONExtractString(raw, 'level')"
+  }
+
+  # Several hosts can be picked at once
+  variable {
+    name           = "hosts"
+    variable_type  = "multi_select_with_sql"
+    sql_definition = "JSONExtractString(raw, 'host')"
   }
 }
 
