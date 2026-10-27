@@ -1,28 +1,25 @@
 package provider
 
-import (
-	"strings"
-
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
-)
-
 // The API stores a multi_select_with_sql variable as select_with_sql with allow_multiple_values
-// and reports it that way, so a variable configured in that legacy spelling sits in state in the
-// documented form. These two suppressions keep the spelling from showing up as a change on every
-// plan; an update then resends the variable as the API stores it.
+// and returns it that way. The configuration keeps the multi_select_with_sql spelling, so the
+// type is translated on the wire; the flag is neither sent nor read for the other types.
 
-// suppressLegacyMultiSelectVariableType treats a configured multi_select_with_sql as equal to the
-// select_with_sql in state as long as the state's allow_multiple_values is set.
-func suppressLegacyMultiSelectVariableType(k, old, new string, d *schema.ResourceData) bool {
-	if old != "select_with_sql" || new != "multi_select_with_sql" {
-		return false
+// apiVariableType is the variable_type and allow_multiple_values to send for a configured type.
+func apiVariableType(configured string) (*string, *bool) {
+	switch configured {
+	case "multi_select_with_sql":
+		return stringPtr("select_with_sql"), boolPtr(true)
+	case "select_with_sql":
+		return stringPtr(configured), boolPtr(false)
+	default:
+		return stringPtr(configured), nil
 	}
-	stateFlag, _ := d.GetChange(strings.TrimSuffix(k, "variable_type") + "allow_multiple_values")
-	return stateFlag == true
 }
 
-// suppressAllowMultipleValuesOfLegacyType ignores the flag of a multi_select_with_sql variable:
-// the type implies it, whatever the configuration says.
-func suppressAllowMultipleValuesOfLegacyType(k, old, new string, d *schema.ResourceData) bool {
-	return d.Get(strings.TrimSuffix(k, "allow_multiple_values")+"variable_type") == "multi_select_with_sql"
+// configuredVariableType is the spelling of a variable the API returned.
+func configuredVariableType(apiType string, allowMultipleValues *bool) string {
+	if apiType == "select_with_sql" && allowMultipleValues != nil && *allowMultipleValues {
+		return "multi_select_with_sql"
+	}
+	return apiType
 }

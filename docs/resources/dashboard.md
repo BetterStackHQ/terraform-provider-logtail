@@ -59,17 +59,9 @@ resource "logtail_dashboard" "tuned" {
 
   # SQL-driven dropdown where several options can be picked at once
   variable {
-    name                  = "hosts"
-    variable_type         = "select_with_sql"
-    sql_definition        = "label('host')"
-    allow_multiple_values = true
-  }
-
-  # The same in the legacy multi_select_with_sql spelling
-  variable {
-    name           = "regions"
+    name           = "hosts"
     variable_type  = "multi_select_with_sql"
-    sql_definition = "label('region')"
+    sql_definition = "label('host')"
   }
 }
 
@@ -174,11 +166,10 @@ resource "logtail_dashboard" "imported" {
 Required:
 
 - `name` (String) The name of the variable (used as {{name}} in queries).
-- `variable_type` (String) The type of variable: 'source', 'string', 'number', 'date', 'datetime', 'boolean', 'sql_expression', 'select_value', or 'select_with_sql'. 'multi_select_with_sql' is the legacy spelling of 'select_with_sql' with allow_multiple_values set, kept for existing configurations.
+- `variable_type` (String) The type of variable: 'source', 'string', 'number', 'date', 'datetime', 'boolean', 'sql_expression', 'select_value', 'select_with_sql', or 'multi_select_with_sql'.
 
 Optional:
 
-- `allow_multiple_values` (Boolean) Whether a 'select_value' or 'select_with_sql' variable lets several options be picked at once. The selected values interpolate as a regex alternation, for use with match().
 - `default_values` (List of String) For 'string', 'number', and 'boolean' variables: fallback value used when `values` is empty. For 'select_value' variables: the predefined options shown in the picker. Unused for other types.
 - `sql_definition` (String) SQL definition for 'select_with_sql' or 'multi_select_with_sql' type variables.
 - `values` (List of String) The selected values. For 'source' variables these are the source IDs the variable resolves to (e.g. `logtail_source.web.id`) - this is the field that selects the source. For other types it is the current picker selection or input.

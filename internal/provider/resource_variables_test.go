@@ -157,6 +157,19 @@ func explorationEchoDefaults(attrs map[string]interface{}) {
 	}
 }
 
+// multiValuedEnvironment marks the environment variable multi-valued, as the dashboard editor can
+// for a select_value. The provider has no spelling for that and leaves the flag alone.
+func multiValuedEnvironment(augment func(map[string]interface{})) func(map[string]interface{}) {
+	return func(attrs map[string]interface{}) {
+		augment(attrs)
+		for _, v := range attrs["variables"].([]interface{}) {
+			if variable := v.(map[string]interface{}); variable["name"] == "environment" {
+				variable["allow_multiple_values"] = true
+			}
+		}
+	}
+}
+
 func checkLastRequestContains(lastRequest *atomic.Value, fragment string) resource.TestCheckFunc {
 	return func(*terraform.State) error {
 		body, _ := lastRequest.Load().([]byte)
@@ -175,142 +188,80 @@ func variableTestProviderFactories(server *httptest.Server) map[string]func() (*
 	}
 }
 
-// A multi_select_with_sql variable comes back from the API as select_with_sql with
-// allow_multiple_values, which is what state holds. The configured spelling must not show up as a
-// change on every plan, and an update of anything else resends the variable as the API stores it.
+// A multi_select_with_sql variable goes to the API as select_with_sql with allow_multiple_values
+// and comes back that way, so the read maps it to the configured spelling, or every plan shows
+// the variable changing. select_with_sql sends the flag off, the other types never send it, and
+// the flag the API reports on them is ignored.
 func TestResourceDashboardMultiSelectWithSQLVariable(t *testing.T) {
 	var lastRequest atomic.Value
-	server := variableEchoServer(t, "/api/v2/dashboards", dashboardEchoDefaults, &lastRequest)
+	server := variableEchoServer(t, "/api/v2/dashboards", multiValuedEnvironment(dashboardEchoDefaults), &lastRequest)
 	defer server.Close()
+
+	config := func(name string) string {
+		return fmt.Sprintf(`
+		provider "logtail" {
+			api_token = "foo"
+		}
+
+		resource "logtail_dashboard" "this" {
+			name = %q
+
+			variable {
+				name           = "hosts"
+				variable_type  = "multi_select_with_sql"
+				sql_definition = "label('host')"
+			}
+
+			variable {
+				name           = "level"
+				variable_type  = "select_with_sql"
+				sql_definition = "label('level')"
+			}
+
+			variable {
+				name           = "environment"
+				variable_type  = "select_value"
+				default_values = ["production", "staging"]
+				values         = ["production"]
+			}
+		}
+		`, name)
+	}
+	checks := resource.ComposeTestCheckFunc(
+		resource.TestCheckResourceAttr("logtail_dashboard.this", "variable.#", "3"),
+		resource.TestCheckResourceAttr("logtail_dashboard.this", "variable.0.name", "hosts"),
+		resource.TestCheckResourceAttr("logtail_dashboard.this", "variable.0.variable_type", "multi_select_with_sql"),
+		resource.TestCheckResourceAttr("logtail_dashboard.this", "variable.0.sql_definition", "label('host')"),
+		resource.TestCheckResourceAttr("logtail_dashboard.this", "variable.1.variable_type", "select_with_sql"),
+		resource.TestCheckResourceAttr("logtail_dashboard.this", "variable.2.variable_type", "select_value"),
+		checkLastRequestContains(&lastRequest, `"name":"hosts","variable_type":"select_with_sql","sql_definition":"label('host')","allow_multiple_values":true`),
+		checkLastRequestContains(&lastRequest, `"name":"level","variable_type":"select_with_sql","sql_definition":"label('level')","allow_multiple_values":false`),
+		checkLastRequestContains(&lastRequest, `"name":"environment","variable_type":"select_value","values":["production"],"default_values":["production","staging"]}`),
+	)
 
 	resource.Test(t, resource.TestCase{
 		IsUnitTest:        true,
 		ProviderFactories: variableTestProviderFactories(server),
 		Steps: []resource.TestStep{
 			{
-				Config: `
-				provider "logtail" {
-					api_token = "foo"
-				}
-
-				resource "logtail_dashboard" "this" {
-					name = "Multi-select variables"
-
-					variable {
-						name           = "hosts"
-						variable_type  = "multi_select_with_sql"
-						sql_definition = "label('host')"
-					}
-				}
-				`,
-				Check: resource.ComposeTestCheckFunc(
-					resource.TestCheckResourceAttr("logtail_dashboard.this", "variable.#", "1"),
-					resource.TestCheckResourceAttr("logtail_dashboard.this", "variable.0.name", "hosts"),
-					resource.TestCheckResourceAttr("logtail_dashboard.this", "variable.0.variable_type", "select_with_sql"),
-					resource.TestCheckResourceAttr("logtail_dashboard.this", "variable.0.allow_multiple_values", "true"),
-					resource.TestCheckResourceAttr("logtail_dashboard.this", "variable.0.sql_definition", "label('host')"),
-				),
+				Config: config("Multi-select variables"),
+				Check:  checks,
 			},
+			// An update of anything else resends the variables the same way.
 			{
-				Config: `
-				provider "logtail" {
-					api_token = "foo"
-				}
-
-				resource "logtail_dashboard" "this" {
-					name = "Multi-select variables, renamed"
-
-					variable {
-						name           = "hosts"
-						variable_type  = "multi_select_with_sql"
-						sql_definition = "label('host')"
-					}
-				}
-				`,
+				Config: config("Multi-select variables, renamed"),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("logtail_dashboard.this", "name", "Multi-select variables, renamed"),
-					resource.TestCheckResourceAttr("logtail_dashboard.this", "variable.0.variable_type", "select_with_sql"),
-					resource.TestCheckResourceAttr("logtail_dashboard.this", "variable.0.allow_multiple_values", "true"),
-					checkLastRequestContains(&lastRequest, `"name":"hosts","variable_type":"select_with_sql","sql_definition":"label('host')","allow_multiple_values":true`),
+					checks,
 				),
 			},
-		},
-	})
-}
-
-func TestResourceDashboardAllowMultipleValues(t *testing.T) {
-	var lastRequest atomic.Value
-	server := variableEchoServer(t, "/api/v2/dashboards", dashboardEchoDefaults, &lastRequest)
-	defer server.Close()
-
-	resource.Test(t, resource.TestCase{
-		IsUnitTest:        true,
-		ProviderFactories: variableTestProviderFactories(server),
-		Steps: []resource.TestStep{
+			// An import reads the API's select_with_sql with allow_multiple_values back as
+			// multi_select_with_sql, and surfaces the configured variables at all.
 			{
-				Config: `
-				provider "logtail" {
-					api_token = "foo"
-				}
-
-				resource "logtail_dashboard" "this" {
-					name = "Multi-select variables"
-
-					variable {
-						name                  = "environment"
-						variable_type         = "select_value"
-						default_values        = ["production", "staging"]
-						values                = ["production", "staging"]
-						allow_multiple_values = true
-					}
-
-					variable {
-						name                  = "hosts"
-						variable_type         = "select_with_sql"
-						sql_definition        = "label('host')"
-						allow_multiple_values = true
-					}
-				}
-				`,
-				Check: resource.ComposeTestCheckFunc(
-					resource.TestCheckResourceAttr("logtail_dashboard.this", "variable.#", "2"),
-					resource.TestCheckResourceAttr("logtail_dashboard.this", "variable.0.variable_type", "select_value"),
-					resource.TestCheckResourceAttr("logtail_dashboard.this", "variable.0.allow_multiple_values", "true"),
-					resource.TestCheckResourceAttr("logtail_dashboard.this", "variable.1.variable_type", "select_with_sql"),
-					resource.TestCheckResourceAttr("logtail_dashboard.this", "variable.1.allow_multiple_values", "true"),
-					checkLastRequestContains(&lastRequest, `"name":"hosts","variable_type":"select_with_sql","sql_definition":"label('host')","allow_multiple_values":true`),
-				),
-			},
-			// Turning the flag off has to reach the API as an explicit false.
-			{
-				Config: `
-				provider "logtail" {
-					api_token = "foo"
-				}
-
-				resource "logtail_dashboard" "this" {
-					name = "Multi-select variables"
-
-					variable {
-						name                  = "environment"
-						variable_type         = "select_value"
-						default_values        = ["production", "staging"]
-						values                = ["production"]
-						allow_multiple_values = false
-					}
-
-					variable {
-						name           = "hosts"
-						variable_type  = "select_with_sql"
-						sql_definition = "label('host')"
-					}
-				}
-				`,
-				Check: resource.ComposeTestCheckFunc(
-					resource.TestCheckResourceAttr("logtail_dashboard.this", "variable.0.allow_multiple_values", "false"),
-					resource.TestCheckResourceAttr("logtail_dashboard.this", "variable.1.allow_multiple_values", "false"),
-					checkLastRequestContains(&lastRequest, `"name":"hosts","variable_type":"select_with_sql","sql_definition":"label('host')","allow_multiple_values":false`),
-				),
+				ResourceName:      "logtail_dashboard.this",
+				ImportState:       true,
+				ImportStateVerify: true,
+				ImportStateId:     "7",
 			},
 		},
 	})
@@ -321,166 +272,68 @@ func TestResourceExplorationMultiSelectWithSQLVariable(t *testing.T) {
 	server := variableEchoServer(t, "/api/v2/explorations", explorationEchoDefaults, &lastRequest)
 	defer server.Close()
 
+	config := func(name string) string {
+		return fmt.Sprintf(`
+		provider "logtail" {
+			api_token = "foo"
+		}
+
+		resource "logtail_exploration" "this" {
+			name = %q
+
+			chart {
+				chart_type = "bar_chart"
+			}
+
+			query {
+				query_type = "sql_expression"
+				sql_query  = "SELECT {{time}} AS time, count(*) AS value FROM {{source}} WHERE time BETWEEN {{start_time}} AND {{end_time}} [[ AND match(JSONExtractString(raw, 'host'), {{hosts}}) ]] [[ AND JSONExtractString(raw, 'level') = {{level}} ]] GROUP BY time"
+			}
+
+			variable {
+				name           = "hosts"
+				variable_type  = "multi_select_with_sql"
+				sql_definition = "JSONExtractString(raw, 'host')"
+			}
+
+			variable {
+				name           = "level"
+				variable_type  = "select_with_sql"
+				sql_definition = "JSONExtractString(raw, 'level')"
+			}
+		}
+		`, name)
+	}
+	checks := resource.ComposeTestCheckFunc(
+		resource.TestCheckResourceAttr("logtail_exploration.this", "variable.#", "2"),
+		resource.TestCheckResourceAttr("logtail_exploration.this", "variable.0.name", "hosts"),
+		resource.TestCheckResourceAttr("logtail_exploration.this", "variable.0.variable_type", "multi_select_with_sql"),
+		resource.TestCheckResourceAttr("logtail_exploration.this", "variable.0.sql_definition", "JSONExtractString(raw, 'host')"),
+		resource.TestCheckResourceAttr("logtail_exploration.this", "variable.1.variable_type", "select_with_sql"),
+		checkLastRequestContains(&lastRequest, `"name":"hosts","variable_type":"select_with_sql","sql_definition":"JSONExtractString(raw, 'host')","allow_multiple_values":true`),
+		checkLastRequestContains(&lastRequest, `"name":"level","variable_type":"select_with_sql","sql_definition":"JSONExtractString(raw, 'level')","allow_multiple_values":false`),
+	)
+
 	resource.Test(t, resource.TestCase{
 		IsUnitTest:        true,
 		ProviderFactories: variableTestProviderFactories(server),
 		Steps: []resource.TestStep{
 			{
-				Config: `
-				provider "logtail" {
-					api_token = "foo"
-				}
-
-				resource "logtail_exploration" "this" {
-					name = "Multi-select variables"
-
-					chart {
-						chart_type = "bar_chart"
-					}
-
-					query {
-						query_type = "sql_expression"
-						sql_query  = "SELECT {{time}} AS time, count(*) AS value FROM {{source}} WHERE time BETWEEN {{start_time}} AND {{end_time}} [[ AND match(JSONExtractString(raw, 'host'), {{hosts}}) ]] GROUP BY time"
-					}
-
-					variable {
-						name           = "hosts"
-						variable_type  = "multi_select_with_sql"
-						sql_definition = "JSONExtractString(raw, 'host')"
-					}
-				}
-				`,
-				Check: resource.ComposeTestCheckFunc(
-					resource.TestCheckResourceAttr("logtail_exploration.this", "variable.#", "1"),
-					resource.TestCheckResourceAttr("logtail_exploration.this", "variable.0.name", "hosts"),
-					resource.TestCheckResourceAttr("logtail_exploration.this", "variable.0.variable_type", "select_with_sql"),
-					resource.TestCheckResourceAttr("logtail_exploration.this", "variable.0.allow_multiple_values", "true"),
-					resource.TestCheckResourceAttr("logtail_exploration.this", "variable.0.sql_definition", "JSONExtractString(raw, 'host')"),
-				),
+				Config: config("Multi-select variables"),
+				Check:  checks,
 			},
 			{
-				Config: `
-				provider "logtail" {
-					api_token = "foo"
-				}
-
-				resource "logtail_exploration" "this" {
-					name = "Multi-select variables, renamed"
-
-					chart {
-						chart_type = "bar_chart"
-					}
-
-					query {
-						query_type = "sql_expression"
-						sql_query  = "SELECT {{time}} AS time, count(*) AS value FROM {{source}} WHERE time BETWEEN {{start_time}} AND {{end_time}} [[ AND match(JSONExtractString(raw, 'host'), {{hosts}}) ]] GROUP BY time"
-					}
-
-					variable {
-						name           = "hosts"
-						variable_type  = "multi_select_with_sql"
-						sql_definition = "JSONExtractString(raw, 'host')"
-					}
-				}
-				`,
+				Config: config("Multi-select variables, renamed"),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("logtail_exploration.this", "name", "Multi-select variables, renamed"),
-					resource.TestCheckResourceAttr("logtail_exploration.this", "variable.0.variable_type", "select_with_sql"),
-					resource.TestCheckResourceAttr("logtail_exploration.this", "variable.0.allow_multiple_values", "true"),
-					checkLastRequestContains(&lastRequest, `"name":"hosts","variable_type":"select_with_sql","sql_definition":"JSONExtractString(raw, 'host')","allow_multiple_values":true`),
+					checks,
 				),
 			},
-			// An import reads the variable back in the form the API stores, and that matches a
-			// configuration in the legacy spelling without a change.
 			{
 				ResourceName:      "logtail_exploration.this",
 				ImportState:       true,
 				ImportStateVerify: true,
 				ImportStateId:     "7",
-			},
-		},
-	})
-}
-
-func TestResourceExplorationAllowMultipleValues(t *testing.T) {
-	var lastRequest atomic.Value
-	server := variableEchoServer(t, "/api/v2/explorations", explorationEchoDefaults, &lastRequest)
-	defer server.Close()
-
-	resource.Test(t, resource.TestCase{
-		IsUnitTest:        true,
-		ProviderFactories: variableTestProviderFactories(server),
-		Steps: []resource.TestStep{
-			{
-				Config: `
-				provider "logtail" {
-					api_token = "foo"
-				}
-
-				resource "logtail_exploration" "this" {
-					name = "Multi-select variables"
-
-					chart {
-						chart_type = "bar_chart"
-					}
-
-					query {
-						query_type = "sql_expression"
-						sql_query  = "SELECT {{time}} AS time, count(*) AS value FROM {{source}} WHERE time BETWEEN {{start_time}} AND {{end_time}} [[ AND match(JSONExtractString(raw, 'host'), {{hosts}}) ]] GROUP BY time"
-					}
-
-					variable {
-						name                  = "hosts"
-						variable_type         = "select_with_sql"
-						sql_definition        = "JSONExtractString(raw, 'host')"
-						allow_multiple_values = true
-					}
-				}
-				`,
-				Check: resource.ComposeTestCheckFunc(
-					resource.TestCheckResourceAttr("logtail_exploration.this", "variable.#", "1"),
-					resource.TestCheckResourceAttr("logtail_exploration.this", "variable.0.variable_type", "select_with_sql"),
-					resource.TestCheckResourceAttr("logtail_exploration.this", "variable.0.allow_multiple_values", "true"),
-					checkLastRequestContains(&lastRequest, `"name":"hosts","variable_type":"select_with_sql","sql_definition":"JSONExtractString(raw, 'host')","allow_multiple_values":true`),
-				),
-			},
-			// The flag is part of what an import reads back.
-			{
-				ResourceName:      "logtail_exploration.this",
-				ImportState:       true,
-				ImportStateVerify: true,
-				ImportStateId:     "7",
-			},
-			{
-				Config: `
-				provider "logtail" {
-					api_token = "foo"
-				}
-
-				resource "logtail_exploration" "this" {
-					name = "Multi-select variables"
-
-					chart {
-						chart_type = "bar_chart"
-					}
-
-					query {
-						query_type = "sql_expression"
-						sql_query  = "SELECT {{time}} AS time, count(*) AS value FROM {{source}} WHERE time BETWEEN {{start_time}} AND {{end_time}} [[ AND match(JSONExtractString(raw, 'host'), {{hosts}}) ]] GROUP BY time"
-					}
-
-					variable {
-						name                  = "hosts"
-						variable_type         = "select_with_sql"
-						sql_definition        = "JSONExtractString(raw, 'host')"
-						allow_multiple_values = false
-					}
-				}
-				`,
-				Check: resource.ComposeTestCheckFunc(
-					resource.TestCheckResourceAttr("logtail_exploration.this", "variable.0.allow_multiple_values", "false"),
-					checkLastRequestContains(&lastRequest, `"name":"hosts","variable_type":"select_with_sql","sql_definition":"JSONExtractString(raw, 'host')","allow_multiple_values":false`),
-				),
 			},
 		},
 	})

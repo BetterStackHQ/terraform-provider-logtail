@@ -70,7 +70,7 @@ resource "logtail_exploration" "level_breakdown" {
 
   query {
     query_type      = "sql_expression"
-    sql_query       = "SELECT JSONExtractString(raw, 'level') AS series, count(*) AS value FROM {{source}} WHERE time BETWEEN {{start_time}} AND {{end_time}} [[ AND match(series, {{level}}) ]] GROUP BY series"
+    sql_query       = "SELECT JSONExtractString(raw, 'level') AS series, count(*) AS value FROM {{source}} WHERE time BETWEEN {{start_time}} AND {{end_time}} [[ AND series = {{level}} ]] GROUP BY series"
     source_variable = "source"
   }
 
@@ -80,12 +80,10 @@ resource "logtail_exploration" "level_breakdown" {
     values        = [logtail_source.this.id]
   }
 
-  # Several levels can be picked at once
   variable {
-    name                  = "level"
-    variable_type         = "select_with_sql"
-    sql_definition        = "JSONExtractString(raw, 'level')"
-    allow_multiple_values = true
+    name           = "level"
+    variable_type  = "select_with_sql"
+    sql_definition = "JSONExtractString(raw, 'level')"
   }
 }
 
@@ -192,11 +190,10 @@ Read-Only:
 Required:
 
 - `name` (String) The name of the variable (used as {{name}} in queries).
-- `variable_type` (String) The type of variable: 'source', 'string', 'number', 'date', 'datetime', 'boolean', 'sql_expression', 'select_value', or 'select_with_sql'. 'multi_select_with_sql' is the legacy spelling of 'select_with_sql' with allow_multiple_values set, kept for existing configurations.
+- `variable_type` (String) The type of variable: 'source', 'string', 'number', 'date', 'datetime', 'boolean', 'sql_expression', 'select_value', 'select_with_sql', or 'multi_select_with_sql'.
 
 Optional:
 
-- `allow_multiple_values` (Boolean) Whether a 'select_value' or 'select_with_sql' variable lets several options be picked at once. The selected values interpolate as a regex alternation, for use with match().
 - `default_values` (List of String) For 'string', 'number', and 'boolean' variables: fallback value used when `values` is empty. For 'select_value' variables: the predefined options shown in the picker. Unused for other types.
 - `sql_definition` (String) SQL definition for 'select_with_sql' or 'multi_select_with_sql' type variables.
 - `values` (List of String) The selected values. For 'source' variables these are the source IDs the variable resolves to (e.g. `logtail_source.web.id`) - this is the field that selects the source. For other types it is the current picker selection or input.

@@ -44,17 +44,9 @@ resource "logtail_dashboard" "tuned" {
 
   # SQL-driven dropdown where several options can be picked at once
   variable {
-    name                  = "hosts"
-    variable_type         = "select_with_sql"
-    sql_definition        = "label('host')"
-    allow_multiple_values = true
-  }
-
-  # The same in the legacy multi_select_with_sql spelling
-  variable {
-    name           = "regions"
+    name           = "hosts"
     variable_type  = "multi_select_with_sql"
-    sql_definition = "label('region')"
+    sql_definition = "label('host')"
   }
 }
 

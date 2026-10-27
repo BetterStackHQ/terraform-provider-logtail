@@ -98,11 +98,10 @@ var dashboardSchema = map[string]*schema.Schema{
 					Required:    true,
 				},
 				"variable_type": {
-					Description:      "The type of variable: 'source', 'string', 'number', 'date', 'datetime', 'boolean', 'sql_expression', 'select_value', or 'select_with_sql'. 'multi_select_with_sql' is the legacy spelling of 'select_with_sql' with allow_multiple_values set, kept for existing configurations.",
-					Type:             schema.TypeString,
-					Required:         true,
-					ValidateFunc:     validation.StringInSlice([]string{"source", "string", "number", "date", "datetime", "boolean", "sql_expression", "select_value", "select_with_sql", "multi_select_with_sql"}, false),
-					DiffSuppressFunc: suppressLegacyMultiSelectVariableType,
+					Description:  "The type of variable: 'source', 'string', 'number', 'date', 'datetime', 'boolean', 'sql_expression', 'select_value', 'select_with_sql', or 'multi_select_with_sql'.",
+					Type:         schema.TypeString,
+					Required:     true,
+					ValidateFunc: validation.StringInSlice([]string{"source", "string", "number", "date", "datetime", "boolean", "sql_expression", "select_value", "select_with_sql", "multi_select_with_sql"}, false),
 				},
 				"values": {
 					Description: "The selected values. For 'source' variables these are the source IDs the variable resolves to (e.g. `logtail_source.web.id`) - this is the field that selects the source. For other types it is the current picker selection or input.",
@@ -123,13 +122,6 @@ var dashboardSchema = map[string]*schema.Schema{
 					Type:        schema.TypeString,
 					Optional:    true,
 					Computed:    true,
-				},
-				"allow_multiple_values": {
-					Description:      "Whether a 'select_value' or 'select_with_sql' variable lets several options be picked at once. The selected values interpolate as a regex alternation, for use with match().",
-					Type:             schema.TypeBool,
-					Optional:         true,
-					Default:          false,
-					DiffSuppressFunc: suppressAllowMultipleValuesOfLegacyType,
 				},
 			},
 		},
@@ -400,14 +392,11 @@ func loadDashboardCRUD(d *schema.ResourceData) dashboard {
 				variable.Name = &v
 			}
 			if v, ok := vMap["variable_type"].(string); ok && v != "" {
-				variable.VariableType = &v
+				variable.VariableType, variable.AllowMultipleValues = apiVariableType(v)
 			}
 			if v, ok := vMap["sql_definition"].(string); ok && v != "" {
 				variable.SQLDefinition = &v
 			}
-			// multi_select_with_sql is what the API stores as select_with_sql with the flag set.
-			allowMultipleValues := vMap["allow_multiple_values"] == true || vMap["variable_type"] == "multi_select_with_sql"
-			variable.AllowMultipleValues = &allowMultipleValues
 			if valuesData, ok := vMap["values"].([]interface{}); ok && len(valuesData) > 0 {
 				values := make([]string, 0, len(valuesData))
 				for _, val := range valuesData {
@@ -438,6 +427,9 @@ func loadDashboardCRUD(d *schema.ResourceData) dashboard {
 
 func dashboardCopyCRUDAttrs(d *schema.ResourceData, in *dashboard) diag.Diagnostics {
 	var derr diag.Diagnostics
+	// Only an import reads into a state without a name; a dashboard configured
+	// without variable blocks keeps its empty list on every other read.
+	importing := d.Get("name").(string) == ""
 
 	if in.Name != nil {
 		if err := d.Set("name", *in.Name); err != nil {
@@ -509,6 +501,21 @@ func dashboardCopyCRUDAttrs(d *schema.ResourceData, in *dashboard) diag.Diagnost
 				}
 			}
 		}
+		// On terraform import there is no prior config, so fall back to every
+		// variable the API returns that carries configuration, which leaves out
+		// the auto-created time variables and an unselected source variable.
+		if importing && len(userVarNames) == 0 {
+			for i := range in.Variables {
+				v := in.Variables[i]
+				if v.Name == nil || systemVars[*v.Name] {
+					continue
+				}
+				if len(v.Values) == 0 && len(v.DefaultValues) == 0 && (v.SQLDefinition == nil || *v.SQLDefinition == "") {
+					continue
+				}
+				userVarNames = append(userVarNames, *v.Name)
+			}
+		}
 
 		varData := make([]interface{}, 0, len(userVarNames))
 		for _, name := range userVarNames {
@@ -524,9 +531,8 @@ func dashboardCopyCRUDAttrs(d *schema.ResourceData, in *dashboard) diag.Diagnost
 			vMap := make(map[string]interface{})
 			vMap["name"] = name
 			if apiVar.VariableType != nil {
-				vMap["variable_type"] = *apiVar.VariableType
+				vMap["variable_type"] = configuredVariableType(*apiVar.VariableType, apiVar.AllowMultipleValues)
 			}
-			vMap["allow_multiple_values"] = apiVar.AllowMultipleValues != nil && *apiVar.AllowMultipleValues
 			if apiVar.SQLDefinition != nil {
 				vMap["sql_definition"] = *apiVar.SQLDefinition
 			}
