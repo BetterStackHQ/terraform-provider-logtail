@@ -176,8 +176,8 @@ func variableTestProviderFactories(server *httptest.Server) map[string]func() (*
 }
 
 // A multi_select_with_sql variable comes back from the API as select_with_sql with
-// allow_multiple_values. The configured spelling has to survive the read, or every plan shows the
-// variable changing, and an update of anything else resends it as configured.
+// allow_multiple_values, which is what state holds. The configured spelling must not show up as a
+// change on every plan, and an update of anything else resends the variable as the API stores it.
 func TestResourceDashboardMultiSelectWithSQLVariable(t *testing.T) {
 	var lastRequest atomic.Value
 	server := variableEchoServer(t, "/api/v2/dashboards", dashboardEchoDefaults, &lastRequest)
@@ -206,7 +206,8 @@ func TestResourceDashboardMultiSelectWithSQLVariable(t *testing.T) {
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("logtail_dashboard.this", "variable.#", "1"),
 					resource.TestCheckResourceAttr("logtail_dashboard.this", "variable.0.name", "hosts"),
-					resource.TestCheckResourceAttr("logtail_dashboard.this", "variable.0.variable_type", "multi_select_with_sql"),
+					resource.TestCheckResourceAttr("logtail_dashboard.this", "variable.0.variable_type", "select_with_sql"),
+					resource.TestCheckResourceAttr("logtail_dashboard.this", "variable.0.allow_multiple_values", "true"),
 					resource.TestCheckResourceAttr("logtail_dashboard.this", "variable.0.sql_definition", "label('host')"),
 				),
 			},
@@ -228,8 +229,9 @@ func TestResourceDashboardMultiSelectWithSQLVariable(t *testing.T) {
 				`,
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("logtail_dashboard.this", "name", "Multi-select variables, renamed"),
-					resource.TestCheckResourceAttr("logtail_dashboard.this", "variable.0.variable_type", "multi_select_with_sql"),
-					checkLastRequestContains(&lastRequest, `"variable_type":"multi_select_with_sql"`),
+					resource.TestCheckResourceAttr("logtail_dashboard.this", "variable.0.variable_type", "select_with_sql"),
+					resource.TestCheckResourceAttr("logtail_dashboard.this", "variable.0.allow_multiple_values", "true"),
+					checkLastRequestContains(&lastRequest, `"name":"hosts","variable_type":"select_with_sql","sql_definition":"label('host')","allow_multiple_values":true`),
 				),
 			},
 		},
@@ -351,7 +353,8 @@ func TestResourceExplorationMultiSelectWithSQLVariable(t *testing.T) {
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("logtail_exploration.this", "variable.#", "1"),
 					resource.TestCheckResourceAttr("logtail_exploration.this", "variable.0.name", "hosts"),
-					resource.TestCheckResourceAttr("logtail_exploration.this", "variable.0.variable_type", "multi_select_with_sql"),
+					resource.TestCheckResourceAttr("logtail_exploration.this", "variable.0.variable_type", "select_with_sql"),
+					resource.TestCheckResourceAttr("logtail_exploration.this", "variable.0.allow_multiple_values", "true"),
 					resource.TestCheckResourceAttr("logtail_exploration.this", "variable.0.sql_definition", "JSONExtractString(raw, 'host')"),
 				),
 			},
@@ -382,9 +385,18 @@ func TestResourceExplorationMultiSelectWithSQLVariable(t *testing.T) {
 				`,
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("logtail_exploration.this", "name", "Multi-select variables, renamed"),
-					resource.TestCheckResourceAttr("logtail_exploration.this", "variable.0.variable_type", "multi_select_with_sql"),
-					checkLastRequestContains(&lastRequest, `"variable_type":"multi_select_with_sql"`),
+					resource.TestCheckResourceAttr("logtail_exploration.this", "variable.0.variable_type", "select_with_sql"),
+					resource.TestCheckResourceAttr("logtail_exploration.this", "variable.0.allow_multiple_values", "true"),
+					checkLastRequestContains(&lastRequest, `"name":"hosts","variable_type":"select_with_sql","sql_definition":"JSONExtractString(raw, 'host')","allow_multiple_values":true`),
 				),
+			},
+			// An import reads the variable back in the form the API stores, and that matches a
+			// configuration in the legacy spelling without a change.
+			{
+				ResourceName:      "logtail_exploration.this",
+				ImportState:       true,
+				ImportStateVerify: true,
+				ImportStateId:     "7",
 			},
 		},
 	})

@@ -55,7 +55,7 @@ resource "logtail_exploration" "level_breakdown" {
 
   query {
     query_type      = "sql_expression"
-    sql_query       = "SELECT JSONExtractString(raw, 'level') AS series, count(*) AS value FROM {{source}} WHERE time BETWEEN {{start_time}} AND {{end_time}} [[ AND series = {{level}} ]] GROUP BY series"
+    sql_query       = "SELECT JSONExtractString(raw, 'level') AS series, count(*) AS value FROM {{source}} WHERE time BETWEEN {{start_time}} AND {{end_time}} [[ AND match(series, {{level}}) ]] GROUP BY series"
     source_variable = "source"
   }
 
@@ -65,10 +65,12 @@ resource "logtail_exploration" "level_breakdown" {
     values        = [logtail_source.this.id]
   }
 
+  # Several levels can be picked at once
   variable {
-    name           = "level"
-    variable_type  = "select_with_sql"
-    sql_definition = "JSONExtractString(raw, 'level')"
+    name                  = "level"
+    variable_type         = "select_with_sql"
+    sql_definition        = "JSONExtractString(raw, 'level')"
+    allow_multiple_values = true
   }
 }
 

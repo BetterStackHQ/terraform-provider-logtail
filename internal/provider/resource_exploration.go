@@ -181,10 +181,11 @@ var explorationSchema = map[string]*schema.Schema{
 					Required:    true,
 				},
 				"variable_type": {
-					Description:  "The type of variable: 'source', 'string', 'number', 'date', 'datetime', 'boolean', 'sql_expression', 'select_value', 'select_with_sql', or 'multi_select_with_sql'.",
-					Type:         schema.TypeString,
-					Required:     true,
-					ValidateFunc: validation.StringInSlice([]string{"source", "string", "number", "date", "datetime", "boolean", "sql_expression", "select_value", "select_with_sql", "multi_select_with_sql"}, false),
+					Description:      "The type of variable: 'source', 'string', 'number', 'date', 'datetime', 'boolean', 'sql_expression', 'select_value', or 'select_with_sql'. 'multi_select_with_sql' is the legacy spelling of 'select_with_sql' with allow_multiple_values set, kept for existing configurations.",
+					Type:             schema.TypeString,
+					Required:         true,
+					ValidateFunc:     validation.StringInSlice([]string{"source", "string", "number", "date", "datetime", "boolean", "sql_expression", "select_value", "select_with_sql", "multi_select_with_sql"}, false),
+					DiffSuppressFunc: suppressLegacyMultiSelectVariableType,
 				},
 				"values": {
 					Description: "The selected values. For 'source' variables these are the source IDs the variable resolves to (e.g. `logtail_source.web.id`) - this is the field that selects the source. For other types it is the current picker selection or input.",
@@ -202,6 +203,13 @@ var explorationSchema = map[string]*schema.Schema{
 					Description: "SQL definition for 'select_with_sql' or 'multi_select_with_sql' type variables.",
 					Type:        schema.TypeString,
 					Optional:    true,
+				},
+				"allow_multiple_values": {
+					Description:      "Whether a 'select_value' or 'select_with_sql' variable lets several options be picked at once. The selected values interpolate as a regex alternation, for use with match().",
+					Type:             schema.TypeBool,
+					Optional:         true,
+					Default:          false,
+					DiffSuppressFunc: suppressAllowMultipleValuesOfLegacyType,
 				},
 			},
 		},
@@ -242,11 +250,12 @@ type explorationQuery struct {
 }
 
 type explorationVariable struct {
-	Name          *string  `json:"name,omitempty"`
-	VariableType  *string  `json:"variable_type,omitempty"`
-	Values        []string `json:"values,omitempty"`
-	DefaultValues []string `json:"default_values,omitempty"`
-	SQLDefinition *string  `json:"sql_definition,omitempty"`
+	Name                *string  `json:"name,omitempty"`
+	VariableType        *string  `json:"variable_type,omitempty"`
+	Values              []string `json:"values,omitempty"`
+	DefaultValues       []string `json:"default_values,omitempty"`
+	SQLDefinition       *string  `json:"sql_definition,omitempty"`
+	AllowMultipleValues *bool    `json:"allow_multiple_values,omitempty"`
 }
 
 type exploration struct {
@@ -400,6 +409,9 @@ func loadExploration(d *schema.ResourceData) exploration {
 			if v, ok := vMap["sql_definition"].(string); ok && v != "" {
 				variable.SQLDefinition = &v
 			}
+			// multi_select_with_sql is what the API stores as select_with_sql with the flag set.
+			allowMultipleValues := vMap["allow_multiple_values"] == true || vMap["variable_type"] == "multi_select_with_sql"
+			variable.AllowMultipleValues = &allowMultipleValues
 
 			// Load values array
 			if valuesData, ok := vMap["values"].([]interface{}); ok && len(valuesData) > 0 {
@@ -599,6 +611,7 @@ func explorationCopyAttrs(d *schema.ResourceData, in *exploration) diag.Diagnost
 			if apiVar.VariableType != nil {
 				vMap["variable_type"] = *apiVar.VariableType
 			}
+			vMap["allow_multiple_values"] = apiVar.AllowMultipleValues != nil && *apiVar.AllowMultipleValues
 			if apiVar.SQLDefinition != nil {
 				vMap["sql_definition"] = *apiVar.SQLDefinition
 			}

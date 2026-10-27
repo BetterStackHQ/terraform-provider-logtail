@@ -72,6 +72,7 @@ Read-Only:
 
 Read-Only:
 
+- `allow_multiple_values` (Boolean)
 - `default_values` (List of String)
 - `name` (String)
 - `sql_definition` (String)
