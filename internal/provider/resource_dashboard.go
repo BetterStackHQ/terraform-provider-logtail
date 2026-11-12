@@ -284,6 +284,11 @@ func dashboardCreateImportMode(ctx context.Context, d *schema.ResourceData, meta
 		return diag.FromErr(err)
 	}
 
+	// The import endpoint takes only name and data, so the group is set by a follow-up update.
+	if groupID := intFromResourceData(d, "dashboard_group_id"); groupID != nil && *groupID != 0 {
+		return dashboardUpdate(ctx, d, meta)
+	}
+
 	return nil
 }
 
@@ -327,10 +332,9 @@ func dashboardReadImportMode(d *schema.ResourceData, attrs *dashboard) diag.Diag
 			return diag.FromErr(err)
 		}
 	}
-	if attrs.DashboardGroupID != nil {
-		if err := d.Set("dashboard_group_id", *attrs.DashboardGroupID); err != nil {
-			return diag.FromErr(err)
-		}
+	// Set even when the API returns null: a dashboard outside any group must not keep its old group in state.
+	if err := d.Set("dashboard_group_id", attrs.DashboardGroupID); err != nil {
+		return diag.FromErr(err)
 	}
 	if attrs.CreatedAt != nil {
 		if err := d.Set("created_at", attrs.CreatedAt); err != nil {
@@ -441,10 +445,9 @@ func dashboardCopyCRUDAttrs(d *schema.ResourceData, in *dashboard) diag.Diagnost
 			derr = append(derr, diag.FromErr(err)[0])
 		}
 	}
-	if in.DashboardGroupID != nil {
-		if err := d.Set("dashboard_group_id", *in.DashboardGroupID); err != nil {
-			derr = append(derr, diag.FromErr(err)[0])
-		}
+	// Set even when the API returns null: a dashboard outside any group must not keep its old group in state.
+	if err := d.Set("dashboard_group_id", in.DashboardGroupID); err != nil {
+		derr = append(derr, diag.FromErr(err)[0])
 	}
 	if in.RefreshInterval != nil {
 		if err := d.Set("refresh_interval", *in.RefreshInterval); err != nil {

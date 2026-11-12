@@ -1,6 +1,6 @@
 SHELL := /bin/bash
 GOLANGCI_LINT := golangci-lint run
-VERSION := 11.4.2
+VERSION := 11.4.3
 .PHONY: test build
 
 help:

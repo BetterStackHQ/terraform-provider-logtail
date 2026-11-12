@@ -13,6 +13,7 @@ import (
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
 )
 
 func TestResourceDashboard(t *testing.T) {
@@ -378,6 +379,198 @@ func TestResourceDashboardDualModeValidation(t *testing.T) {
 				}
 				`,
 				ExpectError: regexp.MustCompile(`cannot use 'data' \(import mode\) together with individual dashboard fields`),
+			},
+		},
+	})
+}
+
+// newDashboardGroupServer serves one dashboard and keeps the group it is filed in, 0 meaning no group.
+// Like the API, the import endpoint takes only name and data, and an ungrouped dashboard reads back
+// with "dashboard_group_id": null.
+func newDashboardGroupServer(t *testing.T) (*httptest.Server, *atomic.Int64) {
+	var groupID atomic.Int64
+
+	respond := func(w http.ResponseWriter, status int) {
+		group := "null"
+		if id := groupID.Load(); id > 0 {
+			group = fmt.Sprintf("%d", id)
+		}
+		w.WriteHeader(status)
+		_, _ = w.Write([]byte(fmt.Sprintf(`{"data":{"id":"1","type":"dashboard","attributes":{"name":"Test Dashboard","team_id":123,"dashboard_group_id":%s,"refresh_interval":30,"date_range_from":"now-3h","date_range_to":"now","created_at":"2025-01-20T15:00:00.000Z","updated_at":"2025-01-20T15:00:00.000Z"}}}`, group)))
+	}
+	readBody := func(r *http.Request) map[string]interface{} {
+		raw, err := io.ReadAll(r.Body)
+		if err != nil {
+			t.Fatal(err)
+		}
+		var body map[string]interface{}
+		if err := json.Unmarshal(raw, &body); err != nil {
+			t.Fatal(err)
+		}
+		return body
+	}
+	storeGroup := func(body map[string]interface{}) {
+		if id, ok := body["dashboard_group_id"].(float64); ok {
+			groupID.Store(int64(id))
+		}
+	}
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		t.Log("Received " + r.Method + " " + r.RequestURI)
+
+		switch {
+		case r.Method == http.MethodPost && r.RequestURI == "/api/v2/dashboards/import":
+			if _, ok := readBody(r)["dashboard_group_id"]; ok {
+				w.WriteHeader(http.StatusUnprocessableEntity)
+				_, _ = w.Write([]byte(`{"errors":"Invalid attributes: dashboard_group_id"}`))
+				return
+			}
+			groupID.Store(0)
+			respond(w, http.StatusCreated)
+
+		case r.Method == http.MethodPost && r.RequestURI == "/api/v2/dashboards":
+			groupID.Store(0)
+			storeGroup(readBody(r))
+			respond(w, http.StatusCreated)
+
+		case r.Method == http.MethodPatch && r.RequestURI == "/api/v2/dashboards/1":
+			storeGroup(readBody(r))
+			respond(w, http.StatusOK)
+
+		case r.Method == http.MethodGet && r.RequestURI == "/api/v2/dashboards/1":
+			respond(w, http.StatusOK)
+
+		case r.Method == http.MethodDelete && r.RequestURI == "/api/v2/dashboards/1":
+			w.WriteHeader(http.StatusNoContent)
+
+		default:
+			t.Fatal("Unexpected " + r.Method + " " + r.RequestURI)
+		}
+	}))
+
+	return server, &groupID
+}
+
+func checkDashboardServerGroup(groupID *atomic.Int64, expected int64) resource.TestCheckFunc {
+	return func(*terraform.State) error {
+		if actual := groupID.Load(); actual != expected {
+			return fmt.Errorf("the API has the dashboard in group %d, expected %d", actual, expected)
+		}
+		return nil
+	}
+}
+
+func dashboardGroupProviderFactories(server *httptest.Server) map[string]func() (*schema.Provider, error) {
+	return map[string]func() (*schema.Provider, error){
+		"logtail": func() (*schema.Provider, error) {
+			return New(WithURL(server.URL)), nil
+		},
+	}
+}
+
+const dashboardImportModeInGroupConfig = `
+provider "logtail" {
+	api_token = "foo"
+}
+
+resource "logtail_dashboard" "this" {
+	name               = "Test Dashboard"
+	data               = "{\"charts\":[],\"sections\":[]}"
+	dashboard_group_id = 42
+}
+`
+
+func TestResourceDashboardImportModeCreatesInGroup(t *testing.T) {
+	server, groupID := newDashboardGroupServer(t)
+	defer server.Close()
+
+	resource.Test(t, resource.TestCase{
+		IsUnitTest:        true,
+		ProviderFactories: dashboardGroupProviderFactories(server),
+		Steps: []resource.TestStep{
+			{
+				Config: dashboardImportModeInGroupConfig,
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr("logtail_dashboard.this", "dashboard_group_id", "42"),
+					checkDashboardServerGroup(groupID, 42),
+				),
+			},
+		},
+	})
+}
+
+func TestResourceDashboardImportModeDetectsGroupDrift(t *testing.T) {
+	server, groupID := newDashboardGroupServer(t)
+	defer server.Close()
+
+	resource.Test(t, resource.TestCase{
+		IsUnitTest:        true,
+		ProviderFactories: dashboardGroupProviderFactories(server),
+		Steps: []resource.TestStep{
+			// Step 1 - create without a group
+			{
+				Config: `
+				provider "logtail" {
+					api_token = "foo"
+				}
+
+				resource "logtail_dashboard" "this" {
+					name = "Test Dashboard"
+					data = "{\"charts\":[],\"sections\":[]}"
+				}
+				`,
+				Check: checkDashboardServerGroup(groupID, 0),
+			},
+			// Step 2 - file it in a group
+			{
+				Config: dashboardImportModeInGroupConfig,
+				Check:  checkDashboardServerGroup(groupID, 42),
+			},
+			// Step 3 - the dashboard left its group outside Terraform, the next apply files it back
+			{
+				PreConfig: func() { groupID.Store(0) },
+				Config:    dashboardImportModeInGroupConfig,
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr("logtail_dashboard.this", "dashboard_group_id", "42"),
+					checkDashboardServerGroup(groupID, 42),
+				),
+			},
+		},
+	})
+}
+
+func TestResourceDashboardCRUDModeDetectsGroupDrift(t *testing.T) {
+	server, groupID := newDashboardGroupServer(t)
+	defer server.Close()
+
+	config := `
+	provider "logtail" {
+		api_token = "foo"
+	}
+
+	resource "logtail_dashboard" "this" {
+		name               = "Test Dashboard"
+		dashboard_group_id = 42
+	}
+	`
+
+	resource.Test(t, resource.TestCase{
+		IsUnitTest:        true,
+		ProviderFactories: dashboardGroupProviderFactories(server),
+		Steps: []resource.TestStep{
+			// Step 1 - create in a group
+			{
+				Config: config,
+				Check:  checkDashboardServerGroup(groupID, 42),
+			},
+			// Step 2 - the dashboard left its group outside Terraform, the next apply files it back
+			{
+				PreConfig: func() { groupID.Store(0) },
+				Config:    config,
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr("logtail_dashboard.this", "dashboard_group_id", "42"),
+					checkDashboardServerGroup(groupID, 42),
+				),
 			},
 		},
 	})
