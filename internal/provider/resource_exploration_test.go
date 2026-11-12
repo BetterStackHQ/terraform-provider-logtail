@@ -534,3 +534,103 @@ func TestResourceExplorationWithVariables(t *testing.T) {
 		},
 	})
 }
+
+func TestResourceExplorationDetectsGroupDrift(t *testing.T) {
+	// The group the API has the exploration filed in, 0 meaning no group.
+	var groupID atomic.Int64
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		t.Log("Received " + r.Method + " " + r.RequestURI)
+
+		storeGroup := func() {
+			raw, err := io.ReadAll(r.Body)
+			if err != nil {
+				t.Fatal(err)
+			}
+			var body map[string]interface{}
+			if err := json.Unmarshal(raw, &body); err != nil {
+				t.Fatal(err)
+			}
+			if id, ok := body["exploration_group_id"].(float64); ok {
+				groupID.Store(int64(id))
+			}
+		}
+		// Like the API, an ungrouped exploration reads back with "exploration_group_id": null.
+		respond := func(status int) {
+			group := "null"
+			if id := groupID.Load(); id > 0 {
+				group = fmt.Sprintf("%d", id)
+			}
+			w.WriteHeader(status)
+			_, _ = w.Write([]byte(fmt.Sprintf(`{"data":{"id":"1","attributes":{"name":"Test Exploration","exploration_group_id":%s,"date_range_from":"now-3h","date_range_to":"now","chart":{"chart_type":"line_chart","name":"Test Exploration","description":"","settings":{}},"queries":[{"id":1,"name":"","query_type":"sql_expression","sql_query":"SELECT 1","where_condition":"","static_text":"","source_variable":"source"}],"created_at":"2023-01-01T00:00:00Z","updated_at":"2023-01-01T00:00:00Z"}}}`, group)))
+		}
+
+		switch {
+		case r.Method == http.MethodPost && r.RequestURI == "/api/v2/explorations":
+			groupID.Store(0)
+			storeGroup()
+			respond(http.StatusCreated)
+		case r.Method == http.MethodPatch && r.RequestURI == "/api/v2/explorations/1":
+			storeGroup()
+			respond(http.StatusOK)
+		case r.Method == http.MethodGet && r.RequestURI == "/api/v2/explorations/1":
+			respond(http.StatusOK)
+		case r.Method == http.MethodDelete && r.RequestURI == "/api/v2/explorations/1":
+			w.WriteHeader(http.StatusNoContent)
+		default:
+			t.Fatal("Unexpected " + r.Method + " " + r.RequestURI)
+		}
+	}))
+	defer server.Close()
+
+	config := `
+	provider "logtail" {
+		api_token = "foo"
+	}
+
+	resource "logtail_exploration" "this" {
+		name                 = "Test Exploration"
+		exploration_group_id = 42
+
+		chart {
+			chart_type = "line_chart"
+		}
+
+		query {
+			query_type = "sql_expression"
+			sql_query  = "SELECT 1"
+		}
+	}
+	`
+	checkServerGroup := func(*terraform.State) error {
+		if actual := groupID.Load(); actual != 42 {
+			return fmt.Errorf("the API has the exploration in group %d, expected 42", actual)
+		}
+		return nil
+	}
+
+	resource.Test(t, resource.TestCase{
+		IsUnitTest: true,
+		ProviderFactories: map[string]func() (*schema.Provider, error){
+			"logtail": func() (*schema.Provider, error) {
+				return New(WithURL(server.URL)), nil
+			},
+		},
+		Steps: []resource.TestStep{
+			// Step 1 - create in a group
+			{
+				Config: config,
+				Check:  checkServerGroup,
+			},
+			// Step 2 - the exploration left its group outside Terraform, the next apply files it back
+			{
+				PreConfig: func() { groupID.Store(0) },
+				Config:    config,
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr("logtail_exploration.this", "exploration_group_id", "42"),
+					checkServerGroup,
+				),
+			},
+		},
+	})
+}
