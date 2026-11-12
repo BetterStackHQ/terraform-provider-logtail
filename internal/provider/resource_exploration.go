@@ -452,10 +452,9 @@ func explorationCopyAttrs(d *schema.ResourceData, in *exploration) diag.Diagnost
 			derr = append(derr, diag.FromErr(err)[0])
 		}
 	}
-	if in.ExplorationGroupID != nil {
-		if err := d.Set("exploration_group_id", *in.ExplorationGroupID); err != nil {
-			derr = append(derr, diag.FromErr(err)[0])
-		}
+	// Set even when the API returns null: an exploration outside any group must not keep its old group in state.
+	if err := d.Set("exploration_group_id", in.ExplorationGroupID); err != nil {
+		derr = append(derr, diag.FromErr(err)[0])
 	}
 	if in.CreatedAt != nil {
 		if err := d.Set("created_at", *in.CreatedAt); err != nil {
