@@ -134,8 +134,9 @@ jobs:
           done
           # Flatten in every documented example, except: source_aws_account (needs AWS
           # credentials), source_gcp_project (needs GCP credentials), and connection
-          # (needs a global token; see examples/connection).
-          deny=" logtail_source_aws_account logtail_source_gcp_project logtail_connection "
+          # (needs a global token; see examples/connection), and the errors integrations (each
+          # adopts an integration connected through OAuth in the UI, which the E2E team has none of).
+          deny=" logtail_source_aws_account logtail_source_gcp_project logtail_connection logtail_errors_slack_integration logtail_errors_microsoft_teams_integration logtail_errors_linear_integration logtail_errors_jira_integration "
           for f in examples/resources/*/*.tf examples/data-sources/*/*.tf; do
             dir="$(basename "$(dirname "$f")")"
             case "$deny" in *" $dir "*) continue ;; esac
